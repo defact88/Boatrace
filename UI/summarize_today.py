@@ -1,0 +1,703 @@
+﻿# -*- coding: utf-8 -*-
+# summarize_today_info.py
+
+from __future__  import annotations
+from dataclasses import dataclass, field
+from datetime    import datetime, timedelta, timezone, date
+from typing      import Dict, List, Optional, Tuple
+import sqlite3, subprocess, threading, time, sys, os, signal, argparse, re, json
+
+VENUES = [ "桐   生",  "戸   田", "江戸川", "平和島", "多摩川", "浜名湖", "蒲   郡", "常   滑",
+           "   津   ", "三   国", "び わ こ", "住之江", "尼   崎", "鳴   門", "丸   亀", "児   島",
+           "宮   島",  "徳   山", "下   関", "若   松", "芦   屋", "福   岡", "唐   津", "大   村", ]
+# ---- 環境設定 ----------------------------------
+BASE_DIR       = r"C:\boatrace"
+DB_PATH        = os.path.join(BASE_DIR, "boatrace.db")
+SP_DIR         = os.path.join(BASE_DIR, r"UI\Subprocess")
+SP_INFO        = os.path.join(SP_DIR, "get_today_info.py")
+SP_BEFORE      = os.path.join(SP_DIR, "import_Display_run.py")
+SP_RESULT      = os.path.join(SP_DIR, "import_result_today.py")
+CTL_PATH       = os.path.join(BASE_DIR, r"tmp\json\ctl.json")
+
+# ---- ルール（再試行など） ----------------------
+CHANGE_INTERVAL = 300  # Change: 1R締切から n秒 間隔で巡回
+CANCEL_INTERVAL = 15   # Cancel:            n分 間隔で巡回
+OFFSET_DISPLAY  = 12   # 展示:   前レース締切から n分後 に実行
+OFFSET_RESULT   = 25   # 結果: 当該レース締切から n分後 に実行
+RETRY_DIS       = 60   # 展示：未反映なら n秒後に再試行
+RETRY_RES       = 180  # 結果：未反映なら n秒後に再試行
+RETRY_NUM       = 10
+JST             = timezone(timedelta(hours=9))
+# ---- タスク定義 --------------------------------
+@dataclass
+class Task:
+    kind:        str
+    run_at:      datetime
+    d:           date
+    venue_id:    int
+    race_no:     int
+    tries:       int                = 0
+    last_error:  Optional[str]      = None
+    next_try_at: Optional[datetime] = None   # 次回再試行時刻
+    disabled:    bool               = False  # 10連続失敗で無効化
+    meta: Dict = field(default_factory=dict) # 内部用メモ
+    inflight:    bool               = False  # 起動中
+
+# ========================= 本体クラス ===============================
+class SummarizeTodayInfo:
+    def __init__(self, db_path:str=DB_PATH, monitor:bool=True):
+
+        self.db_path           = db_path
+        self.monitor           = monitor
+        self.conn              = sqlite3.connect(self.db_path)
+        self.conn.row_factory  = sqlite3.Row
+        self._stop             = False
+        self._lock             = threading.Lock()
+        self.running           = {"display": 0, "result": 0, "change": 0, "cancel": 0}
+        self.run_limit         = {"display": 2, "result": 2, "change": 3, "cancel": 1}
+        self._threads          = set()
+        self._ctl_prev_mute    = None
+        self.tasks:      List[Task] = []
+        self.late_tasks: List[Task] = []
+
+        th = threading.Thread(target=self._ctl_watch, daemon=True)
+        th.start()
+        self._threads.add(th)
+
+    # ---------------------- 公開 API ----------------------
+    def build_schedule_for_date(self, d:date):
+
+        now  = self._now()
+        cur  = self.conn.cursor()
+        rows = cur.execute( """
+                            SELECT venue_id, race_no,
+                                   MIN(deadline_vote) AS dl, 
+                                   MIN(series_title)  AS series_title,
+                                   MIN(grade)         AS grade,
+                                   MIN(day_no)        AS day_no,
+                                   MIN(race_title)    AS race_title
+                              FROM Race_programs
+                             WHERE date=?
+                          GROUP BY venue_id, race_no
+                          ORDER BY venue_id, race_no
+                            """, 
+                            (d.strftime("%Y-%m-%d"),)                  ).fetchall()
+
+        by_v = {}
+
+        for v_id, rno, dl, _st, _gr, _dn, _rt in rows:
+            by_v.setdefault(v_id, []).append({"race_no": int(rno), "deadline": dl})
+
+        new_tasks: List[Task] = []
+        late_tasks:List[Task] = []
+
+        for v_id, lst in by_v.items():
+            lst_sorted    = sorted(lst, key=lambda x:x["race_no"])
+            prev_deadline = None
+
+            for rec in lst_sorted:
+                rno      = rec["race_no"]
+                deadline = self._parse_deadline(rec["deadline"])
+
+                if not self._exists_display_info(d, v_id, rno):
+
+                    if now > deadline:
+                        late_tasks.append( Task( kind="display", run_at=now, d=d,
+                                                 venue_id=v_id, race_no=rno, meta={"prio":0} ) )
+                    else:
+                        if rno == 1: run_d =      deadline -timedelta(minutes=15)
+                        else:        run_d = prev_deadline +timedelta(minutes=OFFSET_DISPLAY)
+                        new_tasks.append( Task( kind="display", run_at=run_d, d=d,
+                                                venue_id=v_id, race_no=rno, meta={"prio":1} ) )
+
+                if not self._exists_result(d, v_id, rno):
+
+                    if now > deadline +timedelta(minutes=60):
+                        late_tasks.append( Task( kind="result", run_at=now, d=d,
+                                                 venue_id=v_id, race_no=rno, meta={"prio":0} ) )
+                    else:
+                        run_r = deadline +timedelta(minutes=OFFSET_RESULT)
+                        new_tasks.append( Task( kind="result", run_at=run_r, d=d,
+                                                venue_id=v_id, race_no=rno, meta={"prio":1} ) )
+
+                prev_deadline = deadline
+
+            lst_valid = [x for x in lst_sorted if x["deadline"]]
+            if lst_valid:
+                first_deadline = self._parse_deadline(lst_valid[0]["deadline"])
+                last_deadline  = self._parse_deadline(lst_valid[-1]["deadline"])
+
+                if first_deadline and last_deadline and now < last_deadline:
+                    new_tasks.append( Task( kind="change", run_at=first_deadline, d=d, race_no=1,
+                                            venue_id=v_id, meta={"last_deadline":last_deadline}  ) )
+
+        new_tasks.append( Task( kind="cancel", run_at=now, d=d, venue_id=0, race_no=0,
+                                meta={"interval_min": CANCEL_INTERVAL}                 ) )
+
+        with self._lock: 
+            self.tasks.extend(new_tasks)
+            self.late_tasks.extend(late_tasks)
+
+        if self.monitor:
+            bc = sum(1 for t in new_tasks if t.kind == "display")
+            rc = sum(1 for t in new_tasks if t.kind == "result")
+            cc = sum(1 for t in new_tasks if t.kind == "change")
+            kc = sum(1 for t in new_tasks if t.kind == "cancel")
+
+            self._log( f"tasks={len(new_tasks)}: dspl={bc} rslt={rc} change={cc} cancel={kc}"                             )
+
+    # ------------------------------------------------------
+    def _rebuild_schedule_for_venue(self, d:date, venue_id:int):
+
+        now  = self._now()
+        cur  = self.conn.cursor()
+        rows = cur.execute( """
+                            SELECT race_no, MIN(deadline_vote) AS dl
+                              FROM Race_programs
+                             WHERE date=? AND venue_id=?
+                          GROUP BY race_no
+                          ORDER BY race_no
+                            """,
+                             (d.strftime("%Y-%m-%d"), venue_id)       ).fetchall()
+
+        if not rows: return
+
+        with self._lock:
+            self.tasks = [ t for t in self.tasks
+                           if not ( t.d==d and     t.venue_id ==  venue_id
+                                           and     t.kind     in ("display","result")
+                                           and not t.inflight
+                                           and not t.disabled                         ) ]
+
+        lst_sorted            = [ {"race_no":int(r), "deadline":dl} for (r, dl) in rows ]
+        prev_deadline         = None
+        new_tasks: List[Task] = []
+        late_tasks:List[Task] = []
+
+        for rec in lst_sorted:
+            rno      = rec["race_no"]
+            deadline = self._parse_deadline(rec["deadline"])
+            prio     = 0 if (deadline is None or now < deadline) else 1
+
+            if not self._exists_display_info( d, venue_id, rno
+                                             ) and not self._has_task("display", d, venue_id, rno ):
+
+                if now > prev_deadline +timedelta(minutes=OFFSET_DISPLAY):
+                    late_tasks.append( Task( kind="display", run_at=now, d=d,
+                                             venue_id=v_id, race_no=rno, meta={"prio":0} ) )
+                else:
+                    if rno == 1: run_d =      deadline -timedelta(minutes=15)
+                    else:        run_d = prev_deadline +timedelta(minutes=OFFSET_DISPLAY)
+                    new_tasks.append( Task( kind="display", run_at=run_d, d=d,
+                                            venue_id=v_id, race_no=rno, meta={"prio":1} ) )
+
+            if not self._exists_result(d, venue_id, rno) and not self._has_task( "result", d,
+                                                                                 venue_id, rno ):
+
+                if now > prev_deadline +timedelta(minutes=OFFSET_RESULT):
+                    late_tasks.append( Task( kind="result", run_at=now, d=d,
+                                             venue_id=v_id, race_no=rno, meta={"prio":0} ) )
+                else:
+                    run_r = deadline +timedelta(minutes=OFFSET_RESULT)
+                    new_tasks.append( Task( kind="result", run_at=run_r, d=d,
+                                            venue_id=v_id, race_no=rno, meta={"prio":1} ) )
+
+            prev_deadline = deadline
+
+        if new_tasks:
+            with self._lock: self.tasks.extend(new_tasks)
+        if late_tasks:
+            with self._lock: self.late_tasks.extend(late_tasks)
+
+            if self.monitor:
+                bc = sum(1 for t in new_tasks if t.kind=="display")
+                rc = sum(1 for t in new_tasks if t.kind=="result")
+                self._log(f"[rebuild] {d} jcd={venue_id} display={bc} result={rc}")
+
+    # ------------------------------------------------------
+    def run_forever(self, tick_sec:int = 10):
+
+        if self.monitor: self._log("[start] SummarizeTodayInfo loop")
+        try:
+            while not self._stop:
+                now     = self._now()
+                due     = self._collect_due(now)
+                started = {"display": 0, "result": 0, "change": 0, "cancel": 0}
+
+                for t in due:
+                    k = t.kind
+
+                    with self._lock:
+                        if self.running[k] >= self.run_limit[k]:
+                            continue
+                        if started[k] >= max(1, self.run_limit[k] - self.running[k]):
+                            continue
+
+                        t.inflight       = True
+                        self.running[k] += 1
+                        started[k]      += 1
+
+                    th = threading.Thread(target=self._run_task_body, args=(t, now),
+                                          daemon=True)
+                    th.start()
+                    self._threads.add(th)
+
+                if sum(started.values()) == 0:
+                    with self._lock:
+                        idle = ( sum(self.running.values()) == 0 )
+
+                    if idle:
+                        lt = self._collect_one_late(now)
+                        if lt is not None:
+                            k = lt.kind
+
+                            with self._lock:
+                                if self.running[k] < self.run_limit[k]:
+                                    lt.inflight      = True
+                                    self.running[k] += 1
+                                else:
+                                    lt = None
+
+                            if lt is not None:
+                                th = threading.Thread(target=self._run_task_body, args=(lt, now),
+                                                      daemon=True)
+                                th.start()
+                                self._threads.add(th)
+
+                dead = {th for th in self._threads if not th.is_alive()}
+                self._threads -= dead
+
+        finally:
+            for th in list(self._threads):
+                try: th.join(timeout=5.0)
+                except: pass
+
+            self.conn.close()
+            if self.monitor: self._log("[stop] SummarizeTodayInfo loop")
+    # ------------------------
+    def stop(self): self._stop = True
+    # ------- 内部処理 -------
+    def _now(self) -> datetime:
+
+        jst = timezone(timedelta(hours=9), name="JST")
+        if getattr(self, "_sim_date", None) is not None:
+
+            t = datetime.now(jst).time()
+            return datetime.combine(self._sim_date, t).replace(tzinfo=jst)
+
+        return datetime.now(jst)
+    # ------------------------------------------------------
+    def _collect_due(self, now: datetime) -> List[Task]:
+
+        due: List[Task] = []
+        with self._lock:
+            for t in self.tasks:
+                if t.disabled: continue
+                if t.inflight: continue
+                if ( t.next_try_at and now >= t.next_try_at
+                    ) or (not t.next_try_at and now >= t.run_at):
+                    due.append(t)
+        # ----------
+        def _eff_time(x):
+            return x.next_try_at or x.run_at or now
+        # ----------
+        due.sort(key=lambda x: (x.meta.get("prio", 0), _eff_time(x)))
+
+        return due
+
+    # ------------------------------------------------------
+    def _collect_one_late(self, now: datetime) -> Optional[Task]:
+
+        late_due: List[Task] = []
+
+        with self._lock:
+            self.late_tasks = [ t for t in self.late_tasks if not (t.disabled and not t.inflight) ]
+
+            for t in self.late_tasks:
+                if t.disabled: continue
+                if t.inflight: continue
+
+                if ( t.next_try_at and now >= t.next_try_at
+                    ) or (not t.next_try_at and now >= t.run_at):
+                    late_due.append(t)
+
+        if not late_due: return None
+
+        def _eff_time(x):
+            return x.next_try_at or x.run_at or now
+
+        late_due.sort(key=lambda x: (x.meta.get("prio", 0), _eff_time(x)))
+        return late_due[0]
+
+    # ------------------------------------------------------
+    def _run_task_body(self, t:Task, now:datetime):
+
+        try:
+            if self._stop:
+                t.disabled = True
+                self._log(f"[{t.kind} {VENUES[t.venue_id-1]} {t.race_no}]R stop requested; skip")
+                return
+
+            ok  = False
+            err = None
+            try:
+                if t.kind   == "display":
+                    if self._is_cancelled(t.d, t.venue_id, t.race_no):
+                        t.disabled = True
+                        self._log(f"[display {VENUES[t.venue_id-1]} {t.race_no}]R skip (cancelled)")
+                        return
+                    ok = self._exec_display(t)
+                    if not ok:
+                        t.next_try_at = now + timedelta(seconds=RETRY_DIS)
+                        print(f"[{t.next_try_at.strftime('%H:%M:%S')}] ー display 再実行予定 ー")
+                elif t.kind == "result":
+                    if self._is_cancelled(t.d, t.venue_id, t.race_no):
+                        t.disabled = True
+                        self._log(f"[result  {VENUES[t.venue_id-1]} {t.race_no}]R skip (cancelled)")
+                        return
+                    ok = self._exec_result(t)
+                    if not ok: 
+                        t.next_try_at = now + timedelta(seconds=RETRY_RES)
+                        print(f"[{t.next_try_at.strftime('%H:%M:%S')}] ー result 再実行予定 ー")
+                elif t.kind == "change":
+                    if self._venue_finished(t.d, t.venue_id, now):
+                        t.disabled = True
+                        return
+                    ok            = self._exec_change(t)
+                    t.next_try_at = now +timedelta(seconds=CHANGE_INTERVAL)
+
+                elif t.kind == "cancel":
+                    ok            = self._exec_cancel(t)
+                    interval      = t.meta.get("interval_min", CANCEL_INTERVAL)
+                    t.next_try_at = self._now() +timedelta(minutes=interval)
+
+            except Exception as e:
+                ok  = False
+                err = str(e)
+
+            t.tries += 1
+            if err: t.last_error = err
+            if ok and t.kind in ("display", "result"):
+                t.disabled = True
+            else:
+                if (not ok) and t.kind in ("display", "result") and t.tries >= RETRY_NUM:
+                    t.disabled = True
+                    print(f"[{t.kind}]  リトライオーバー タスク破棄")
+
+        finally:
+            with self._lock:
+                t.inflight = False
+                if self.running.get(t.kind, 0) > 0: self.running[t.kind] -= 1
+
+    # ------------------------------------------------------
+    def _cancel_tasks_from(self, d:date, venue_id:int, from_rno:int):
+
+        with self._lock:
+            n = 0
+            for t in self.tasks:
+                if t.disabled or t.inflight:                      continue
+                if t.d != d   or t.venue_id != venue_id:          continue
+                if t.kind not in ("display", "result", "change"): continue
+                if t.race_no is None or t.race_no < from_rno:     continue
+
+                t.disabled = True
+                n += 1
+
+        self._log(f"[cancel] {d} {VENUES[t.venue_id-1]} r>={from_rno} disabled={n}")
+
+    # ---- 個別実行 ------------------------------------------------------------
+    def _exec_display(self, t:Task) -> bool:
+
+        task_name = f"【display】[{VENUES[t.venue_id-1]} {t.race_no:02}R] "
+        self._log(f"{task_name} start")
+
+        rc, out, err = self._call_py(SP_BEFORE, [ "--date",  t.d.strftime("%Y-%m-%d"),
+                                                  "--venue", str(t.venue_id),
+                                                  "--race",  str(t.race_no),          ])
+
+        if rc != 0:
+            self._log(f"{task_name} {err.strip() or out.strip() or f'ExitCode={rc}'}")
+            return False
+
+        ok = self._exists_display_info(t.d, t.venue_id, t.race_no)
+        if ok: self._log(f"{task_name} Done update.")
+        else:  self._log(f"{task_name} Not updated yet.")
+
+        return ok
+
+    # ------------------------------------------------------
+    def _exec_result(self, t:Task) -> bool:
+
+        task_name = f"【 result 】[{VENUES[t.venue_id-1]} {t.race_no:02}R] "
+        self._log(f"{task_name} start")
+
+        rc, out, err = self._call_py(SP_RESULT, [ "--date",  t.d.strftime("%Y-%m-%d"),
+                                                  "--venue", str(t.venue_id),
+                                                  "--race",  str(t.race_no),          ])
+
+        if rc != 0:
+            self._log(f"{task_name} {err.strip() or out.strip() or f'ExitCode={rc}'}")
+            return False
+
+        ok = self._exists_result(t.d, t.venue_id, t.race_no)
+        if ok: self._log(f"{task_name} Done update.")
+        else:  self._log(f"{task_name} Not updated yet.")
+
+        return ok
+    # ------------------------------------------------------
+    def _exec_change(self, t:Task) -> bool:
+
+        task_name = f"【change】[{VENUES[t.venue_id-1]}      ] "
+        self._log(f"{task_name} start")
+
+        args = [ "--date", t.d.strftime("%Y-%m-%d"),
+                 "--venue", str(t.venue_id)          ]
+
+        if not t.meta.get("first_done"):
+            args.append("--first")
+
+        rc, out, err = self._call_py(SP_INFO, [ "A", "--date", t.d.strftime("%Y-%m-%d"),
+                                                  "--venue", str(t.venue_id),        ] )
+
+        if rc != 0:
+            self._log(f"{task_name} DB update fail")
+            self._log(f"{task_name} {(err.strip() or out.strip() or f'ExitCode={rc}')}")
+            return False
+
+        t.meta["first_done"] = True
+        found_deadline       = False
+        found_absent         = False
+
+        for ln in out.splitlines():
+            s = ln.strip()
+
+            if s.startswith("[OK] deadlines_updated:"):
+                nums = s.split(":",1)[1].strip()
+                if nums: found_deadline = True
+            elif s.startswith("[OK] absents_updated:"):
+                nums = s.split(":",1)[1].strip()
+                if nums: found_absent = True
+
+        if found_deadline:
+            self._log(f"{task_name} find deadline chenged")
+            self._rebuild_schedule_for_venue(t.d, t.venue_id)
+        if found_absent:
+            self._log(f"{task_name} find absent")
+        if not found_deadline and not found_absent:
+            self._log(f"{task_name} no changes")
+
+        return True
+
+    # ------------------------------------------------------
+    def _exec_cancel(self, t:Task):
+
+        task_name = f"【cancel 】[   {t.d.strftime('%m-%d')}    ] "
+        self._log(f"{task_name} start")
+        rc, out, err = self._call_py( SP_INFO,
+                                      ["B", "--date", t.d.strftime("%Y-%m-%d"),] )
+        if rc != 0:
+            self._log(f"{task_name} DB update fail")
+            self._log(f"{task_name} {(err.strip() or out.strip() or f'ExitCode={rc}')}")
+            return False
+
+        updated = False
+        for ln in out.splitlines():
+            s = ln.strip()
+
+            if s.startswith("[OK] Insert cancelled:"):
+                try:
+                    m1 = re.search(r"jcd=(\d+)",  s)
+                    m2 = re.search(r"rno>=(\d+)", s)
+                    if m1 and m2:
+                        jcd = int(m1.group(1))
+                        frm = int(m2.group(1))
+                        self._cancel_tasks_from(t.d, jcd, frm)
+                        updated = True
+                except Exception: pass
+
+        if updated: self._log(f"{task_name} Find cancelled and done update.")
+        else:       self._log(f"{task_name} no cancellations.")
+
+        return True
+
+    # ---- 反映確認 ----------------------------------------
+    def _exists_display_info(self, d:date, venue_id:int, race_no:int) -> bool:
+
+        if self._is_cancelled(d, venue_id, race_no):
+            return True
+
+        d_iso = d.strftime("%Y-%m-%d") if hasattr(d, "strftime") else str(d)
+
+        with sqlite3.connect(str(DB_PATH), timeout=30) as conn:
+            row = conn.execute("""
+                SELECT SUM( CASE
+                            WHEN dr.entry_id   IS     NULL THEN 1
+                            WHEN dr.is_absent   =        1 THEN 0
+                            WHEN dr.course     IS NOT NULL
+                             AND dr.exhibition IS NOT NULL
+                             AND dr.slit_ADJ   IS NOT NULL THEN 0
+                            ELSE 1
+                             END                                   ) AS ng_count
+                  FROM Race_programs rp
+             LEFT JOIN Display_run dr
+                    ON dr.entry_id = rp.program_id
+                 WHERE rp.date     = ?
+                   AND rp.venue_id = ?
+                   AND rp.race_no  = ?
+                """, (d_iso, venue_id, race_no)).fetchone()
+
+        ng = int((row[0] if row else 0) or 0)
+
+        return (ng == 0)
+
+    # ------------------------------------------------------
+    def _exists_result(self, d:date, venue_id:int, race_no:int) -> bool:
+
+        if self._is_cancelled(d, venue_id, race_no):
+            return True
+
+        sql = """
+            SELECT COUNT(*)
+              FROM Race_entries
+             WHERE date=? AND venue_id=? AND race_no=?
+               AND (finish_rank IS NOT NULL OR fault_code IN ('F', 'L', 'S', 'K'))
+            """
+        with self._connect_ro() as conn:
+            cur = conn.cursor()
+            cur.execute(sql, (d.strftime("%Y-%m-%d"), venue_id, race_no))
+            row = cur.fetchone()
+
+        return 1 if row[0] == 6 else 0
+
+    # ---- ユーティリティ ----------------------------------
+    def _parse_deadline(self, s:Optional[str]) -> Optional[datetime]:
+
+        if not s: return None
+        try:
+            dt = datetime.strptime(s, "%Y-%m-%d %H:%M")
+            return dt.replace(tzinfo=JST)
+
+        except Exception: return None
+    # ------------------------------------------------------
+    def _call_py(self, path:str, args:List[str]) -> Tuple[int, str, str]:
+
+        cmd = [sys.executable, path] + args
+        p   = subprocess.run( cmd, check=False, creationflags=0x08000000,
+                              capture_output=True, text=True              )
+
+        return p.returncode, (p.stdout or ""), (p.stderr or "")
+    # ------------------------------------------------------
+    def _connect_ro(self) -> sqlite3.Connection:
+
+        conn = sqlite3.connect(self.db_path, check_same_thread=False)
+        conn.row_factory = sqlite3.Row
+
+        return conn
+    # ------------------------------------------------------
+    def _is_cancelled(self, d:date, venue_id:int, race_no:int) -> bool:
+
+        d_iso = d.strftime("%Y-%m-%d") if hasattr(d, "strftime") else str(d)
+        sql = """
+            SELECT 1
+              FROM Races
+             WHERE date=? AND venue_id=? AND race_no=?
+               AND status='cancelled'
+             LIMIT 1
+        """
+        with self._connect_ro() as conn:
+            cur = conn.execute(sql, (d_iso, venue_id, race_no))
+
+            return cur.fetchone() is not None
+    # ------------------------------------------------------
+    def _venue_finished(self, d:date, venue_id:int, now:datetime) -> bool:
+
+        sql = """
+              SELECT MAX(deadline_vote)
+                FROM Race_programs
+               WHERE date=? AND venue_id=?
+              """
+        with self._connect_ro() as conn:
+            cur = conn.execute(sql, (d.strftime("%Y-%m-%d"), venue_id))
+            s   = cur.fetchone()[0]
+        last = self._parse_deadline(s) if s else None
+
+        return bool(last and now >= last)
+    # ------------------------------------------------------
+    def _has_task(self, kind:str, d:date, venue_id:int, race_no:int) -> bool:
+
+        with self._lock:
+            for t in self.tasks:
+                if ( t.kind==kind and t.d==d and t.venue_id==venue_id
+                            and t.race_no==race_no and not t.disabled ):
+                    return True
+        return False
+    # ---- ログ ----
+    def _log(self, s: str):
+
+        if not self.monitor: return
+        try:              t = datetime.now(JST).strftime("%H:%M:%S")
+        except Exception: t = "--:--:--"
+
+        print(f"[{t}] {s}", flush=True)
+    # ------------------------------------------------------
+    def _ctl_read(self) -> dict:
+
+        try:
+            with open(CTL_PATH, "r", encoding="utf-8") as f:
+                d = json.load(f)
+                if not isinstance(d, dict): d = {}
+        except Exception:
+            d = {}
+        return {"stop": bool(d.get("stop", False)),
+                "mute": bool(d.get("mute", False))}
+    # ------------------------------------------------------
+    def _ctl_watch(self):
+
+        while True:
+            ctl         = self._ctl_read()
+            new_monitor = (not ctl["mute"])
+
+            if new_monitor != self.monitor:
+                self.monitor = new_monitor
+                self._log(f"[monitor] {'ON' if self.monitor else 'OFF'}")
+
+            if ctl["stop"]: self._stop = True
+
+            time.sleep(1.0)
+
+# ================= 単体試験用 =============================
+def jst_today() -> date:
+    return datetime.now(JST).date()
+
+def main():
+    ap = argparse.ArgumentParser()
+    ap.add_argument("--date", help="YYYY-MM-DD")
+    args = ap.parse_args()
+
+    if args.date:
+        try:
+            d = datetime.strptime(args.date, "%Y-%m-%d").date()
+        except ValueError:
+            print("Invalid --date. Use YYYY-MM-DD.")
+            return
+    else:
+        d = jst_today()
+
+    app = SummarizeTodayInfo(DB_PATH, monitor=True)
+    if args.date: app._sim_date = d
+    print(f"[init] schedule date={d}")
+    app.build_schedule_for_date(d)
+    app.run_forever(tick_sec=5)
+
+#-----------------------------------------------------------
+def _install_signal_handlers(app: "SummarizeTodayInfo"):
+    def _stop(_sig, _frm):
+        try: app.stop()
+        except Exception: pass
+    for sig in (getattr(signal, "SIGBREAK", None), signal.SIGINT, signal.SIGTERM):
+        if sig: 
+            try: signal.signal(sig, _stop)
+            except Exception: pass
+
+if __name__ == "__main__":
+    main()
