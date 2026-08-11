@@ -234,10 +234,11 @@ def _split_pages(html:str) -> dict:
     return pages
 
 #------------- メイン取得関数（並列フェッチ）---------------
-def fetch_all_odds(date_str:str, venue_id:int, race_no:int, on_progress=None) -> dict:
+def fetch_all_odds( date_str:str, venue_id:int, race_no:int, on_progress=None,
+                    pages:tuple=tuple(PAGES.keys())                            ) -> dict:
 
     params = f"?rno={race_no}&jcd={venue_id:02d}&hd={date_str}"
-    urls   = {key: BASE + path + params for key, path in PAGES.items()}
+    urls   = {key:BASE + PAGES[key] + params for key in pages}
 
     result = {  "TT": {}, "FF": {}, "KK": {},
                 "2T": {}, "2F": {},

@@ -41,7 +41,7 @@ UI,Helpers,sub_window,C:\boatrace\UI\Helpers\sub_window.py,0
 UI,Helpers,Custum_func,C:\boatrace\UI\Helpers\Custum_func.py,1
 UI,Helpers,queries,C:\boatrace\UI\Helpers\queries.py,1
 UI,Helpers,scraper_odds,C:\boatrace\UI\Helpers\scraper_odds.py,0
-UI,Helpers,selenium_buyer,C:\boatrace\UI\Helpers\selenium_buyer.py,0
+UI,Helpers,selenium_buyer,C:\boatrace\UI\Helpers\selenium_buyer.py,1
 UI,Helpers,__init__,C:\boatrace\UI\Helpers\__init__.py,0
 UI,Subprocess,get_today_info.py,C:\boatrace\UI\Subprocess\get_today_info.py,1
 UI,Subprocess,import_Display_run.py,C:\boatrace\UI\Subprocess\import_Display_run.py,1

@@ -5,6 +5,8 @@ from __future__  import annotations
 from dataclasses import dataclass, field
 from datetime    import datetime, timedelta, timezone, date
 from typing      import Dict, List, Optional, Tuple
+from Helpers.scraper_odds import fetch_all_odds
+from Helpers.ev_scanner   import evaluate_ev, persist_odds_snapshot, ProbabilityProvider
 import sqlite3, subprocess, threading, time, sys, os, signal, argparse, re, json
 
 VENUES = [ "桐   生",  "戸   田", "江戸川", "平和島", "多摩川", "浜名湖", "蒲   郡", "常   滑",
@@ -53,12 +55,14 @@ class SummarizeTodayInfo:
         self.conn.row_factory  = sqlite3.Row
         self._stop             = False
         self._lock             = threading.Lock()
-        self.running           = {"display": 0, "result": 0, "change": 0, "cancel": 0}
-        self.run_limit         = {"display": 2, "result": 2, "change": 3, "cancel": 1}
+        self.running           = {"display": 0, "result": 0, "change": 0, "cancel": 0, "odds": 0}
+        self.run_limit         = {"display": 2, "result": 2, "change": 3, "cancel": 1, "odds": 3}
         self._threads          = set()
         self._ctl_prev_mute    = None
         self.tasks:      List[Task] = []
         self.late_tasks: List[Task] = []
+        self._last_full_snapshot:Dict[Tuple, datetime] = {}
+        self.prob_provider = ProbabilityProvider()            # ①実装後はここを差し替え
 
         th = threading.Thread(target=self._ctl_watch, daemon=True)
         th.start()
@@ -120,6 +124,12 @@ class SummarizeTodayInfo:
                         new_tasks.append( Task( kind="result", run_at=run_r, d=d,
                                                 venue_id=v_id, race_no=rno, meta={"prio":1} ) )
 
+                #if deadline is None: continue
+                if now < deadline +timedelta(minutes=1):
+                    new_tasks.append( Task( kind="odds", run_at=deadline - timedelta(minutes=20),
+                                            d=d, venue_id=v_id, race_no=rno,
+                                            meta={"deadline": deadline, "prio":1} ) )
+
                 prev_deadline = deadline
 
             lst_valid = [x for x in lst_sorted if x["deadline"]]
@@ -143,8 +153,10 @@ class SummarizeTodayInfo:
             rc = sum(1 for t in new_tasks if t.kind == "result")
             cc = sum(1 for t in new_tasks if t.kind == "change")
             kc = sum(1 for t in new_tasks if t.kind == "cancel")
+            oc = sum(1 for t in new_tasks if t.kind == "odds")
 
-            self._log( f"tasks={len(new_tasks)}: dspl={bc} rslt={rc} change={cc} cancel={kc}"                             )
+            self._log( f"tasks={len(new_tasks)}: dspl={bc} rslt={rc} change={cc} cancel={kc}"
+                       f"\n              odds={oc}")
 
     # ------------------------------------------------------
     def _rebuild_schedule_for_venue(self, d:date, venue_id:int):
@@ -222,7 +234,7 @@ class SummarizeTodayInfo:
             while not self._stop:
                 now     = self._now()
                 due     = self._collect_due(now)
-                started = {"display": 0, "result": 0, "change": 0, "cancel": 0}
+                started = {"display":0, "result":0, "change":0, "cancel":0, "odds":0}
 
                 for t in due:
                     k = t.kind
@@ -237,8 +249,7 @@ class SummarizeTodayInfo:
                         self.running[k] += 1
                         started[k]      += 1
 
-                    th = threading.Thread(target=self._run_task_body, args=(t, now),
-                                          daemon=True)
+                    th = threading.Thread(target=self._run_task_body, args=(t, now), daemon=True)
                     th.start()
                     self._threads.add(th)
 
@@ -306,9 +317,9 @@ class SummarizeTodayInfo:
         return due
 
     # ------------------------------------------------------
-    def _collect_one_late(self, now: datetime) -> Optional[Task]:
+    def _collect_one_late(self, now:datetime) -> Optional[Task]:
 
-        late_due: List[Task] = []
+        late_due:List[Task] = []
 
         with self._lock:
             self.late_tasks = [ t for t in self.late_tasks if not (t.disabled and not t.inflight) ]
@@ -326,7 +337,8 @@ class SummarizeTodayInfo:
         def _eff_time(x):
             return x.next_try_at or x.run_at or now
 
-        late_due.sort(key=lambda x: (x.meta.get("prio", 0), _eff_time(x)))
+        late_due.sort(key=lambda x:(x.meta.get("prio", 0), _eff_time(x)))
+
         return late_due[0]
 
     # ------------------------------------------------------
@@ -371,6 +383,15 @@ class SummarizeTodayInfo:
                     interval      = t.meta.get("interval_min", CANCEL_INTERVAL)
                     t.next_try_at = self._now() +timedelta(minutes=interval)
 
+                elif t.kind == "odds":
+                    if self._is_cancelled(t.d, t.venue_id, t.race_no):
+                        t.disabled = True
+                        return
+                    ok       = self._exec_odds(t)
+                    interval = self._calc_odds_interval(t, now)
+                    if interval is None: t.disabled    = True
+                    else:                t.next_try_at = now + timedelta(seconds=interval)
+
             except Exception as e:
                 ok  = False
                 err = str(e)
@@ -395,10 +416,10 @@ class SummarizeTodayInfo:
         with self._lock:
             n = 0
             for t in self.tasks:
-                if t.disabled or t.inflight:                      continue
-                if t.d != d   or t.venue_id != venue_id:          continue
-                if t.kind not in ("display", "result", "change"): continue
-                if t.race_no is None or t.race_no < from_rno:     continue
+                if t.disabled or t.inflight:                              continue
+                if t.d != d   or t.venue_id != venue_id:                  continue
+                if t.kind not in ("display", "result", "change", "odds"): continue
+                if t.race_no is None or t.race_no < from_rno:             continue
 
                 t.disabled = True
                 n += 1
@@ -519,6 +540,49 @@ class SummarizeTodayInfo:
         else:       self._log(f"{task_name} no cancellations.")
 
         return True
+
+    # ------------------------------------------------------
+    def _exec_odds(self, t:Task) -> bool:
+
+        task_name = f"【 odds  】[{VENUES[t.venue_id-1]} {t.race_no:02}R] "
+
+        self._log(f"{task_name} called")
+
+        try:
+            data = fetch_all_odds( t.d.strftime("%Y%m%d"), t.venue_id, t.race_no,
+                                   pages=("3T","3F","2T_2F","KK")                 )
+        except Exception as e:
+            self._log(f"{task_name} fetch error: {e}")
+            return False
+
+        if data.get("error"):
+            self._log(f"{task_name} partial error: {data['error']}")
+
+        is_final = (t.meta["deadline"] - self._now()).total_seconds() <= 90
+        key      = (t.d, t.venue_id, t.race_no)
+        last     = self._last_full_snapshot.get(key)
+        do_full  = (is_final or last is None or (self._now() - last).total_seconds() >= 300)
+        hits     = evaluate_ev(data, t.d, t.venue_id, t.race_no, self.prob_provider)
+
+        with self._connect_ro() as conn:
+            persist_odds_snapshot( conn, data, t.d, t.venue_id, t.race_no,
+                                   hits=hits, is_final=is_final, do_full_snapshot=do_full )
+
+        if do_full: self._last_full_snapshot[key] = self._now()
+        if hits:    self._log(f"{task_name} EV hit: {len(hits)} 件")
+
+        return True
+
+    # ------------------------------------------------------
+    def _calc_odds_interval(self, t:Task, now:datetime) -> int:
+
+        remain = (t.meta["deadline"] - now).total_seconds()
+
+        if remain <= 0:    return None    # 締切後は打ち切り(Noneでtask.disabled化のシグナル)
+        if remain <= 120:  return 15      # 締切2分前～ ：3F/KKの急変動を捕捉
+        if remain <= 1200: return 60      # 締切20分前～：中頻度
+
+        return 300
 
     # ---- 反映確認 ----------------------------------------
     def _exists_display_info(self, d:date, venue_id:int, race_no:int) -> bool:
