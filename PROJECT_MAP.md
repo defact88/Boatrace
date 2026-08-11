@@ -50,7 +50,11 @@ C:\boatrace/
           build_day_labels          # 日程ラベルの構築
 
       scraper_odds.py/
-          fetch_all_odds            # odds_window.pywのｵｯｽﾞ取得/ﾊﾟｰｽ ﾍﾙﾊﾟ
+          fetch_all_odds            # odds_window.pywのｵｯｽﾞ取得/ﾊﾟｰｽ ﾍﾙﾊﾟｰ
+
+      ev_scanner.py/
+          evaluate_ev               # 予想ｴﾝｼﾞﾝ（未完成）
+          persist_odds_snapshot     # oddsﾃﾞｰﾀ挿入ﾍﾙﾊﾟｰ
 
     Widgets/
       widgets.py/                   # ｻﾌﾞﾌﾟﾚｰｽﾎﾙﾀﾞｰ表示のｳｨｼﾞｪｯﾄ

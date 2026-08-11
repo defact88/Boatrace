@@ -62,6 +62,7 @@ class SummarizeTodayInfo:
         self.tasks:      List[Task] = []
         self.late_tasks: List[Task] = []
         self._last_full_snapshot:Dict[Tuple, datetime] = {}
+        self._final_snapshot_done: set[Tuple] = set()
         self.prob_provider = ProbabilityProvider()            # ①実装後はここを差し替え
 
         th = threading.Thread(target=self._ctl_watch, daemon=True)
@@ -124,7 +125,6 @@ class SummarizeTodayInfo:
                         new_tasks.append( Task( kind="result", run_at=run_r, d=d,
                                                 venue_id=v_id, race_no=rno, meta={"prio":1} ) )
 
-                #if deadline is None: continue
                 if now < deadline +timedelta(minutes=1):
                     new_tasks.append( Task( kind="odds", run_at=deadline - timedelta(minutes=20),
                                             d=d, venue_id=v_id, race_no=rno,
@@ -156,7 +156,7 @@ class SummarizeTodayInfo:
             oc = sum(1 for t in new_tasks if t.kind == "odds")
 
             self._log( f"tasks={len(new_tasks)}: dspl={bc} rslt={rc} change={cc} cancel={kc}"
-                       f"\n              odds={oc}")
+                       f"\n                 odds={oc}")
 
     # ------------------------------------------------------
     def _rebuild_schedule_for_venue(self, d:date, venue_id:int):
@@ -177,7 +177,7 @@ class SummarizeTodayInfo:
         with self._lock:
             self.tasks = [ t for t in self.tasks
                            if not ( t.d==d and     t.venue_id ==  venue_id
-                                           and     t.kind     in ("display","result")
+                                           and     t.kind     in ("display","result", "odds")
                                            and not t.inflight
                                            and not t.disabled                         ) ]
 
@@ -214,6 +214,15 @@ class SummarizeTodayInfo:
                     new_tasks.append( Task( kind="result", run_at=run_r, d=d,
                                             venue_id=v_id, race_no=rno, meta={"prio":1} ) )
 
+            if not self._has_task("odds", d, venue_id, rno):
+                if now < deadline +timedelta(minutes=1):
+                    key = (d, venue_id, rno)
+                    self._last_full_snapshot.pop(key, None)
+                    self._final_snapshot_done.discard(key)
+                    new_tasks.append( Task( kind="odds", run_at=deadline - timedelta(minutes=20),
+                                            d=d, venue_id=v_id, race_no=rno,
+                                            meta={"deadline": deadline, "prio":1} ) )
+
             prev_deadline = deadline
 
         if new_tasks:
@@ -224,10 +233,11 @@ class SummarizeTodayInfo:
             if self.monitor:
                 bc = sum(1 for t in new_tasks if t.kind=="display")
                 rc = sum(1 for t in new_tasks if t.kind=="result")
-                self._log(f"[rebuild] {d} jcd={venue_id} display={bc} result={rc}")
+                oc = sum(1 for t in new_tasks if t.kind=="odds")
+                self._log(f"[rebuild] {d} jcd={venue_id} display={bc} result={rc} odds={oc}")
 
     # ------------------------------------------------------
-    def run_forever(self, tick_sec:int = 10):
+    def run_forever(self, tick_sec:int =10):
 
         if self.monitor: self._log("[start] SummarizeTodayInfo loop")
         try:
@@ -277,6 +287,8 @@ class SummarizeTodayInfo:
 
                 dead = {th for th in self._threads if not th.is_alive()}
                 self._threads -= dead
+
+                time.sleep(tick_sec)
 
         finally:
             for th in list(self._threads):
@@ -361,7 +373,7 @@ class SummarizeTodayInfo:
                     ok = self._exec_display(t)
                     if not ok:
                         t.next_try_at = now + timedelta(seconds=RETRY_DIS)
-                        print(f"[{t.next_try_at.strftime('%H:%M:%S')}] ー display 再実行予定 ー")
+                        print(f"[{t.next_try_at.strftime('%H:%M:%S')}]【display】[{VENUES[t.venue_id-1]}{t.race_no}]R] ー再実行 ー")
                 elif t.kind == "result":
                     if self._is_cancelled(t.d, t.venue_id, t.race_no):
                         t.disabled = True
@@ -389,8 +401,15 @@ class SummarizeTodayInfo:
                         return
                     ok       = self._exec_odds(t)
                     interval = self._calc_odds_interval(t, now)
-                    if interval is None: t.disabled    = True
-                    else:                t.next_try_at = now + timedelta(seconds=interval)
+
+                    if interval is None: 
+                        t.disabled = True
+                        key        = (t.d, t.venue_id, t.race_no)
+                        self._last_full_snapshot.pop(key, None)
+                        self._final_snapshot_done.discard(key)
+
+                    else:
+                        t.next_try_at = now + timedelta(seconds=interval)
 
             except Exception as e:
                 ok  = False
@@ -558,18 +577,23 @@ class SummarizeTodayInfo:
         if data.get("error"):
             self._log(f"{task_name} partial error: {data['error']}")
 
-        is_final = (t.meta["deadline"] - self._now()).total_seconds() <= 90
-        key      = (t.d, t.venue_id, t.race_no)
-        last     = self._last_full_snapshot.get(key)
-        do_full  = (is_final or last is None or (self._now() - last).total_seconds() >= 300)
-        hits     = evaluate_ev(data, t.d, t.venue_id, t.race_no, self.prob_provider)
+        remain      = (t.meta["deadline"] - self._now()).total_seconds()
+        is_final    = remain <= 90
+        key         = (t.d, t.venue_id, t.race_no)
+        last        = self._last_full_snapshot.get(key)
+        force_final = is_final and key not in self._final_snapshot_done
+        do_full     = (force_final or last is None or (self._now() - last).total_seconds() >= 300)
+        hits        = evaluate_ev(data, t.d, t.venue_id, t.race_no, self.prob_provider)
 
         with self._connect_ro() as conn:
             persist_odds_snapshot( conn, data, t.d, t.venue_id, t.race_no,
-                                   hits=hits, is_final=is_final, do_full_snapshot=do_full )
+                                   hits=hits, is_final=force_final, do_full_snapshot=do_full )
 
-        if do_full: self._last_full_snapshot[key] = self._now()
-        if hits:    self._log(f"{task_name} EV hit: {len(hits)} 件")
+        if do_full:
+            self._last_full_snapshot[key] = self._now()
+            if is_final: self._final_snapshot_done.add(key)
+
+        if hits: self._log(f"{task_name} EV hit: {len(hits)} 件")
 
         return True
 
@@ -642,14 +666,26 @@ class SummarizeTodayInfo:
             return dt.replace(tzinfo=JST)
 
         except Exception: return None
+
     # ------------------------------------------------------
     def _call_py(self, path:str, args:List[str]) -> Tuple[int, str, str]:
 
         cmd = [sys.executable, path] + args
-        p   = subprocess.run( cmd, check=False, creationflags=0x08000000,
-                              capture_output=True, text=True              )
+        p   = subprocess.Popen( cmd, creationflags=0x08000000,
+                                stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True )
 
-        return p.returncode, (p.stdout or ""), (p.stderr or "")
+        try:
+            while True:
+                try:
+                    out, err = p.communicate(timeout=1.0)
+                    return p.returncode, out, err
+                except subprocess.TimeoutExpired:
+                    if self._stop:
+                        p.terminate()
+                        p.wait(timeout=3)
+                        return 1, "", "Terminated by stop request"
+        except Exception as e:
+            return 1, "", str(e)
     # ------------------------------------------------------
     def _connect_ro(self) -> sqlite3.Connection:
 

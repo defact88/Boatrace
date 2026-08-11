@@ -403,13 +403,13 @@ class MainScreen(tk.Frame):
 
         stat_opt = {"bg":"white", "fg":"black"}
 
-        btn_stop = ttk.Button(fr_bar1, text="停 止",       command=self._on_request_stop)
+        self.btn_boot = ttk.Button(fr_bar1, text="停 止",  command=self._toggle_boot)
         btn_mute = ttk.Button(fr_bar2, text="ﾓﾆﾀ-出力",    command=self._toggle_monitor)
         btn_extn = ttk.Button(fr_bar1, text="拡張ﾓﾆﾀ表示", command=self._toggle_ext_monitor)
         lb_stat1 = cLbl(fr_bar1, text=" -- ", W=18, H=1, Bd=(3,GR), pady=3, **stat_opt)
         lb_stat2 = cLbl(fr_bar2, text=" -- ", W=18, H=1, Bd=(3,GR), pady=3, **stat_opt)
 
-        btn_stop.grid(row=0, column=0, sticky="w", padx= 20, ipady=2)
+        self.btn_boot.grid(row=0, column=0, sticky="w", padx= 20, ipady=2)
         btn_mute.grid(row=1, column=0, sticky="w", padx= 20, ipady=2)
         lb_stat1.grid(row=0, column=1, sticky="w", padx=(0, 140))
         lb_stat2.grid(row=1, column=1, sticky="w", padx=(0, 265))
@@ -508,13 +508,22 @@ class MainScreen(tk.Frame):
 
     # --------------------------------------------
     def _update_monitor_label(self):
-
         try:
             d    = self._ctl_read()
-            txt1 = "停止要求中" if d["stop"] else "稼働中"
+            proc = getattr(self.app, "_summ_proc", None)
+            is_running = proc is not None and proc.poll() is None
+
+            if is_running:
+                txt1 = "停止要求中" if d["stop"] else "稼働中"
+                opt1 = dict(bg="yellow") if d["stop"] else dict(bg="#ceffd3")
+                self.btn_boot.config(text="停 止")
+            else:
+                txt1 = "停止中"
+                opt1 = dict(bg="#dedede", fg="black")
+                self.btn_boot.config(text="起 動")
+
             txt2 = "ON" if (not d["mute"]) else "OFF"
-            opt1 = dict(bg="yellow") if txt1 == "停止要求中" else dict(bg="#ceffd3")
-            opt2 = dict(bg="yellow") if txt2 == "OFF"        else dict(bg="#ceffd3")
+            opt2 = dict(bg="yellow") if txt2 == "OFF" else dict(bg="#ceffd3")
 
             if hasattr(self, "_lbl_monitor"):
                 self._lbl_monitor[0].config(text=f"{txt1}", **opt1, font=(MUI,9))
@@ -530,9 +539,9 @@ class MainScreen(tk.Frame):
 
     # --------------------------------------------
     def _hide_ext_monitor(self):
+
         if getattr(self, "_ext_container", None):
-            try:
-                self._ext_container.pack_forget()
+            try:              self._ext_container.pack_forget()
             except Exception: pass
 
         self.app._ext_visible = False
@@ -542,10 +551,16 @@ class MainScreen(tk.Frame):
             self.app.geometry(f"600x{h}")
         except Exception: pass
     # --------------------------------------------
-    def _on_request_stop(self):
+    def _toggle_boot(self):
 
-        self._ctl_write(stop=True)
-        self._update_monitor_label()
+        proc = getattr(self.app, "_summ_proc", None)
+        is_running = proc is not None and proc.poll() is None
+
+        if is_running:
+            self._ctl_write(stop=True)
+        else:
+            self._ctl_write(stop=False)
+            self.app._start_summarizer_on_launch()
 
 # =====================   出走表ウィンドウ  ==========================
 # --------------------------------------------------------------------
