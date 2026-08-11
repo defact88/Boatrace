@@ -1,6 +1,9 @@
 ﻿__pycache__/
 boatrace.code-workspace
 boatrace.db
+boatrace.db-shm
+boatrace.db-wal
+Back_up/
 /Archive/
 /BR/
 /BACKUP/
