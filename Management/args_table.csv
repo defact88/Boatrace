@@ -14,6 +14,12 @@ show_player_term.py,--season,required=True
 check_finals.py,--year,required=True
 check_display_run.py,--date_from,required=True
 check_display_run.py,--date_to,required=True
+odds_snapshot_audit.py,--inspect, False
+odds_snapshot_audit.py,--plot,False
+odds_snapshot_audit.py --thin,False
+odds_snapshot_audit.py,--apply,False
+odds_snapshot_audit.py,--date-from,False
+odds_snapshot_audit.py,--date-to,False
 update_is_prefinal.py,--year,required=True
 import_Fan.py,tag,required=False
 import_Fan.py,--overwrite,required=False

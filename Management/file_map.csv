@@ -6,6 +6,7 @@ Checker,Player,show_player_term.py,C:\boatrace\Checker\Player\show_player_term.p
 Checker,Race,check_finals.py,C:\boatrace\Checker\Race\check_finals.py,0
 Checker,Data,fan_old_layout_tester.py,C:\boatrace\Checker\Data\fan_old_layout_tester.py,0
 Checker,Data,check_K_files.py,C:\boatrace\Checker\Data\check_K_files.py,0
+Checker,Data,odds_snapshot_audit.py,C:\boatrace\Checker\data\odds_snapshot_audit.py,0
 Checker,Race,update_is_prefinal.py,C:\boatrace\Checker\Race\update_is_prefinal.py,0
 Checker,Race,check_series_title.py,C:\boatrace\Checker\Race\check_series_title.py,0
 Checker,Race,check_display_run.py,C:\boatrace\Checker\Race\check_display_run.py,0
