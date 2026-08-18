@@ -79,6 +79,19 @@ C:\boatrace/
     update_FLstate.py               # Race_entriesからPlayers.flying_st/late_st(今期ﾌﾗｲﾝｸﾞ/出遅れ情報)のﾃﾞｰﾀ算出・挿入ﾌﾟﾛｾｽ
     insert_newcomer.py              # 期始めﾃﾞﾋﾞｭｰ選手ﾃﾞｰﾀ(正式FAN_TEXT公開までの間)の仮取得・挿入
 
+  Checker/
+    data/
+        odds_snapshot_audit.py      # テーブルOdds_snapshotsの重複・過剰データの検査/削除スクリプト
+    Player/
+        check_score_ave.py          #
+        check_score_ave_ALL.py      #
+        list_player_in_final.py     #
+        show_player_term.py         #
+    Race/
+        check_display_run.py        #
+        check_finals.py             #
+        check_series_title.py       #
+        update_is_prefinal.py       #
 
 3)主要クラス（コンストラクタ引数）
 
