@@ -1,0 +1,22 @@
+{
+  "title": "Markdownのレンダリングのチェック...",
+  "history": [
+    {
+      "role": "user",
+      "parts": [
+        {
+          "text": "Markdownのレンダリングのチェックをしています。\n太字・斜体・コードブロックなどなるべく多くのMarkdownで\n何か適当な文章を返して下さい"
+        }
+      ],
+      "display_text": "Markdownのレンダリングのチェックをしています。\n太字・斜体・コードブロックなどなるべく多くのMarkdownで\n何か適当な文章を返して下さい"
+    },
+    {
+      "role": "model",
+      "parts": [
+        {
+          "text": "Markdownのレンダリングチェックですね。承知いたしました。\n以下に、主要なMarkdown記法を網羅したサンプルテキストを作成しました。\n\n---\n\n# 見出し1（Header 1）\n\n## 見出し2（Header 2）\n\n### 見出し3（Header 3）\n\nこれは**太字（Bold）**と*斜体（Italic）*、そして***太字かつ斜体***のテストです。\n取り消し線（Strikethrough）は~~このように~~表示されます。\n\n---\n\n### リストのテスト\n* 箇条書き（Unordered List）\n    * 子要素\n* 別の項目\n1. 番号付きリスト（Ordered List）\n2. 2番目の項目\n\n---\n\n### コードブロックのテスト\n\nインラインコードは `` `code` `` のように記述します。\n\n複数行のコードブロック（言語指定：javascript）:\n\n```javascript\nfunction helloWorld() {\n  console.log(\"Hello, Markdown!\");\n  return true;\n}\n```\n\n---\n\n### その他の要素\n\n> これは引用（Blockquote）のテストです。\n> 複数行にわたる引用も可能です。\n\n[Googleへのリンク](https://www.google.com)\n\n| ヘッダー1 | ヘッダー2 |\n| :--- | :--- |\n| セル1 | セル2 |\n| セル3 | セル4 |\n\n水平線（Horizontal Rule）:\n---\n\nチェックにご活用ください。正しく表示されていますでしょうか？"
+        }
+      ]
+    }
+  ]
+}

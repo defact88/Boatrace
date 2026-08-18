@@ -26,7 +26,7 @@ UI,Main_Unit,summarize_today.py,C:\boatrace\UI\summarize_today.py,1
 UI,Main_Unit,boatrace_gui.py,C:\boatrace\UI\boatrace_gui.py,1
 UI,Main_Unit,odds_window.py,C:\boatrace\UI\odds_window.py,1
 UI,Main_Unit,Management_gui.py,C:\boatrace\Management\Management_gui.pyw,1
-UI,Main_Unit,Gemin_API,C:\boatrace\Management\Gemini_API\Gemin_API_GUI.py,0
+UI,Main_Unit,API_GUI,C:\boatrace\Management\Gemini_API\API_GUI.py,0
 UI,Screens,DB_ops.py,C:\boatrace\UI\Screens\db_ops.py,0
 UI,Screens,DB_schem.py,C:\boatrace\UI\Screens\db_schem.py,0
 UI,Screens,DB_query.py,C:\boatrace\UI\Screens\DB_query.py,0
@@ -43,6 +43,7 @@ UI,Helpers,Custum_func,C:\boatrace\UI\Helpers\Custum_func.py,1
 UI,Helpers,queries,C:\boatrace\UI\Helpers\queries.py,1
 UI,Helpers,scraper_odds,C:\boatrace\UI\Helpers\scraper_odds.py,0
 UI,Helpers,selenium_buyer,C:\boatrace\UI\Helpers\selenium_buyer.py,1
+UI,Helpers,ev_scanner.py,C:\boatrace\UI\Helpers\ev_scanner.py,0
 UI,Helpers,__init__,C:\boatrace\UI\Helpers\__init__.py,0
 UI,Subprocess,get_today_info.py,C:\boatrace\UI\Subprocess\get_today_info.py,1
 UI,Subprocess,import_Display_run.py,C:\boatrace\UI\Subprocess\import_Display_run.py,1

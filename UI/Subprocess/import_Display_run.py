@@ -358,7 +358,7 @@ def main():
         target_v = fetch_venues(c, args.date) if args.ALL_venue else [args.venue]
 
         for jcd in target_v:
-            target_r   = list(range(1, 13)) if args.ALL_race else [args.race]
+            target_r = list(range(1, 13)) if args.ALL_race else [args.race]
 
             for rno in target_r:
                 if fetch_cancelled(c, args.date, jcd, rno):
@@ -393,7 +393,7 @@ def main():
                 prog = fetch_program_players(c, args.date, jcd, rno)
                 if not prog:
                     if not args.ALL_race:
-                        print("[WARN] jcd={jcd} {rno}R  Race_programs が未整備です")
+                        print(f"[WARN] jcd={jcd} {rno}R  Race_programs が未整備です")
                         c.close()
                         return 2
                     continue

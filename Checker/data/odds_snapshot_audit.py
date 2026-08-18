@@ -1,30 +1,29 @@
 ﻿# -*- coding: utf-8 -*-
 # C:\boatrace\Tools\odds_snapshot_audit.py
 #
-# Odds_snapshots テーブルの検査 / 可視化 / 間引きツール
+# Odds_snapshots 検査 / 間引きツール
 #
 # 使い方:
-#   python odds_snapshot_audit.py inspect [--date-from YYYY-MM-DD] [--date-to YYYY-MM-DD]
-#   python odds_snapshot_audit.py plot    [--date-from ...] [--date-to ...]
-#   python odds_snapshot_audit.py thin    [--date-from ...] [--date-to ...] [--apply] [--delete-duplicates]
-#
-# thin は既定でドライラン。--apply を付けたときのみ実際にDBを更新し、その直前に自動バックアップを取る。
-# 既定の是正方法は「物理削除」ではなく「is_final=0への降格」(締切に最も近い1バッチだけを is_final=1 として残す)。
+#   python odds_snapshot_audit.py                              (検査のみ、DB変更なし)
+#   python odds_snapshot_audit.py --thin                       (検査後、間引きを実行)
+#   python odds_snapshot_audit.py --date-from 2026-07-01 --date-to 2026-07-31 --thin
 
 from __future__ import annotations
-import argparse, sqlite3, sys
-from datetime import datetime as dt
-from pathlib  import Path
+import argparse, sqlite3
+from datetime import datetime as dt, timedelta
+from typing   import Dict, List, Tuple
 
-DB_PATH    = r"C:\boatrace\boatrace.db"
-OUT_DIR    = Path(r"C:\boatrace\tmp\odds_audit")
-BACKUP_DIR = Path(r"C:\boatrace\BACKUP\DB\odds_audit")
+DB_PATH = r"C:\boatrace\boatrace.db"
+
+TARGET_BET_TYPES  = ("3T", "3F", "2T", "KK")   # 2F は対象外(別スクリプトで一括削除)
+EXPECTED_SET_SIZE = 185                        # 3T120+3F20+2T30+KK15
+FULL_SET_MIN_ROWS = 100                        # この行数以上を「完全スナップショット」とみなす(ヒット単体insertとの区別用)
+KEEP_SET_COUNT    = 3                          # is_final=0 の完全スナップショットを何セットまで残すか
 
 # ----------------------------------------------------------
 def conn() -> sqlite3.Connection:
     c = sqlite3.connect(DB_PATH)
     c.row_factory = sqlite3.Row
-    c.execute("PRAGMA foreign_keys=ON;")
     return c
 
 # ----------------------------------------------------------
@@ -37,18 +36,52 @@ def _date_where(args):
     return (" AND " + " AND ".join(clauses)) if clauses else "", params
 
 # ----------------------------------------------------------
-def _auto_backup():
-    BACKUP_DIR.mkdir(parents=True, exist_ok=True)
-    ts  = dt.now().strftime("%Y%m%d_%H%M%S")
-    dst = BACKUP_DIR / f"boatrace_{ts}.db"
-    with open(DB_PATH, "rb") as fsrc, open(dst, "wb") as fdst:
-        fdst.write(fsrc.read())
-    print(f"[backup] {dst}")
+def _load_race_sets(c:sqlite3.Connection, where:str, params:list):
+    """
+    (date, venue_id, race_no) 毎に captured_at をキーとした set 情報を集計する。
+    TARGET_BET_TYPES のみが対象。
+    戻り値: { (date, venue_id, race_no): { captured_at: {"is_final":0/1, "rows":int}, ... }, ... }
+    """
+    bt_ph = ",".join("?" * len(TARGET_BET_TYPES))
+    rows = c.execute(f"""
+        SELECT date, venue_id, race_no, captured_at, is_final, COUNT(*) AS cnt
+          FROM Odds_snapshots
+         WHERE bet_type IN ({bt_ph}){where}
+      GROUP BY date, venue_id, race_no, captured_at, is_final
+      ORDER BY date, venue_id, race_no, captured_at
+        """, (*TARGET_BET_TYPES, *params)).fetchall()
+
+    races: Dict[Tuple, Dict[str, dict]] = {}
+    for r in rows:
+        key = (r["date"], r["venue_id"], r["race_no"])
+        races.setdefault(key, {})[r["captured_at"]] = {"is_final": r["is_final"], "rows": r["cnt"]}
+
+    return races
+
+# ----------------------------------------------------------
+def _pick_evenly_spaced(timestamps:List[dt], n:int) -> List[dt]:
+    """timestamps の中から、なるべく均等な間隔になるよう n 個を選んで返す"""
+
+    if len(timestamps) <= n: return timestamps[:]
+    if n <= 1: return [max(timestamps)]
+
+    ts_sorted  = sorted(timestamps)
+    t_min, t_max = ts_sorted[0], ts_sorted[-1]
+    span       = (t_max - t_min).total_seconds()
+    targets    = [t_min + timedelta(seconds=span * i / (n - 1)) for i in range(n)]
+
+    remaining = ts_sorted[:]
+    chosen    = []
+    for target in targets:
+        idx = min(range(len(remaining)), key=lambda i: abs((remaining[i] - target).total_seconds()))
+        chosen.append(remaining.pop(idx))
+
+    return sorted(chosen)
 
 # ============================================================
-# 1) inspect: 現状把握
+# 検査
 # ============================================================
-def cmd_inspect(args):
+def do_inspect(args) -> Dict[Tuple, Dict[str, dict]]:
 
     c = conn()
     where, params = _date_where(args)
@@ -66,224 +99,115 @@ def cmd_inspect(args):
         """, params).fetchall():
         print(f"  {r['bet_type']:>5} : {r['cnt']:>10,}")
 
-    print("\n[is_final 重複レース検出] (本来は1レース1バッチのみのはず)")
-    dup = c.execute(f"""
-        SELECT date, venue_id, race_no, COUNT(DISTINCT captured_at) AS n
-          FROM Odds_snapshots
-         WHERE is_final = 1{where}
-      GROUP BY date, venue_id, race_no
-        HAVING n > 1
-      ORDER BY n DESC, date, venue_id, race_no
-        """, params).fetchall()
+    races = _load_race_sets(c, where, params)
 
-    if not dup:
-        print("  重複なし")
-    else:
-        for r in dup[:30]:
-            print(f"  {r['date']} jcd={r['venue_id']:02} {r['race_no']:02}R : "
-                  f"final_batches={r['n']} (excess={r['n']-1})")
-        if len(dup) > 30:
-            print(f"  ...ほか {len(dup)-30} レース")
-        excess_total = sum(r["n"] - 1 for r in dup)
-        print(f"\n  重複レース数: {len(dup)} / 超過バッチ延べ数: {excess_total}")
+    # ---- is_final=1 の重複検出 ----
+    final_dup = []
+    for key, sets in races.items():
+        final_ts = [ts for ts, v in sets.items() if v["is_final"] == 1]
+        if len(final_ts) > 1:
+            final_dup.append((key, len(final_ts)))
 
-    print("\n[日付別 総行数(直近10日)]")
-    for r in reversed(c.execute(f"""
-        SELECT date, COUNT(*) AS cnt
+    print(f"\n[is_final=1 重複] 対象レース: {len(final_dup)}")
+    for (d_, v_, r_), n in sorted(final_dup, key=lambda x: -x[1])[:20]:
+        print(f"  {d_} jcd={v_:02} {r_:02}R : final_batches={n}")
+
+    # ---- is_final=0 の完全スナップショット過剰検出 ----
+    excess = []
+    anomaly_size = []
+    for key, sets in races.items():
+        full_ts = [ts for ts, v in sets.items() if v["is_final"] == 0 and v["rows"] >= FULL_SET_MIN_ROWS]
+        if len(full_ts) > KEEP_SET_COUNT:
+            excess.append((key, len(full_ts)))
+        for ts, v in sets.items():
+            if v["rows"] >= FULL_SET_MIN_ROWS and v["rows"] != EXPECTED_SET_SIZE:
+                anomaly_size.append((key, ts, v["rows"]))
+
+    print(f"\n[is_final=0 完全スナップショット過剰(>{KEEP_SET_COUNT}セット)] 対象レース: {len(excess)}")
+    for (d_, v_, r_), n in sorted(excess, key=lambda x: -x[1])[:20]:
+        print(f"  {d_} jcd={v_:02} {r_:02}R : full_sets={n}")
+
+    print(f"\n[セット行数異常({EXPECTED_SET_SIZE}行と不一致)] 件数: {len(anomaly_size)}")
+    for (d_, v_, r_), ts, rows in anomaly_size[:20]:
+        print(f"  {d_} jcd={v_:02} {r_:02}R  {ts} : rows={rows}")
+
+    # ---- B: 開催場/レースNo.別 総レコード数/セット数 ----
+    print("\n[開催場/レースNo.別 総レコード数・セット数]")
+    summary = c.execute(f"""
+        SELECT venue_id, race_no,
+               COUNT(*) AS total_rows,
+               COUNT(DISTINCT date || '_' || captured_at) AS total_sets
           FROM Odds_snapshots
-         WHERE 1=1{where}
-      GROUP BY date
-      ORDER BY date DESC
-         LIMIT 10
-        """, params).fetchall()):
-        print(f"  {r['date']} : {r['cnt']:>8,}")
+         WHERE bet_type IN ({",".join("?"*len(TARGET_BET_TYPES))}){where}
+      GROUP BY venue_id, race_no
+      ORDER BY venue_id, race_no
+        """, (*TARGET_BET_TYPES, *params)).fetchall()
+
+    for r in summary:
+        print(f"  jcd={r['venue_id']:02} {r['race_no']:02}R : "
+              f"rows={r['total_rows']:>7,}  sets={r['total_sets']:>5,}")
 
     c.close()
+    return races
 
 # ============================================================
-# 2) plot: 可視化
+# 間引き
 # ============================================================
-def cmd_plot(args):
-
-    try:
-        import matplotlib
-        matplotlib.use("Agg")   # 非対話環境でも確実にPNG出力できるように
-        import matplotlib.pyplot as plt
-    except ImportError:
-        print("[ERR] matplotlib が未インストールです。 pip install matplotlib を実行してください。")
-        return 1
-
-    OUT_DIR.mkdir(parents=True, exist_ok=True)
-    c = conn()
-    where, params = _date_where(args)
-
-    # --- ① 日付別 総行数 ---
-    rows = c.execute(f"""
-        SELECT date, COUNT(*) AS cnt
-          FROM Odds_snapshots
-         WHERE 1=1{where}
-      GROUP BY date
-      ORDER BY date
-        """, params).fetchall()
-
-    if rows:
-        fig, ax = plt.subplots(figsize=(12, 4))
-        ax.bar([r["date"] for r in rows], [r["cnt"] for r in rows], color="#2B4A7A")
-        ax.set_title("日付別 Odds_snapshots 行数")
-        ax.set_ylabel("行数")
-        ax.tick_params(axis="x", rotation=90, labelsize=6)
-        fig.tight_layout()
-        fig.savefig(OUT_DIR / "daily_row_counts.png", dpi=130)
-        plt.close(fig)
-        print(f"[OK] {OUT_DIR / 'daily_row_counts.png'}")
-
-    # --- ② is_final バッチ数のヒストグラム(1が正常、2以上が重複バグの痕跡) ---
-    rows = c.execute(f"""
-        SELECT COUNT(DISTINCT captured_at) AS n
-          FROM Odds_snapshots
-         WHERE is_final = 1{where}
-      GROUP BY date, venue_id, race_no
-        """, params).fetchall()
-
-    if rows:
-        vals  = [r["n"] for r in rows]
-        max_v = max(vals)
-        fig, ax = plt.subplots(figsize=(6, 4))
-        ax.hist(vals, bins=range(1, max_v + 2), align="left", color="#CC0000", rwidth=0.8)
-        ax.set_title("レース毎 is_final バッチ数の分布(1が正常)")
-        ax.set_xlabel("distinct captured_at (is_final=1)")
-        ax.set_ylabel("レース数")
-        ax.set_xticks(range(1, max_v + 1))
-        fig.tight_layout()
-        fig.savefig(OUT_DIR / "final_batch_histogram.png", dpi=130)
-        plt.close(fig)
-        print(f"[OK] {OUT_DIR / 'final_batch_histogram.png'}")
-
-    # --- ③ 取得間隔の分布(3T基準、設計通り5分/1分/15秒の3ピークになっているか) ---
-    rows = c.execute(f"""
-        SELECT date, venue_id, race_no, captured_at
-          FROM Odds_snapshots
-         WHERE bet_type='3T'{where}
-      GROUP BY date, venue_id, race_no, captured_at
-      ORDER BY date, venue_id, race_no, captured_at
-        """, params).fetchall()
-
-    intervals = []
-    prev_key, prev_time = None, None
-    for r in rows:
-        key = (r["date"], r["venue_id"], r["race_no"])
-        t   = dt.strptime(r["captured_at"], "%Y-%m-%d %H:%M:%S")
-        if key == prev_key and prev_time is not None:
-            intervals.append((t - prev_time).total_seconds())
-        prev_key, prev_time = key, t
-
-    intervals = [v for v in intervals if v <= 600]
-    if intervals:
-        fig, ax = plt.subplots(figsize=(6, 4))
-        ax.hist(intervals, bins=40, color="#2A6632")
-        ax.set_title("取得間隔の分布(3T, 600秒以内)")
-        ax.set_xlabel("秒")
-        ax.set_ylabel("件数")
-        fig.tight_layout()
-        fig.savefig(OUT_DIR / "capture_interval_histogram.png", dpi=130)
-        plt.close(fig)
-        print(f"[OK] {OUT_DIR / 'capture_interval_histogram.png'}")
-
-    c.close()
-    return 0
-
-# ============================================================
-# 3) thin: is_final 重複の是正
-# ============================================================
-def cmd_thin(args):
+def do_thin(args, races:Dict[Tuple, Dict[str, dict]]):
 
     c = conn()
-    where, params = _date_where(args)
+    del_final = 0
+    del_full  = 0
 
-    groups = c.execute(f"""
-        SELECT date, venue_id, race_no
-          FROM Odds_snapshots
-         WHERE is_final = 1{where}
-      GROUP BY date, venue_id, race_no
-        HAVING COUNT(DISTINCT captured_at) > 1
-        """, params).fetchall()
+    for (d_, v_, r_), sets in races.items():
 
-    if not groups:
-        print("[OK] 是正対象なし(is_final の重複は検出されませんでした)")
-        c.close()
-        return 0
-
-    print(f"[対象] {len(groups)} レースで is_final 重複を検出")
-
-    affected = 0
-    action   = "物理削除" if args.delete_duplicates else "is_final=0 へ降格"
-
-    for g in groups:
-        d, v, r = g["date"], g["venue_id"], g["race_no"]
-
-        caps = c.execute("""
-            SELECT DISTINCT captured_at
-              FROM Odds_snapshots
-             WHERE date=? AND venue_id=? AND race_no=? AND is_final=1
-          ORDER BY captured_at DESC
-            """, (d, v, r)).fetchall()
-
-        demote_ts = [row["captured_at"] for row in caps[1:]]   # 最新1件(締切に最も近い)以外
-        if not demote_ts: continue
-
-        ph = ",".join("?" * len(demote_ts))
-
-        if args.delete_duplicates:
-            cnt = c.execute(f"""
+        # ---- is_final=1: 最新1件のみ残す ----
+        final_ts = [ts for ts, v in sets.items() if v["is_final"] == 1]
+        if len(final_ts) > 1:
+            keep   = max(final_ts)
+            remove = [ts for ts in final_ts if ts != keep]
+            ph     = ",".join("?" * len(remove))
+            cur = c.execute(f"""
                 DELETE FROM Odds_snapshots
                  WHERE date=? AND venue_id=? AND race_no=? AND is_final=1
                    AND captured_at IN ({ph})
-                """, (d, v, r, *demote_ts)).rowcount
-        else:
-            cnt = c.execute(f"""
-                UPDATE Odds_snapshots
-                   SET is_final = 0
-                 WHERE date=? AND venue_id=? AND race_no=? AND is_final=1
+                """, (d_, v_, r_, *remove))
+            del_final += cur.rowcount
+
+        # ---- is_final=0: 完全スナップショットを KEEP_SET_COUNT まで間引く ----
+        full_ts = [ts for ts, v in sets.items() if v["is_final"] == 0 and v["rows"] >= FULL_SET_MIN_ROWS]
+        if len(full_ts) > KEEP_SET_COUNT:
+            dt_list = [dt.strptime(ts, "%Y-%m-%d %H:%M:%S") for ts in full_ts]
+            keep_dt = set(_pick_evenly_spaced(dt_list, KEEP_SET_COUNT))
+            keep_ts = {t.strftime("%Y-%m-%d %H:%M:%S") for t in keep_dt}
+            remove  = [ts for ts in full_ts if ts not in keep_ts]
+            ph      = ",".join("?" * len(remove))
+            cur = c.execute(f"""
+                DELETE FROM Odds_snapshots
+                 WHERE date=? AND venue_id=? AND race_no=? AND is_final=0
                    AND captured_at IN ({ph})
-                """, (d, v, r, *demote_ts)).rowcount
+                """, (d_, v_, r_, *remove))
+            del_full += cur.rowcount
 
-        affected += cnt
-
-    if args.apply:
-        _auto_backup()   # 反映直前にバックアップ
-        c.commit()
-        print(f"[APPLY] {affected} 行を{action}しました")
-    else:
-        c.rollback()
-        print(f"[DRY-RUN] {affected} 行が{action}対象でした (--apply を付けると実際に反映されます)")
-
+    c.commit()
     c.close()
-    return 0
+
+    print(f"\n[THIN] is_final=1 重複削除: {del_final:,} 行")
+    print(f"[THIN] is_final=0 過剰削除: {del_full:,} 行")
 
 # ============================================================
 def main():
-    ap = argparse.ArgumentParser(description="Odds_snapshots 検査/可視化/間引きツール")
 
-    group = ap.add_mutually_exclusive_group(required=True)
-    group.add_argument("--inspect", action="store_true", help="現状把握")
-    group.add_argument("--plot", action="store_true", help="可視化")
-    group.add_argument("--thin", action="store_true", help="間引き")
-    
+    ap = argparse.ArgumentParser(description="Odds_snapshots 検査/間引きツール")
     ap.add_argument("--date-from", help="YYYY-MM-DD")
     ap.add_argument("--date-to",   help="YYYY-MM-DD")
-    ap.add_argument("--apply", action="store_true", help="実際にDBへ反映する")
-    ap.add_argument("--delete-duplicates", action="store_true", help="物理削除する")
-
+    ap.add_argument("--thin", action="store_true", help="検査後、間引きをDBに実行する")
     args = ap.parse_args()
 
-    if args.inspect:
-        return cmd_inspect(args)
-    elif args.plot:
-        return cmd_plot(args)
-    elif args.thin:
-        return cmd_thin(args)
+    races = do_inspect(args)
 
-    return 0
+    if args.thin:
+        do_thin(args, races)
 
 if __name__ == "__main__":
-    sys.exit(main())
+    main()

@@ -1,0 +1,24 @@
+{
+  "title": "おっす！(･∀･)ノ...",
+  "model": "gpt-4o",
+  "system_key": "GPT-4o",
+  "history": [
+    {
+      "role": "user",
+      "parts": [
+        {
+          "text": "おっす！(･∀･)ノ"
+        }
+      ],
+      "display_text": "おっす！(･∀･)ノ"
+    },
+    {
+      "role": "model",
+      "parts": [
+        {
+          "text": "おっす！ゆーじ、元気してた？(・ω<)何してるの～？"
+        }
+      ]
+    }
+  ]
+}
