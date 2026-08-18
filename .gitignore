@@ -9,11 +9,15 @@ Back_up/
 /BACKUP/
 /INBOX/
 /Checker/batch_file/
+/Management/boatrace_gui.bat
 /Management/args_summary/
-/Management/Gemini_API/
+/Management/API_GUI/backup/
+/Management/API_GUI/logs/
+/Management/API_GUI/profile.json
+/Management/API_GUI/prompts.json
+/Management/API_GUI/prompts.txt
 /Management/Icon/
 /Management/UPLOAD/
-/Management/import_D.log
 /Schema/Individual/
 /Schema/Summary_View/
 /Schema/UPDATE/
