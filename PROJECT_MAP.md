@@ -20,8 +20,8 @@ C:\boatrace/
       import_Display_run.py         # 展示航走ﾃﾞｰﾀの取得,抽出,挿入
       import_Result_today.py        # ﾚｰｽ結果ﾃﾞｰﾀの取得,抽出,挿入(翌日日時更新時に正規ﾃﾞｰﾀでUPDATE)
       get_today_info.py/
-        get_change_info            # 当日変更情報(締切時刻,欠場艇等)の取得,抽出,挿入
-        get_cancel_info            # 当日中止ﾚｰｽの取得,抽出,挿入
+        get_change_info             # 当日変更情報(締切時刻,欠場艇等)の取得,抽出,挿入
+        get_cancel_info             # 当日中止ﾚｰｽの取得,抽出,挿入
 
     Screens/                        # 画面クラス
       DB_ops.py                     # DBOpsScreen(DB参照GUI)クラス
@@ -92,6 +92,7 @@ C:\boatrace/
         check_finals.py             #
         check_series_title.py       #
         update_is_prefinal.py       #
+
 
 3)主要クラス（コンストラクタ引数）
 
