@@ -8,7 +8,7 @@
 
 2) ディレクトリ構成
 
-C:\boatrace/
+boatrace/
   boatrace.db                       # SQLite3 DB
   UI/
     boatrace_gui.py                 # エントリ / ルータ / 共通設定
