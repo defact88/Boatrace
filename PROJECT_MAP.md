@@ -1,4 +1,4 @@
-﻿
+
 1) 起点
 
 実行: C:\boatrace\UI\boatrace_gui.py
