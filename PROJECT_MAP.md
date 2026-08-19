@@ -7,9 +7,10 @@
           summarize_today_info.pyを起動し、各ｻﾌﾞﾌﾟﾛｾｽの実行・当日情報の更新を管理
 
 2) ディレクトリ構成
-'''
+
 boatrace/
-  boatrace.db                       #SQLite3 DB
+  boatrace.db                       # SQLite3 DB
+
   UI/
     boatrace_gui.py                 # エントリ / ルータ / 共通設定
     Dal.py                          # UI用DAL(sqlite3簡易ラッパ)
@@ -83,16 +84,16 @@ boatrace/
     data/
         odds_snapshot_audit.py      # テーブルOdds_snapshotsの重複・過剰データの検査/削除スクリプト
     Player/
-        check_score_ave.py          #
-        check_score_ave_ALL.py      #
-        list_player_in_final.py     #
-        show_player_term.py         #
+        check_score_ave.py          # 
+        check_score_ave_ALL.py      # 
+        list_player_in_final.py     # 
+        show_player_term.py         # 
     Race/
-        check_display_run.py        #
-        check_finals.py             #
-        check_series_title.py       #
-        update_is_prefinal.py       #
-'''
+        check_display_run.py        # 
+        check_finals.py             # 
+        check_series_title.py       # 
+        update_is_prefinal.py       # 
+
 
 3)主要クラス（コンストラクタ引数）
 
