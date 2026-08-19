@@ -20,9 +20,9 @@ boatrace/
     Subprocess/
       import_Display_run.py         # 展示航走ﾃﾞｰﾀの取得,抽出,挿入
       import_Result_today.py        # ﾚｰｽ結果ﾃﾞｰﾀの取得,抽出,挿入(翌日日時更新時に正規ﾃﾞｰﾀでUPDATE)
-      get_today_info.py/
-        get_change_info             # 当日変更情報(締切時刻,欠場艇等)の取得,抽出,挿入
-        get_cancel_info             # 当日中止ﾚｰｽの取得,抽出,挿入
+      get_today_info.py
+          get_change_info           # 当日変更情報(締切時刻,欠場艇等)の取得,抽出,挿入
+          get_cancel_info           # 当日中止ﾚｰｽの取得,抽出,挿入
 
     Screens/                        # 画面クラス
       DB_ops.py                     # DBOpsScreen(DB参照GUI)クラス
@@ -35,10 +35,10 @@ boatrace/
     Helpers/
       Custum_func.py                # tk.Frame tk.Label のｵﾘｼﾞﾅﾙ短縮表記ｸﾗｽ
 
-      queries.py/                   # 汎用クエリクラス
+      queries.py                    # 汎用クエリクラス
           _pack                     # パッキングメソッド
 
-      build_rows.py/
+      build_rows.py
           make_rows                 # 各参照クエリを纏めてentry_rows, data_rowsを生成
           make_sub_rows             # 各参照クエリを纏めてsub_rowsを生成
           query_Race_programs       # Header ﾃﾞｰﾀ参照クエリ
@@ -46,19 +46,19 @@ boatrace/
           query_result              # 結果ﾃﾞｰﾀ参照クエリ
           query_Display_run         # 展示航走ﾃﾞｰﾀ参照クエリ
 
-      series_idx.py/
+      series_idx.py
           uodate_series_idx         # Mein Right の節間成績表示・更新
           build_day_labels          # 日程ラベルの構築
 
-      scraper_odds.py/
+      scraper_odds.py
           fetch_all_odds            # odds_window.pywのｵｯｽﾞ取得/ﾊﾟｰｽ ﾍﾙﾊﾟｰ
 
-      ev_scanner.py/
+      ev_scanner.py
           evaluate_ev               # 予想ｴﾝｼﾞﾝ（未完成）
           persist_odds_snapshot     # oddsﾃﾞｰﾀ挿入ﾍﾙﾊﾟｰ
 
     Widgets/
-      widgets.py/                   # ｻﾌﾞﾌﾟﾚｰｽﾎﾙﾀﾞｰ表示のｳｨｼﾞｪｯﾄ
+      widgets.py                    # ｻﾌﾞﾌﾟﾚｰｽﾎﾙﾀﾞｰ表示のｳｨｼﾞｪｯﾄ
           framing_graph             # 当該ｺｰｽ別1,2,3着率ｸﾞﾗﾌの表示、主観選手からのｻﾌﾞｸﾞﾗﾌの表示
           framing_figure            # ｽﾘｯﾄ予想図、展示航走ｽﾘｯﾄ、結果ｽﾘｯﾄ の表示
           framing_weather           # 天候ｳｨｼﾞｪｯﾄ(天気、風向)の表示
