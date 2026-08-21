@@ -7,7 +7,7 @@ from PIL                 import Image, ImageTk
 from Helpers.Custum_func import cFr, cLbl, cBtn
 import subprocess, shutil, os, csv, datetime
 import tkinter as tk
-# ==========================================================
+#-------------------------------------------------
 BASE_DIR     = Path(r"C:\boatrace\Management")
 CSV_FILEMAP  = BASE_DIR / "file_map.csv"
 CSV_ARGSTBL  = BASE_DIR / "args_table.csv"
@@ -16,14 +16,16 @@ TERAPAD_PATH = r"C:\Program Files (x86)\TeraPad\TeraPad.exe"
 BACKUP_ROOT  = Path(r"C:\boatrace\BACKUP")
 UPLOAD_DIR   = Path(r"C:\boatrace\Management\UPLOAD")
 GUI_POS_X    = 1750
-GUI_POS_Y    =    5
+GUI_POS_Y    = 5
 SELCOL       = "#b1dbcc"
+BAT_GUI      = BASE_DIR / "boatrace_gui.bat"
+BAT_COMMIT   = Path(r"C:\boatrace\BR\Gitcommit.bat")
 
 GUI, MUI, HNH      = "Yu Gothic UI", "Meiryo UI", "Helvetica Neue Heavy"
 GR, SD, RD, RA, BD = "groove", "solid", "ridge", "raised", "bold"
 ALL, CT            = "nsew", "center"
 
-# ==========================================================
+#===============================================================================
 class FileManagementGUI(tk.Tk):
     def __init__(self):
         super().__init__()
@@ -35,7 +37,7 @@ class FileManagementGUI(tk.Tk):
         try: self.iconbitmap(ICON_PATH)
         except Exception: pass
 
-        self.option_add("*Font", ("Meiryo UI", 12))
+        self.option_add("*Font", (MUI,12))
         self.option_add("*Foreground", "#FFFFFF")
         self.option_add("*Background", "#222222")
 
@@ -50,7 +52,11 @@ class FileManagementGUI(tk.Tk):
         self.create_widgets()
         self.populate_first_layer()
 
-    #-----------------------------------------------------------------
+    #-------------------------
+    def populate_first_layer(self):
+        self.on_select_category("UI")
+
+    #-------------------------------------------------------
     def load_file_map(self):
 
         rows = []
@@ -69,7 +75,7 @@ class FileManagementGUI(tk.Tk):
 
         return rows
 
-    #-----------------------------------------------------------------
+    #-------------------------------------------------------
     def load_args_table(self):
 
         args = {}
@@ -85,7 +91,7 @@ class FileManagementGUI(tk.Tk):
 
         return args
 
-    #-----------------------------------------------------------------
+    #-------------------------------------------------------
     def create_widgets(self):
 
         # --- 左中右
@@ -172,6 +178,7 @@ class FileManagementGUI(tk.Tk):
         self.lb_row5b.grid(     row=9, column=1,               sticky="nswe")
 
         # ==== 中カラム ====
+
         self.lbl_active   =   tk.Label( self.frame_center, text= "", relief= "groove", 
                                         bg="#333333", fg="#66CCFF", anchor= "w", padx=15  )
         self.list_files   = tk.Listbox( self.frame_center, height=9, relief="flat",
@@ -188,6 +195,7 @@ class FileManagementGUI(tk.Tk):
         self.list_subcats.bind("<<ListboxSelect>>", self.on_select_subcat)
 
         # ===== 右カラム =====
+
         # 引数表示エリア
         self.fr_args    = tk.Frame(self.frame_right, bg="#333333",relief="ridge", bd=1)
         self.fr_arglist = tk.Frame(self.fr_args, bg="#333333")
@@ -203,19 +211,20 @@ class FileManagementGUI(tk.Tk):
         for i in range(4): self.frame_cat.grid_columnconfigure(i, weight=0)
 
         btn_opt = dict(bg="#444444", fg="#FFFFFF",font=(MUI, 11), width=8)
+
         self.icon_gui = ImageTk.PhotoImage(Image.open(ICON_PATH).resize((40, 40)))
 
         self.btn_ui      = tk.Button( self.frame_cat, text= "ＵＩ",    **btn_opt,
                                       command=lambda: self.on_select_category("UI")      )
-        self.btn_subproc = tk.Button( self.frame_cat, text= "Import",  **btn_opt,
+        self.btn_import  = tk.Button( self.frame_cat, text= "Import",  **btn_opt,
                                       command=lambda: self.on_select_category("Import")  )
         self.btn_checker = tk.Button( self.frame_cat, text= "Checker", **btn_opt,
                                       command=lambda: self.on_select_category("Checker") )
         self.btn_icon    = tk.Button( self.frame_cat, image=self.icon_gui, relief="flat",
-                                      command=self.on_launch_main_gui                     )
+                                      command=self.on_launch(BAT_GUI)                    )
 
         self.btn_ui.grid(     row=0, column=0, padx=(0,15),  sticky= "w")
-        self.btn_subproc.grid(row=0, column=1, padx=(0,15),  sticky= "w")
+        self.btn_import.grid( row=0, column=1, padx=(0,15),  sticky= "w")
         self.btn_checker.grid(row=0, column=2, padx=(0,15),  sticky= "w")
         self.btn_icon.grid(   row=0, column=3, padx=(12,0),  sticky= "w")
 
@@ -223,31 +232,31 @@ class FileManagementGUI(tk.Tk):
         self.frame_act = tk.Frame(self.frame_right, bg= "#222222")
         self.frame_act.place(x=10, y=320, width=360, height=35)
 
-        btn_opt2 = dict(font= (MUI, 12), width=7)
+        btn_opt2 = dict(font= (MUI,11), width=6)
 
-        self.btn_edit = tk.Button(  self.frame_act, text= "編 集",  **btn_opt2,
-                                    bg= "#555555", fg= "#FFFFFF", command= self.on_edit)
-        self.btn_backup = tk.Button(self.frame_act, text= "BackUp", **btn_opt2,
-                                    bg= "#555555", fg= "#FFFFFF", command= self.on_backup)
-        self.btn_exec = tk.Button(  self.frame_act, text= "実 行",  **btn_opt2,
-                                    bg= "#AACCFF", fg= "#000000", command= self.on_execute)
-        self.btn_upl  = tk.Button(  self.frame_act, text="Upload",  **btn_opt2,
-                                    bg= "#66CC99", fg= "#000000", command= self.on_uploads)
+        self.btn_edit   = tk.Button( self.frame_act, text= "編 集",  **btn_opt2,
+                                     bg= "#555555", fg= "#FFFFFF", command= self.on_edit )
+        self.btn_backup = tk.Button( self.frame_act, text= "BackUp", **btn_opt2,
+                                     bg= "#555555", fg= "#FFFFFF", command= self.on_backup )
+        self.btn_exec   = tk.Button( self.frame_act, text= "実 行",  **btn_opt2,
+                                     bg= "#AACCFF", fg= "#000000", command= self.on_execute )
+        self.btn_upl    = tk.Button( self.frame_act, text="Upload",  **btn_opt2,
+                                     bg= "#66CC99", fg= "#000000", command= self.on_uploads )
+        self.btn_cmt    = tk.Button( self.frame_act, text="Commit",  **btn_opt2,
+                                     bg= "#66CC99", fg= "#000000", command= self.on_launch(BAT_COMMIT) )
 
-        self.btn_edit.grid(  row=0, column=0, padx=6)
-        self.btn_backup.grid(row=0, column=1, padx=6)
-        self.btn_exec.grid(  row=0, column=2, padx=6)
-        self.btn_upl.grid(   row=0, column=3, padx=4) 
+        self.btn_edit.grid(  row=0, column=0, padx=3)
+        self.btn_backup.grid(row=0, column=1, padx=3)
+        self.btn_exec.grid(  row=0, column=2, padx=3)
+        self.btn_upl.grid(   row=0, column=3, padx=3) 
 
-        self.cat_buttons = {    "Checker":self.btn_checker,
-                                 "Import":self.btn_subproc,
-                                     "UI":self.btn_ui       }
+        self.cat_buttons = { "Checker":self.btn_checker,
+                              "Import":self.btn_subproc,
+                                  "UI":self.btn_ui       }
         self.cat_normal_color = "#444444"
         self.cat_active_color = SELCOL
-    # ----------------------------------------------------------------
-    def populate_first_layer(self):
-        self.on_select_category("UI")
-    #-----------------------------------------------------------------
+
+    #-------------------------------------------------------
     def on_select_category(self, cat):
 
         self.active_category = cat
@@ -270,7 +279,7 @@ class FileManagementGUI(tk.Tk):
         self.active_record        = None
         self.clear_args()
 
-    #-----------------------------------------------------------------
+    #-------------------------------------------------------
     def on_select_subcat(self, event=None):
 
         if not self.active_category: return
@@ -293,7 +302,7 @@ class FileManagementGUI(tk.Tk):
         self.active_record = None 
         self.clear_args()
 
-    #-----------------------------------------------------------------
+    #-------------------------------------------------------
     def on_select_file(self, event=None):
 
         sel = self.list_files.curselection()
@@ -310,13 +319,13 @@ class FileManagementGUI(tk.Tk):
         self.lbl_active.config(text= fname)
         self.display_args(fname)
 
-    #-----------------------------------------------------------------
+    #-------------------------------------------------------
     def clear_args(self):
 
         for w in self.fr_arglist.winfo_children(): w.destroy()
         self.arg_widgets.clear()
 
-    #-----------------------------------------------------------------
+    #-------------------------------------------------------
     def display_args(self, filename):
 
         self.clear_args()
@@ -358,7 +367,7 @@ class FileManagementGUI(tk.Tk):
                 "type":"option" if arg.startswith("--") else "positional",
                 "name":arg, "required":required, "var":var_chk, "entry":ent } )
 
-    #-----------------------------------------------------------------
+    #-------------------------------------------------------
     def on_execute(self):
 
         if not self.active_record:
@@ -384,7 +393,7 @@ class FileManagementGUI(tk.Tk):
         try: subprocess.Popen(" ".join(cmdline), shell= True)
         except Exception as e:
             self.show_msg("Error", f"実行に失敗しました:\n{e}")
-    #-----------------------------------------------------------------
+    #-------------------------------------------------------
     def on_edit(self):
 
         if not self.active_record:
@@ -398,7 +407,7 @@ class FileManagementGUI(tk.Tk):
 
         subprocess.Popen([TERAPAD_PATH, str(path)], shell= True)
 
-    #-----------------------------------------------------------------
+    #-------------------------------------------------------
     def on_backup(self):
 
         if not self.active_record:
@@ -428,12 +437,12 @@ class FileManagementGUI(tk.Tk):
         except Exception as e:
             self.show_msg("Error", f"バックアップ失敗:\n{e}")
 
-    #-----------------------------------------------------------------
+    #-------------------------------------------------------
     def _is_true(self, v:str) -> bool:
         s = (v or "").strip().lower()
         return s in {"1","true","t","yes","y","on","?","?"}
 
-    #-----------------------------------------------------------------
+    #-------------------------------------------------------
     def on_uploads(self):
 
         try: UPLOAD_DIR.mkdir(parents=True, exist_ok=True)
@@ -483,14 +492,14 @@ class FileManagementGUI(tk.Tk):
 
         open_explr(str(UPLOAD_DIR), 1760, 647, 800, 700)
 
-    #-----------------------------------------------------------------
-    def on_launch_main_gui(self):
+    #-------------------------------------------------------
+    def on_launch(self, dir:str):
 
-        bat = BASE_DIR / "boatrace_gui.bat"
+        bat = dir
         if not bat.exists():
             self.show_msg("Error", f"{bat} が存在しません。")
             return
-        subprocess.Popen(str(bat), shell= True)
+        subprocess.Popen(str(bat), shell=True)
 
     # ---------------- 固定位置ユーザーダイアログ --------------------
     def show_msg(self, kind:str, text:str, title:str= "",
