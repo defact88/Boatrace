@@ -243,7 +243,8 @@ class FileManagementGUI(tk.Tk):
         self.btn_upl    = tk.Button( self.frame_act, text="Upload",  **btn_opt2,
                                      bg= "#66CC99", fg= "#000000", command= self.on_uploads )
         self.btn_cmt    = tk.Button( self.frame_act, text="Commit",  **btn_opt2,
-                                     bg= "#66CC99", fg= "#000000", command=lambda:self.on_launch(BAT_COMMIT) )
+                                     bg= "#66CC99", fg= "#000000",
+                                     command=lambda:self.on_launch(BAT_COMMIT, cmd=True) )
 
         self.btn_edit.grid(  row=0, column=0, padx=3)
         self.btn_backup.grid(row=0, column=1, padx=3)
@@ -494,13 +495,17 @@ class FileManagementGUI(tk.Tk):
         open_explr(str(UPLOAD_DIR), 1760, 647, 800, 700)
 
     #-------------------------------------------------------
-    def on_launch(self, dir:str):
+    def on_launch(self, dir:str, cmd:bool=False):
 
         bat = dir
         if not bat.exists():
             self.show_msg("Error", f"{bat} が存在しません。")
             return
-        subprocess.Popen( ["cmd.exe", "/k", str(bat)], creationflags=subprocess.CREATE_NEW_CONSOLE)
+        if cmd:
+            subprocess.Popen(["cmd.exe", "/c", str(bat)],creationflags=subprocess.CREATE_NEW_CONSOLE)
+        else:
+            subprocess.Popen(str(bat), shell=True)
+
 
     # ---------------- 固定位置ユーザーダイアログ --------------------
     def show_msg(self, kind:str, text:str, title:str= "",
