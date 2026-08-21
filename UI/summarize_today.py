@@ -22,14 +22,16 @@ SP_RESULT      = os.path.join(SP_DIR, "import_result_today.py")
 CTL_PATH       = os.path.join(BASE_DIR, r"tmp\json\ctl.json")
 LOCK_PATH      = os.path.join(BASE_DIR, r"tmp\json\summarizer.lock")
 # ---- ルール（再試行など） ----------------------
-CHANGE_INTERVAL = 300  # Change: 1R締切から n秒 間隔で巡回
-CANCEL_INTERVAL = 15   # Cancel:            n分 間隔で巡回
-OFFSET_DISPLAY  = 12   # 展示:   前レース締切から n分後 に実行
-OFFSET_RESULT   = 25   # 結果: 当該レース締切から n分後 に実行
-RETRY_DIS       = 60   # 展示：未反映なら n秒後に再試行
-RETRY_RES       = 180  # 結果：未反映なら n秒後に再試行
-RETRY_NUM       = 10
-JST             = timezone(timedelta(hours=9))
+CHANGE_INTERVAL        = 300  # Change: 1R締切から n秒 間隔で巡回
+CANCEL_INTERVAL        = 15   # Cancel:            n分 間隔で巡回
+OFFSET_DISPLAY         = 12   # 展示:   前レース締切から n分後 に実行
+OFFSET_RESULT          = 25   # 結果: 当該レース締切から n分後 に実行
+RETRY_DIS              = 60   # 展示：未反映なら n秒後に再試行
+RETRY_RES              = 180  # 結果：未反映なら n秒後に再試行
+RETRY_NUM              = 10
+EXPECTED_ODDS_SET_SIZE = 185   # 3T120+3F20+2T30+KK15
+MIN_ODDS_SET_COUNT     = 3     # セット数がこれ未満なら警告
+JST                    = timezone(timedelta(hours=9))
 # ---- タスク定義 --------------------------------
 @dataclass
 class Task:
@@ -125,10 +127,9 @@ class SummarizeTodayInfo:
                         new_tasks.append( Task( kind="result", run_at=run_r, d=d,
                                                 venue_id=v_id, race_no=rno, meta={"prio":1} ) )
 
-                if now < deadline +timedelta(minutes=1):
-                    new_tasks.append( Task( kind="odds", run_at=(deadline -timedelta(minutes=20)),
-                                            d=d, venue_id=v_id, race_no=rno,
-                                            meta={"deadline":deadline, "prio":1} ) )
+                odds_task = self._build_odds_task(d, v_id, rno, deadline)
+                if odds_task:
+                    new_tasks.append(odds_task)
 
                 prev_deadline = deadline
 
@@ -214,11 +215,9 @@ class SummarizeTodayInfo:
                                             venue_id=v_id, race_no=rno, meta={"prio":1} ) )
 
             if not self._has_task("odds", d, v_id, rno):
-                if now < deadline +timedelta(minutes=1):
-                    self._reset_snapshot_reminder((d, v_id, rno))
-                    new_tasks.append( Task( kind="odds", run_at=deadline - timedelta(minutes=20),
-                                            d=d, venue_id=v_id, race_no=rno,
-                                            meta={"deadline": deadline, "prio":1} ) )
+                odds_task = self._build_odds_task(d, v_id, rno, deadline)
+            if odds_task:
+                new_tasks.append(odds_task)
 
             prev_deadline = deadline
 
@@ -440,6 +439,37 @@ class SummarizeTodayInfo:
 
         self._log(f"[cancel] {d} {VENUES[t.venue_id-1]} r>={from_rno} disabled={n}")
 
+    # ------------------------------------------------------
+    def _build_odds_task(self, d:date, venue_id:int, race_no:int, deadline:datetime) -> Optional[Task]:
+
+        now    = self._now()
+        remain = (deadline - now).total_seconds()
+
+        if remain <= 0: return None
+
+        info = self._exists_odds(d, venue_id, race_no)
+        name = f"{VENUES[venue_id-1]} {race_no:02}R"
+
+        if info["anomaly"]:
+            self._log(f"[WARN][odds] {name} captured_at毎の行数が{EXPECTED_ODDS_SET_SIZE}の倍数でありません")
+
+        if info["set_count"] >= 1 and info["has_final"]:
+            return None   # 確定値まで取得済み
+
+        if info["set_count"] < MIN_ODDS_SET_COUNT:
+            self._log(f"[WARN][odds] {name} セット数不足 ({info['set_count']} / {MIN_ODDS_SET_COUNT})")
+
+        if info["set_count"] == 0:
+            if   remain > 1200:  run_at = deadline - timedelta(minutes=20)
+            else:                run_at = now + timedelta(seconds=10)
+        else:
+            if   remain <= 300:  run_at = now
+            elif remain <  600:  run_at = info["latest_at"] + timedelta(seconds=120)
+            else:                run_at = info["latest_at"] + timedelta(seconds=300)
+
+        return Task( kind="odds", run_at=run_at, d=d, venue_id=venue_id, race_no=race_no,
+                     meta={"deadline":deadline, "prio":1}                                 )
+
     # ---- 個別実行 ------------------------------------------------------------
     def _exec_display(self, t:Task) -> bool:
 
@@ -649,6 +679,35 @@ class SummarizeTodayInfo:
             row = cur.fetchone()
 
         return 1 if row[0] == 6 else 0
+
+    # ------------------------------------------------------
+    def _exists_odds(self, d:date, venue_id:int, race_no:int) -> dict:
+
+        d_iso = d.strftime("%Y-%m-%d") if hasattr(d, "strftime") else str(d)
+
+        with self._connect_ro() as conn:
+            rows = conn.execute("""
+                SELECT captured_at, is_final, COUNT(*) AS cnt
+                  FROM Odds_snapshots
+                 WHERE date=? AND venue_id=? AND race_no=?
+              GROUP BY captured_at, is_final
+                """, (d_iso, venue_id, race_no)).fetchall()
+
+        has_final = False
+        set_count = 0
+        anomaly   = False
+        latest_at = None
+
+        for r in rows:
+            ts = datetime.strptime(r["captured_at"], "%Y-%m-%d %H:%M:%S").replace(tzinfo=JST)
+
+            if latest_at is None or ts > latest_at:     latest_at = ts
+            if r["is_final"]:                           has_final = True
+            if r["cnt"] % EXPECTED_ODDS_SET_SIZE != 0:    anomaly = True
+            elif r["cnt"] == EXPECTED_ODDS_SET_SIZE:   set_count += 1
+
+        return { "has_final":has_final, "set_count":set_count,
+                 "latest_at":latest_at, "anomaly":anomaly      }
 
     # ---- ユーティリティ ----------------------------------
     def _parse_deadline(self, s:Optional[str]) -> Optional[datetime]:

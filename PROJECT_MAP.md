@@ -12,7 +12,7 @@ boatrace/
   boatrace.db                       # SQLite3 DB
 
   UI/
-    boatrace_gui.py                 # エントリ / ルータ / 共通設定
+    boatrace_gui.py                 # エントリ/ルータ/共通設定
     Dal.py                          # UI用DAL(sqlite3簡易ラッパ)
     summarize_today.py              # 本体起動時に実行するｻﾌﾞﾌﾟﾛｾｽ(当日情報取得各pyの実行管理)
     odds_window.pyw                 # RaceWindow起動時に別ﾌﾟﾛｾｽで実行されるｵｯｽﾞ表示画面
