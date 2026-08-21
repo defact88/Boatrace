@@ -221,7 +221,7 @@ class FileManagementGUI(tk.Tk):
         self.btn_checker = tk.Button( self.frame_cat, text= "Checker", **btn_opt,
                                       command=lambda: self.on_select_category("Checker") )
         self.btn_icon    = tk.Button( self.frame_cat, image=self.icon_gui, relief="flat",
-                                      command=self.on_launch(BAT_GUI)                    )
+                                      command=lambda: self.on_launch(BAT_GUI)            )
 
         self.btn_ui.grid(     row=0, column=0, padx=(0,15),  sticky= "w")
         self.btn_import.grid( row=0, column=1, padx=(0,15),  sticky= "w")
@@ -243,15 +243,16 @@ class FileManagementGUI(tk.Tk):
         self.btn_upl    = tk.Button( self.frame_act, text="Upload",  **btn_opt2,
                                      bg= "#66CC99", fg= "#000000", command= self.on_uploads )
         self.btn_cmt    = tk.Button( self.frame_act, text="Commit",  **btn_opt2,
-                                     bg= "#66CC99", fg= "#000000", command= self.on_launch(BAT_COMMIT) )
+                                     bg= "#66CC99", fg= "#000000", command=lambda:self.on_launch(BAT_COMMIT) )
 
         self.btn_edit.grid(  row=0, column=0, padx=3)
         self.btn_backup.grid(row=0, column=1, padx=3)
         self.btn_exec.grid(  row=0, column=2, padx=3)
-        self.btn_upl.grid(   row=0, column=3, padx=3) 
+        self.btn_upl.grid(   row=0, column=3, padx=3)
+        self.btn_cmt.grid(   row=0, column=4, padx=3)
 
         self.cat_buttons = { "Checker":self.btn_checker,
-                              "Import":self.btn_subproc,
+                              "Import":self.btn_import,
                                   "UI":self.btn_ui       }
         self.cat_normal_color = "#444444"
         self.cat_active_color = SELCOL
