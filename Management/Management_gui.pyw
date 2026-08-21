@@ -500,7 +500,7 @@ class FileManagementGUI(tk.Tk):
         if not bat.exists():
             self.show_msg("Error", f"{bat} が存在しません。")
             return
-        subprocess.Popen(str(bat), shell=True)
+        subprocess.Popen( ["cmd.exe", "/k", str(bat)], creationflags=subprocess.CREATE_NEW_CONSOLE)
 
     # ---------------- 固定位置ユーザーダイアログ --------------------
     def show_msg(self, kind:str, text:str, title:str= "",
