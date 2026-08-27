@@ -233,7 +233,7 @@ class App(tk.Tk):
         def worker():
             try:
                 py   = sys.executable or "python"
-                cmd  = [py, DAILY_INSERT, "--overwrite"]
+                cmd  = [py, DAILY_INSERT, "--overwrite", "--background"]
                 proc = subprocess.run( cmd,
                                        stdout = subprocess.DEVNULL,
                                        stderr = subprocess.DEVNULL,

@@ -94,7 +94,6 @@ class FileManagementGUI(tk.Tk):
     #-------------------------------------------------------
     def create_widgets(self):
 
-        # --- 左中右
         self.frame_left   = tk.Frame(self, bg= "#222222", width=120, height=400)
         self.frame_center = tk.Frame(self, bg= "#222222", width=280, height=400)
         self.frame_right  = tk.Frame(self, bg= "#252525", width=400, height=400,
@@ -108,13 +107,8 @@ class FileManagementGUI(tk.Tk):
         self.frame_center.pack_propagate(False)
         self.frame_right.pack_propagate(False)
 
-        # ==== 左カラム ====
-        self.fr_icons = tk.Frame(self.frame_left, bg= "#222222")
-        self.fr_icons.place(x=5, y=5, width=110, height=355)
-        # ----------
-        def open_file(f_path:Path):
-            subprocess.Popen([TERAPAD_PATH, str(f_path)], shell=True)
-        # ----------
+        #====== 左カラム =====
+
         MNG_PATH     = r"C:\boatrace\Management\Management_gui.pyw"
         MNG_DIR      = r"C:\boatrace\Management"
         BR_GUI_PATH  = r"C:\boatrace\UI\boatrace_gui.py"
@@ -126,66 +120,76 @@ class FileManagementGUI(tk.Tk):
         MAIN_DIR     = r"C:\boatrace"
         IMP_DIR      = r"C:\boatrace\Import"
         BACKUP_DIR   = r"C:\boatrace\Backup"
+        base_size    = (1760, 950, 800, 500)
 
-        icon_img_F   = Image.open(BASE_DIR / r"Icon\X_fol.ico" ).resize((40, 40))
-        icon_img_A   = Image.open(BASE_DIR / r"Icon\Finder.ico").resize((40, 40))
-        icon_img_B   = Image.open(BASE_DIR / r"Icon\GUI.ico"   ).resize((40, 40))
-        icon_img_C   = Image.open(BASE_DIR / r"Icon\Matrix.ico").resize((40, 40))
-        icon_img_M   = Image.open(BASE_DIR / r"Icon\Memo.ico"  ).resize((40, 40))
+        # ----------
+        def open_file(f_path:Path):
+            subprocess.Popen([TERAPAD_PATH, str(f_path)], shell=True)
+        # ----------
+        icon_img_F = Image.open(BASE_DIR / r"Icon\X_fol.ico" ).resize((40, 40))
+        icon_img_A = Image.open(BASE_DIR / r"Icon\Finder.ico").resize((40, 40))
+        icon_img_B = Image.open(BASE_DIR / r"Icon\GUI.ico"   ).resize((40, 40))
+        icon_img_C = Image.open(BASE_DIR / r"Icon\Matrix.ico").resize((40, 40))
+        icon_img_M = Image.open(BASE_DIR / r"Icon\Memo.ico"  ).resize((40, 40))
+
+        fr_icons = tk.Frame(self.frame_left, bg= "#222222")
+        fr_icons.place(x=5, y=5, width=110, height=355)
 
         self.Fol  = ImageTk.PhotoImage(icon_img_F)
         self.txt  = ImageTk.PhotoImage(icon_img_M)
         self.A_D  = ImageTk.PhotoImage(icon_img_A)
         self.B_D  = ImageTk.PhotoImage(icon_img_B)
         self.C_D  = ImageTk.PhotoImage(icon_img_C)
-        base_size = (1760, 950, 800, 500)
 
-        self.icon_A_F = cBtn(self.fr_icons, Img=self.A_D, bd=0, Com=lambda p=MNG_PATH:open_file(p))
-        self.icon_A_D = cBtn(self.fr_icons, Img=self.Fol, bd=0, Com=lambda:open_explr(MNG_DIR, *base_size))
-        self.icon_B_F = cBtn(self.fr_icons, Img=self.B_D, bd=0, Com=lambda p=BR_GUI_PATH:open_file(p))
-        self.icon_B_D = cBtn(self.fr_icons, Img=self.Fol, bd=0, Com=lambda:open_explr(BR_GUI_DIR, *base_size) )
-        self.icon_C_F = cBtn(self.fr_icons, Img=self.C_D, bd=0, Com=lambda p=SCHEMA_PATH: open_file(p))
-        self.icon_C_D = cBtn(self.fr_icons, Img=self.Fol, bd=0, Com=lambda:open_explr(SCHEMA_DIR, *base_size))
-        self.icon_Main= cBtn(self.fr_icons, Img=self.Fol, bd=0, Com=lambda:open_explr(MAIN_DIR, *base_size))
-        self.icon_Sub = cBtn(self.fr_icons, Img=self.Fol, bd=0, Com=lambda:open_explr(BACKUP_DIR, *base_size))
-        self.icon_Fmp = cBtn(self.fr_icons, Img=self.txt, bd=0, Com=lambda p=FILEMAP_PATH:open_file(p))
-        self.icon_Arg = cBtn(self.fr_icons, Img=self.txt, bd=0, Com=lambda p=ARGLIST_PATH:open_file(p))
+        icon_A_F = cBtn(fr_icons, Img=self.A_D, bd=0, Com=lambda p=MNG_PATH:open_file(p))
+        icon_A_D = cBtn(fr_icons, Img=self.Fol, bd=0, Com=lambda:open_explr(MNG_DIR, *base_size))
+        icon_B_F = cBtn(fr_icons, Img=self.B_D, bd=0, Com=lambda p=BR_GUI_PATH:open_file(p))
+        icon_B_D = cBtn(fr_icons, Img=self.Fol, bd=0, Com=lambda:open_explr(BR_GUI_DIR, *base_size) )
+        icon_C_F = cBtn(fr_icons, Img=self.C_D, bd=0, Com=lambda p=SCHEMA_PATH: open_file(p))
+        icon_C_D = cBtn(fr_icons, Img=self.Fol, bd=0, Com=lambda:open_explr(SCHEMA_DIR, *base_size))
+        icon_Main= cBtn(fr_icons, Img=self.Fol, bd=0, Com=lambda:open_explr(MAIN_DIR, *base_size))
+        icon_Sub = cBtn(fr_icons, Img=self.Fol, bd=0, Com=lambda:open_explr(BACKUP_DIR, *base_size))
+        icon_Fmp = cBtn(fr_icons, Img=self.txt, bd=0, Com=lambda p=FILEMAP_PATH:open_file(p))
+        icon_Arg = cBtn(fr_icons, Img=self.txt, bd=0, Com=lambda p=ARGLIST_PATH:open_file(p))
 
-        self.lb_row1  = tk.Label(self.fr_icons,text="Management",   font=(MUI,9), anchor=CT)
-        self.lb_row2  = tk.Label(self.fr_icons,text="Boatrace_gui", font=(MUI,9), anchor=CT)
-        self.lb_row3  = tk.Label(self.fr_icons,text="DB_Schema",    font=(MUI,9), anchor=CT)
-        self.lb_row4a = tk.Label(self.fr_icons,text="Filemap",      font=(MUI,9), anchor=CT)
-        self.lb_row4b = tk.Label(self.fr_icons,text="Arglist",      font=(MUI,9), anchor=CT)
-        self.lb_row5a = tk.Label(self.fr_icons,text="Maiin",        font=(MUI,9), anchor=CT)
-        self.lb_row5b = tk.Label(self.fr_icons,text="Backup",       font=(MUI,9), anchor=CT)
+        lb_row1  = tk.Label(fr_icons,text="Management",   font=(MUI,9), anchor=CT)
+        lb_row2  = tk.Label(fr_icons,text="Boatrace_gui", font=(MUI,9), anchor=CT)
+        lb_row3  = tk.Label(fr_icons,text="DB_Schema",    font=(MUI,9), anchor=CT)
+        lb_row4a = tk.Label(fr_icons,text="Filemap",      font=(MUI,9), anchor=CT)
+        lb_row4b = tk.Label(fr_icons,text="Arglist",      font=(MUI,9), anchor=CT)
+        lb_row5a = tk.Label(fr_icons,text="Maiin",        font=(MUI,9), anchor=CT)
+        lb_row5b = tk.Label(fr_icons,text="Backup",       font=(MUI,9), anchor=CT)
 
-        self.icon_A_F.grid( row=0, column=0, padx= (3, 10), pady=(5, 0), sticky= "w")
-        self.icon_A_D.grid( row=0, column=1, padx= (10, 3), pady=(5, 0), sticky= "w")
-        self.lb_row1.grid(      row=1, column=0, columnspan=2, sticky="nswe")
-        self.icon_B_F.grid( row=2, column=0, padx= (3, 10), pady=(8, 0), sticky= "w")
-        self.icon_B_D.grid( row=2, column=1, padx= (10, 3), pady=(8, 0), sticky= "w")
-        self.lb_row2.grid(      row=3, column=0, columnspan=2, sticky="nswe")
-        self.icon_C_F.grid( row=4, column=0, padx= (3, 10), pady=(8, 0), sticky= "w")
-        self.icon_C_D.grid( row=4, column=1, padx= (10, 3), pady=(8, 0), sticky= "w")
-        self.lb_row3.grid(      row=5, column=0, columnspan=2, sticky="nswe")
-        self.icon_Fmp.grid( row=6, column=0, padx= (3, 10), pady=(8, 0), sticky= "w")
-        self.icon_Arg.grid( row=6, column=1, padx= (10, 3), pady=(8, 0), sticky= "w")
-        self.lb_row4a.grid(     row=7, column=0,               sticky="nswe")
-        self.lb_row4b.grid(     row=7, column=1,               sticky="nswe")
-        self.icon_Main.grid(row=8, column=0, padx= (3, 10), pady=(8, 0), sticky= "w")
-        self.icon_Sub.grid( row=8, column=1, padx= (10, 3), pady=(8, 0), sticky= "w")
-        self.lb_row5a.grid(     row=9, column=0,               sticky="nswe")
-        self.lb_row5b.grid(     row=9, column=1,               sticky="nswe")
+        icon_A_F.grid( row=0, column=0, padx= (3, 10), pady=(5, 0), sticky= "w")
+        icon_A_D.grid( row=0, column=1, padx= (10, 3), pady=(5, 0), sticky= "w")
+        lb_row1.grid(  row=1, column=0, columnspan=2,               sticky="ns")
+        icon_B_F.grid( row=2, column=0, padx= (3, 10), pady=(8, 0), sticky= "w")
+        icon_B_D.grid( row=2, column=1, padx= (10, 3), pady=(8, 0), sticky= "w")
+        lb_row2.grid(  row=3, column=0, columnspan=2,               sticky="ns")
+        icon_C_F.grid( row=4, column=0, padx= (3, 10), pady=(8, 0), sticky= "w")
+        icon_C_D.grid( row=4, column=1, padx= (10, 3), pady=(8, 0), sticky= "w")
+        lb_row3.grid(  row=5, column=0, columnspan=2,               sticky="ns")
+        icon_Fmp.grid( row=6, column=0, padx= (3, 10), pady=(8, 0), sticky= "w")
+        icon_Arg.grid( row=6, column=1, padx= (10, 3), pady=(8, 0), sticky= "w")
+        lb_row4a.grid( row=7, column=0,                             sticky="ns")
+        lb_row4b.grid( row=7, column=1,                             sticky="ns")
+        icon_Main.grid(row=8, column=0, padx= (3, 10), pady=(8, 0), sticky= "w")
+        icon_Sub.grid( row=8, column=1, padx= (10, 3), pady=(8, 0), sticky= "w")
+        lb_row5a.grid( row=9, column=0,                             sticky="ns")
+        lb_row5b.grid( row=9, column=1,                             sticky="ns")
 
-        # ==== 中カラム ====
+        #====== 中カラム =====
 
         self.lbl_active   =   tk.Label( self.frame_center, text= "", relief= "groove", 
+                                        font=(MUI,11),
                                         bg="#333333", fg="#66CCFF", anchor= "w", padx=15  )
         self.list_files   = tk.Listbox( self.frame_center, height=9, relief="flat",
                                         bg="#333333", fg= "#FFFFFF", activestyle= "none",
+                                        font=(MUI,11),
                                         selectbackground= SELCOL, exportselection= False  )
         self.list_subcats = tk.Listbox( self.frame_center, height=6, relief="flat",
                                         bg="#333333", fg= "#FFFFFF", activestyle= "none",
+                                        font=(MUI,11),
                                         selectbackground= SELCOL, exportselection= False  )
 
         self.lbl_active.pack(  fill= "x",                           pady=(0, 5))
@@ -194,15 +198,13 @@ class FileManagementGUI(tk.Tk):
         self.list_files.bind(  "<<ListboxSelect>>", self.on_select_file)
         self.list_subcats.bind("<<ListboxSelect>>", self.on_select_subcat)
 
-        # ===== 右カラム =====
+        #====== 右カラム =====
 
         # 引数表示エリア
         self.fr_args    = tk.Frame(self.frame_right, bg="#333333",relief="ridge", bd=1)
         self.fr_arglist = tk.Frame(self.fr_args, bg="#333333")
-        self.lb_args    = tk.Label(self.fr_args, bg="#333333", fg="#AACCFF", text="Arguments")
         self.fr_args.place(x=10, y=10, width=350, height=250)
         self.fr_arglist.pack(fill= "both", expand= False, padx=8, pady=4)
-        self.lb_args.pack(anchor= "w", padx=8, pady=4)
 
         # 第1階層ボタン
         self.frame_cat = tk.Frame(self.frame_right, bg= "#222222")
@@ -210,9 +212,9 @@ class FileManagementGUI(tk.Tk):
 
         for i in range(4): self.frame_cat.grid_columnconfigure(i, weight=0)
 
-        btn_opt = dict(bg="#444444", fg="#FFFFFF",font=(MUI, 11), width=8)
+        btn_opt = dict(bg="#444444", fg="#FFFFFF",font=(MUI,10), width=8)
 
-        self.icon_gui = ImageTk.PhotoImage(Image.open(ICON_PATH).resize((40, 40)))
+        self.icon_gui    = ImageTk.PhotoImage(Image.open(ICON_PATH).resize((40, 40)))
 
         self.btn_ui      = tk.Button( self.frame_cat, text= "ＵＩ",    **btn_opt,
                                       command=lambda: self.on_select_category("UI")      )
@@ -220,19 +222,19 @@ class FileManagementGUI(tk.Tk):
                                       command=lambda: self.on_select_category("Import")  )
         self.btn_checker = tk.Button( self.frame_cat, text= "Checker", **btn_opt,
                                       command=lambda: self.on_select_category("Checker") )
-        self.btn_icon    = tk.Button( self.frame_cat, image=self.icon_gui, relief="flat",
+        self.boot_gui    = tk.Button( self.frame_cat, image=self.icon_gui, relief="flat",
                                       command=lambda: self.on_launch(BAT_GUI)            )
 
         self.btn_ui.grid(     row=0, column=0, padx=(0,15),  sticky= "w")
         self.btn_import.grid( row=0, column=1, padx=(0,15),  sticky= "w")
         self.btn_checker.grid(row=0, column=2, padx=(0,15),  sticky= "w")
-        self.btn_icon.grid(   row=0, column=3, padx=(12,0),  sticky= "w")
+        self.boot_gui.grid(   row=0, column=3, padx=(12,0),  sticky= "w")
 
         # アクションボタン
         self.frame_act = tk.Frame(self.frame_right, bg= "#222222")
         self.frame_act.place(x=10, y=320, width=360, height=35)
 
-        btn_opt2 = dict(font= (MUI,11), width=6)
+        btn_opt2 = dict(font= (MUI,10), width=7)
 
         self.btn_edit   = tk.Button( self.frame_act, text= "編 集",  **btn_opt2,
                                      bg= "#555555", fg= "#FFFFFF", command= self.on_edit )
@@ -240,17 +242,17 @@ class FileManagementGUI(tk.Tk):
                                      bg= "#555555", fg= "#FFFFFF", command= self.on_backup )
         self.btn_exec   = tk.Button( self.frame_act, text= "実 行",  **btn_opt2,
                                      bg= "#AACCFF", fg= "#000000", command= self.on_execute )
-        self.btn_upl    = tk.Button( self.frame_act, text="Upload",  **btn_opt2,
-                                     bg= "#66CC99", fg= "#000000", command= self.on_uploads )
+        self.btn_upd    = tk.Button( self.frame_act, text="日時更新",**btn_opt2,
+                                     bg= "#66CC99", fg= "#000000", command= self.on_update )
         self.btn_cmt    = tk.Button( self.frame_act, text="Commit",  **btn_opt2,
                                      bg= "#66CC99", fg= "#000000",
                                      command=lambda:self.on_launch(BAT_COMMIT, cmd=True) )
 
-        self.btn_edit.grid(  row=0, column=0, padx=3)
-        self.btn_backup.grid(row=0, column=1, padx=3)
-        self.btn_exec.grid(  row=0, column=2, padx=3)
-        self.btn_upl.grid(   row=0, column=3, padx=3)
-        self.btn_cmt.grid(   row=0, column=4, padx=3)
+        self.btn_edit.grid(  row=0, column=0, padx=2)
+        self.btn_backup.grid(row=0, column=1, padx=2)
+        self.btn_exec.grid(  row=0, column=2, padx=2)
+        self.btn_upd.grid(   row=0, column=3, padx=2)
+        self.btn_cmt.grid(   row=0, column=4, padx=2)
 
         self.cat_buttons = { "Checker":self.btn_checker,
                               "Import":self.btn_import,
@@ -333,8 +335,7 @@ class FileManagementGUI(tk.Tk):
         self.clear_args()
         args = self.args_table.get(filename, [])
         if not args:
-            lbl = tk.Label( self.fr_arglist, text= "(引数なし)",
-                            bg= "#333333", fg= "#888888"            )
+            lbl = tk.Label(self.fr_arglist, text= "(no arguments)", bg= "#333333", fg= "#888888")
             lbl.pack(anchor= "w", padx=4, pady=2)
             return
 
@@ -357,7 +358,7 @@ class FileManagementGUI(tk.Tk):
                 tk.Label(rowf, text= "", bg= "#333333", width=2).grid(row=0, column=0)
 
             lbl = tk.Label( rowf, text= arg or "(positional)", anchor= "w",
-                            bg= "#333333", fg= "#FFFFFF"                   )
+                            font=(MUI,11), bg= "#333333", fg= "#FFFFFF"     )
             ent = tk.Entry( rowf, insertbackground= "#FFFFFF", width=14,
                             bg= "#222222", fg= "#FFFFFF",                  )
             if required: lbl.config(fg= "#FF6666")
@@ -495,6 +496,17 @@ class FileManagementGUI(tk.Tk):
         open_explr(str(UPLOAD_DIR), 1760, 647, 800, 700)
 
     #-------------------------------------------------------
+    def on_update(self):
+
+        dir = r"C:\boatrace\Import\daily_insert.py"
+        if not dir.exists():
+            self.show_msg("Error", f"daily_insert.py が存在しません。")
+            return
+        bat = dir + " --all"
+
+        subprocess.Popen(["cmd.exe", "/c", str(bat)],creationflags=subprocess.CREATE_NEW_CONSOLE)
+
+    #-------------------------------------------------------
     def on_launch(self, dir:str, cmd:bool=False):
 
         bat = dir
@@ -557,7 +569,7 @@ class FileManagementGUI(tk.Tk):
 # ==============================================================================
 import subprocess
 
-def open_explr(path: str, left=50, top=50, width=1000, height=700):
+def open_explr (path: str, left=50, top=50, width=1000, height=700):
 
     ps = rf'''
 $ErrorActionPreference = 'SilentlyContinue'

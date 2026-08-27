@@ -96,16 +96,17 @@ def do_inspect(args) -> Dict[Tuple, Dict[str, dict]]:
         SELECT COUNT(*)
           FROM Odds_snapshots
          WHERE 1=1
-       {where}
+        {where}
         """, params).fetchone()[0]
 
-    print( f"対象期間：{params[0]} ～ {params[1]}\n" if params[0] != params[1]
-            else f"対象日：{params[0]}\n" )
-    print(f"総ﾚｺｰﾄﾞ数: {total:,}")
+    print( f"[対象期間] {params[0]} ～ {params[1]}\n" if params[0] != params[1]
+            else f"[対象日] {params[0]}\n" )
+    print(f"[総ﾚｺｰﾄﾞ数] {total:,}")
 
-    print("\n[賭式別]")
+    print("\n[賭式別レコード数]\n")
     for r in c.execute(f"""
-        SELECT bet_type, COUNT(*) AS cnt
+        SELECT bet_type,
+               COUNT(*) AS cnt
           FROM Odds_snapshots
          WHERE 1=1
         {where}
@@ -125,7 +126,7 @@ def do_inspect(args) -> Dict[Tuple, Dict[str, dict]]:
             final_dup.append((key, len(final_ts)))
 
     print(f"\n【   is_final  重複   】\n"
-          f"検出数: {len(final_dup)} ﾚｰｽ")
+          f"\n検出数: {len(final_dup)} ﾚｰｽ\n")
     for (d_, v_, r_), n in sorted(final_dup, key=lambda x: -x[1])[:20]:
         print(f"  {d_} jcd={v_:02} {r_:02}R : final_batches={n}")
 
@@ -142,12 +143,12 @@ def do_inspect(args) -> Dict[Tuple, Dict[str, dict]]:
                 anomaly_size.append((key, ts, v["rows"]))
 
     print(f"\n【   セット数  異常   】(1set= {EXPECTED_SET_SIZE})\n"
-          f"検出数: {len(anomaly_size)} ﾚｰｽ\n")
+          f"\n検出数: {len(anomaly_size)} ﾚｰｽ\n")
     for (d_, v_, r_), ts, rows in anomaly_size[:20]:
         print(f"  {d_} jcd={v_:02} {r_:02}R  {ts} : rows={rows}")
 
-    print(f"\n【過剰スナップショット】(最大 {MAX_SET_COUNT}set)\n"
-          f"検出数: {len(excess)} ﾚｰｽ\n")
+    print(f"\n【過剰スナップショット】(MAX= {MAX_SET_COUNT}set)\n"
+          f"\n検出数: {len(excess)} ﾚｰｽ\n")
     for (d_, v_, r_), n in sorted(excess, key=lambda x: -x[1]):
         print(f"  {d_} {VENUES[v_]} {r_:02}R : full_sets= {n}")
 
@@ -166,7 +167,7 @@ def do_inspect(args) -> Dict[Tuple, Dict[str, dict]]:
         """,
         (*TARGET_BET_TYPES, *params)).fetchall()
 
-    print("\n[  日付     開催場/ﾚｰｽNo.  レコード数/セット数 ]\n")
+    print("f\n[  日付     開催場/ﾚｰｽNo.  レコード数/セット数 ]\n")
     for r in summary:
         print(f"{r['date']}  {VENUES[r['venue_id']]} {r['race_no']:>2}R  :  "
               f"rows={r['total_rows']:>5,}  sets={r['total_sets']:>3,}"
@@ -238,7 +239,7 @@ def main():
     ap = argparse.ArgumentParser(description="Odds_snapshots 検査/間引きツール")
     ap.add_argument("--date-from", help="YYYY-MM-DD")
     ap.add_argument("--date-to",   help="YYYY-MM-DD")
-    ap.add_argument("--thin", action="store_true", help="検査後、間引きをDBに実行する")
+    ap.add_argument("thin", action="store_true", help="検査後、間引きをDBに実行する")
     args = ap.parse_args()
 
     races = do_inspect(args)

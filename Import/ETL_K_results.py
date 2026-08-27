@@ -321,7 +321,7 @@ def main(argv=None):
 
             downloaded.extend(saved)
 
-        if downloaded: staged_txts = stage_DL_to_INBOX(downloaded)
+        if downloaded: staged_txts.extend(stage_DL_to_INBOX(downloaded))
         else: print("DL対象なし(全日 archive 済み)\n")
 
     else: staged_txts = sorted(DIR_INBOX.glob("K*.TXT"))

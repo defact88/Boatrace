@@ -21,33 +21,30 @@ def check_display_data(date_from, date_to):
     # 3. Display_run を LEFT JOIN してレコード数と内容をチェック
     # 4. HAVING句で「中止ではないのに6艇未満」または「出走艇に空データあり」を抽出
     sql = """
-    SELECT 
-        p.date, 
-        p.venue_id, 
-        p.race_no,
-        r.status,
-        COUNT(d.frame_no) as record_count,
-        SUM(CASE WHEN d.is_absent = 0 AND (d.exhibition IS NULL OR d.slit_ADJ IS NULL OR d.tilt IS NULL) THEN 1 ELSE 0 END) as missing_val_count
-    FROM (
-        SELECT DISTINCT date, venue_id, race_no 
-        FROM Race_programs 
-        WHERE date BETWEEN ? AND ?
-    ) p
-    INNER JOIN Races r
-        ON  p.date     = r.date
-        AND p.venue_id = r.venue_id
-        AND p.race_no  = r.race_no
-    LEFT JOIN Display_run d 
-        ON  p.date     = d.date 
-        AND p.venue_id = d.venue_id 
-        AND p.race_no  = d.race_no
+        SELECT 
+            p.date, 
+            p.venue_id, 
+            p.race_no,
+            r.status,
+            COUNT(d.frame_no) as record_count,
+            SUM(CASE WHEN d.is_absent = 0 AND (d.exhibition IS NULL OR
+                                                 d.slit_ADJ IS NULL OR
+                                                     d.tilt IS NULL    )
+                     THEN 1 ELSE 0 END) as missing_val_count
+        FROM(SELECT DISTINCT date, venue_id, race_no 
+               FROM Race_programs 
+              WHERE date BETWEEN ? AND ?) p
+  INNER JOIN Races r       ON p.date = r.date
+                      AND p.venue_id = r.venue_id
+                      AND p.race_no  = r.race_no
+   LEFT JOIN Display_run d ON p.date = d.date 
+                      AND p.venue_id = d.venue_id 
+                      AND p.race_no  = d.race_no
     GROUP BY p.date, p.venue_id, p.race_no, r.status
-    HAVING 
-        (r.status != 'cancelled' AND record_count < 6)
-        OR 
-        (missing_val_count > 0)
+      HAVING(r.status != 'cancelled' AND record_count < 6) OR 
+            (missing_val_count > 0)
     ORDER BY p.date, p.venue_id, p.race_no;
-    """
+        """
 
     try:
         with sqlite3.connect(DB_PATH) as conn:

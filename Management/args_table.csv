@@ -46,6 +46,7 @@ daily_insert.py,--date,required=False
 daily_insert.py,--date_from,required=False
 daily_insert.py,--date_to,required=False
 daily_insert.py,--overwrite,required=False
+daily_insert.py,--background,required=False
 delete_data.py,--enable_K,required=False
 delete_data.py,--enable_B,required=False
 delete_data.py,--date_from,required=False
