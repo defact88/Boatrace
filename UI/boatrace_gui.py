@@ -1,17 +1,17 @@
 ﻿# -*- coding: utf-8 -*-
 # C:\boatrace\UI\boatrace_gui.py
 
-import tkinter  as tk
+import tkinter as tk
 import threading, subprocess, sys, sqlite3, signal, traceback, json, os, queue
-
 from tkinter                import ttk, messagebox
 from datetime               import datetime as dt, date, time, timedelta, timezone
 from pathlib                import Path
 from collections            import deque
 
+import Dal as dal
 from Screens                import( DBOpsScreen, DBSchemScreen, DBQueryScreen, RaceSelectScreen,
                                     PlayerAnalysisScreen, VenuesAnalysisScreen,
-                                     PlayerSamePeriodScreen, MotorAnalysisScreen)
+                                     PlayerSamePeriodScreen, MotorAnalysisScreen )
 from Helpers.build_rows     import query_program, make_rows, make_sub_rows
 from Helpers.queries        import Query
 from Helpers.series_idx     import update_series_idx, build_day_lbl
@@ -21,7 +21,6 @@ from Widgets.center_widgets import framing_center_widgets
 from Widgets.placeholder    import build_main_placeholder, build_sub_placeholder
 from Widgets.widgets        import ( framing_graph, framing_figure, framing_weather,
                                      clear_all_lanes, apply_absent_bg, set_player_image, )
-import Dal as dal
 
 # ====================================================================
 APP_TITLE = ""
@@ -66,7 +65,7 @@ FAULT_OPT = { 0:{"font":(MUI, 8   ),"fg":"black"},
               2:{"font":(MUI, 9,BD),"fg":"red"  }, 
               3:{"font":(MUI, 9,BD),"fg":"red"  }, } 
 
-ON_LAUNCH    = {"ensure_prg":True, "summarrizer":True}
+ON_LAUNCH     = {"ensure_prg":True, "summarrizer":True}
 
 DB_PATH       = r"C:\boatrace\boatrace.db"
 DAILY_INSERT  = r"C:\boatrace\Import\daily_insert.py"
@@ -252,7 +251,7 @@ class App(tk.Tk):
         # ----------
         def poll():
 
-            if not finished["done"]: self.after(200, poll) ;return
+            if not finished["done"]: self.after(30, poll) ;return
 
             try:              dlg.destroy()
             except Exception: pass

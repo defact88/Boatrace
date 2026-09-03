@@ -2,10 +2,11 @@
 # C:\boatrace\UI\Subprocess\get_today_info.py
 
 import sqlite3, re, sys, argparse, warnings, random, time
-from datetime  import datetime as dt
-from pathlib   import Path
-from bs4       import BeautifulSoup, XMLParsedAsHTMLWarning
-from curl_cffi import requests
+import Dal as dal
+from datetime        import datetime as dt
+from pathlib         import Path
+from bs4             import BeautifulSoup, XMLParsedAsHTMLWarning
+from curl_cffi       import requests
 from multiprocessing import Process
 
 warnings.filterwarnings("ignore", category=XMLParsedAsHTMLWarning)
@@ -24,26 +25,29 @@ HEADERS   = { "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:142.0)
               "Sec-Fetch-Site": "none",
               "Sec-Fetch-User": "?1",
               "Connection": "keep-alive",
-}  
-# --------------------------------------
+             }
+# ----------------------------
 def yyyymmdd(d_iso:str) -> str:
+
     return d_iso.replace("-", "")
-# --------------------------------------
+#-----------------------------------------------------------
 def fetch_index_html(d_iso:str) -> str:
-    hd = yyyymmdd(d_iso)
+
+    hd   = yyyymmdd(d_iso)
     sess = requests.Session(impersonate="firefox")
-    res = sess.get(URL_INDEX.format(hd=hd), headers=HEADERS, timeout=15)
+    res  = sess.get(URL_INDEX.format(hd=hd), headers=HEADERS, timeout=15)
     res.raise_for_status()
+
     return res.text
-# --------------------------------------------------------------------
+#-----------------------------------------------------------
 def build_race_id(d_iso:str, venue_id:int, race_no:int) -> int:
 
     _date = dt.strptime(d_iso, "%Y-%m-%d")
     ymd   = _date.strftime("%y%m%d")
 
     return int(f"{ymd}{venue_id:02d}{race_no:02d}")
-# --------------------------------------------------------------------
-def parse_cancellations(html_text: str) -> list[tuple[int, int]]:
+#-----------------------------------------------------------
+def parse_cancellations(html_text:str) -> list[tuple[int, int]]:
 
     soup = BeautifulSoup(html_text, "lxml")
     out:list[tuple[int, int]] = []
@@ -52,7 +56,8 @@ def parse_cancellations(html_text: str) -> list[tuple[int, int]]:
         txt = td.get_text(strip=True)
 
         from_rno = None
-        m = re.search(r"(\d{1,2})R以降中止", txt)
+        m        = re.search(r"(\d{1,2})R以降中止", txt)
+
         if m:
             from_rno = int(m.group(1))
 
@@ -79,43 +84,44 @@ def parse_cancellations(html_text: str) -> list[tuple[int, int]]:
 
     return out
 
-# --------------------------------------------------------------------
-def fetch_race_meta(conn:sqlite3.Connection, d_iso:str, venue_id:int, race_no:int):
+#-----------------------------------------------------------
+def fetch_race_meta(d_iso:str, venue_id:int, race_no:int):
 
-    row = conn.execute("""
+    row = dal.fetchone("""
         SELECT MIN(series_title) AS series_title,
                MIN(grade)        AS grade,
                MIN(day_no)       AS day_no,
                MIN(race_title)   AS race_title
           FROM Race_programs
          WHERE date=? AND venue_id=? AND race_no=?
-        """, (d_iso, venue_id, race_no)).fetchone()
+        """,
+        (d_iso, venue_id, race_no))
 
     return { "series_title": row[0],
              "grade":        row[1],
              "day_no":       row[2],
              "race_title":   row[3], }
 
-# --------------------------------------------------------------------
-def insert_cancelled(conn:sqlite3.Connection, d_iso:str, venue_id:int, from_rno:int) -> int:
+#-----------------------------------------------------------
+def insert_cancelled(d_iso:str, venue_id:int, from_rno:int) -> int:
 
     inserted = 0
     for rno in range(from_rno, 13):
 
-        row = conn.execute("""
+        row = dal.fetchone("""
                   SELECT 1 
                     FROM Races
                    WHERE date=? AND venue_id=? AND race_no=?
                    LIMIT 1
                   """,
-                  (d_iso, venue_id, rno)).fetchone()
+                  (d_iso, venue_id, rno))
 
         if row: continue
 
-        meta    = fetch_race_meta(conn, d_iso, venue_id, rno)
+        meta    = fetch_race_meta(d_iso, venue_id, rno)
         race_id = build_race_id(d_iso, venue_id, rno)
     
-        cur = conn.execute("""
+        cur = dal.execute("""
                   INSERT
                     INTO Races
                         ( race_id,  date,       venue_id, series_title, grade,   day_no,
@@ -130,7 +136,7 @@ def insert_cancelled(conn:sqlite3.Connection, d_iso:str, venue_id:int, from_rno:
 
     return inserted 
 
-# --------------------------------------------------------------------
+#-----------------------------------------------------------y
 def get_cancel_info() -> int:
 
     ap    = argparse.ArgumentParser()
@@ -148,24 +154,19 @@ def get_cancel_info() -> int:
         print("[INFO] no cancellations")
         return 0
 
-    with sqlite3.connect(DB_PATH) as conn:
-        conn.execute("PRAGMA foreign_keys=ON;")
-
-        total_upd = 0
-        for (venue_id, from_rno) in cancels:
-            upd = insert_cancelled(conn, d_iso, venue_id, from_rno)
-            if upd: 
-                print(f"[OK] Insert cancelled: jcd={venue_id} rno>={from_rno}")
-                total_upd += upd
-
-        conn.commit()
+    total_upd = 0
+    for (venue_id, from_rno) in cancels:
+        upd = insert_cancelled(d_iso, venue_id, from_rno)
+        if upd: 
+            print(f"[OK] Insert cancelled: jcd={venue_id} rno>={from_rno}")
+            total_upd += upd
 
     if total_upd == 0: print("[INFO] no change")
 
     return 0
 # --------------------------------------
-def update_deadline(conn:sqlite3.Connection, d_iso:str, jcd:int, rno:int, hhmm:str):
-    cursor = conn.cursor()
+def update_deadline(d_iso:str, jcd:int, rno:int, hhmm:str):
+
     sql = """
              UPDATE Race_programs
                 SET deadline_vote  = ?
@@ -174,10 +175,10 @@ def update_deadline(conn:sqlite3.Connection, d_iso:str, jcd:int, rno:int, hhmm:s
                 AND race_no        = ?
                 AND deadline_vote <> ?  """
 
-    cursor.execute(sql, (f"{d_iso} {hhmm}", d_iso, jcd, rno, f"{d_iso} {hhmm}" ))
-    return cursor.rowcount
+    return dal.execute(sql, (f"{d_iso} {hhmm}", d_iso, jcd, rno, f"{d_iso} {hhmm}" ))
+
 # --------------------------------------
-def set_absent(conn:sqlite3.Connection, d_iso:str, jcd:int, rno:int, frame_no:int):
+def set_absent(d_iso:str, jcd:int, rno:int, frame_no:int):
 
     sql = """
              UPDATE Race_programs
@@ -186,7 +187,8 @@ def set_absent(conn:sqlite3.Connection, d_iso:str, jcd:int, rno:int, frame_no:in
                 AND venue_id  = ?
                 AND race_no   = ?
                 AND frame_no  = ?   """
-    conn.execute(sql, (d_iso, jcd, rno, frame_no))
+
+    dal.execute(sql, (d_iso, jcd, rno, frame_no))
 
 # --------------------- 解析 ---------------------
 def parse_deadline_grid(html_text:str):
@@ -215,6 +217,7 @@ def parse_deadline_grid(html_text:str):
     for idx, hhmm in enumerate(row[1:], start=1):
         if re.fullmatch(r"\d{1,2}:\d{2}", hhmm):
             out[idx] = hhmm
+
     return out
 
 # ------------------------------------------------
@@ -235,7 +238,9 @@ def parse_absent_frames(html_text:str) -> set[int]:
 
 # ============= get_change main ==================
 def get_change_info():
+
     ap = argparse.ArgumentParser()
+
     ap.add_argument("--date",  required=True, help="YYYY-MM-DD")
     ap.add_argument("--venue", required=True, type=int)
     ap.add_argument("--first", action="store_true", help="初回実行")
@@ -246,6 +251,7 @@ def get_change_info():
     hd       = yyyymmdd(d_iso)
     sess     = requests.Session(impersonate="firefox")
     sess.headers.update(HEADERS)
+
     try:
         res = sess.get(URL_BASE.format(jcd=jcd, hd=hd), timeout=15)
         res.raise_for_status()
@@ -273,22 +279,22 @@ def get_change_info():
             r = sess.get(URL_RNO.format(rno=rno, jcd=jcd, hd=hd), timeout=15)
             r.raise_for_status()
         except Exception: continue
+
         frames = parse_absent_frames(r.text)
         if frames: absents_by_rno[rno] = frames
 
-    with sqlite3.connect(DB_PATH) as conn:
-        conn.execute("PRAGMA foreign_keys=ON;")
         upd_d = []
         upd_a = []
-        for rno, hhmm in deadlines.items():
-             upd = update_deadline(conn, d_iso, jcd, rno, hhmm)
-             if upd: upd_d.append(rno)
-        for rno, frames in absents_by_rno.items():
-            for fr in sorted(frames):
-                set_absent(conn, d_iso, jcd, rno, fr)
-                upd_a.append(rno) 
 
-        conn.commit()
+    for rno, hhmm in deadlines.items():
+         upd = update_deadline(d_iso, jcd, rno, hhmm)
+         if upd: upd_d.append(rno)
+
+    for rno, frames in absents_by_rno.items():
+        for fr in sorted(frames):
+            set_absent(d_iso, jcd, rno, fr)
+            upd_a.append(rno) 
+
     if upd_d:
         print(f"[OK] deadlines_updated: {','.join(str(n) for n in sorted(set(upd_d)))}")
     if upd_a:

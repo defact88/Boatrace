@@ -150,7 +150,7 @@ def query_program(self):
 
     return row
 # ======================= 選手基本ﾃﾞｰﾀ取得 ===========================
-def query_players(date: str, venue_id: int, race_no: int):
+def query_players(date:str, venue_id:int, race_no:int):
 
     sql = """
         SELECT rp.frame_no,
@@ -247,8 +247,8 @@ def query_result(fn:int, d:date, v:int, r:int):
         """,
         (d, v, r, fn)                    )
 
-    row1 = {k: row1[k] for k in row1.keys()} if row1 else {}
-    row2 = {k: row2[k] for k in row2.keys()} if row2 else {}
+    row1 = {k:row1[k] for k in row1.keys()} if row1 else {}
+    row2 = {k:row2[k] for k in row2.keys()} if row2 else {}
     row1.update(row2) 
 
     return row1

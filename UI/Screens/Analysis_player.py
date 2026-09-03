@@ -542,6 +542,7 @@ class PlayerAnalysisScreen(tk.Toplevel):
 
     #----------------------- 選手成績ﾃﾞｰﾀ 更新 -----------------------
     def _refresh_players_data(self):
+
         # --------------
         def _fmt(value):
             if value == 0: return "ー"

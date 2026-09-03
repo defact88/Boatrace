@@ -48,7 +48,7 @@ UI,Helpers,__init__,C:\boatrace\UI\Helpers\__init__.py,0
 UI,Subprocess,get_today_info.py,C:\boatrace\UI\Subprocess\get_today_info.py,1
 UI,Subprocess,import_Display_run.py,C:\boatrace\UI\Subprocess\import_Display_run.py,1
 UI,Subprocess,import_result_today.py,C:\boatrace\UI\Subprocess\import_result_today.py,1
-UI,Subprocess,ETL_import_Display_run.py,C:\boatrace\UI\Subprocess\ETL_import_Display_run.py,0
+UI,Subprocess,ETL_import_Display.py,C:\boatrace\UI\Subprocess\ETL_import_Display.py,0
 UI,Widgets,widgets.py,C:\boatrace\UI\Widgets\widgets.py,1
 UI,Widgets,center_widgets.py,C:\boatrace\UI\Widgets\center_widgets.py,0
 UI,Widgets,placeholder.py,C:\boatrace\UI\Widgets\placeholder.py,1

@@ -8,7 +8,7 @@ TARGET_SCRIPT = r"C:\boatrace\UI\Subprocess\import_Display_run.py"
 INTERVAL_SEC = 60 
 
 #---------------------------------------
-def ETL_import_display_run(date_frm:str, date_to:str):
+def ETL_import_Display(date_frm:str, date_to:str):
 
     start_date = dt.strptime(date_frm, "%Y-%m-%d")
     end_date   = dt.strptime(date_to,  "%Y-%m-%d")
@@ -48,4 +48,4 @@ def ETL_import_display_run(date_frm:str, date_to:str):
     print(f"{'='*50}")
 #---------------------------------------
 if __name__ == "__main__":
-    sys.exit(ETL_import_display_run())
+    sys.exit(ETL_import_Display())

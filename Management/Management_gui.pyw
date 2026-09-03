@@ -5,7 +5,7 @@ from tkinter             import messagebox
 from pathlib             import Path
 from PIL                 import Image, ImageTk
 from Helpers.Custum_func import cFr, cLbl, cBtn
-import subprocess, shutil, os, csv, datetime
+import subprocess, shutil, os, csv, datetime, time, ctypes, win32com.client
 import tkinter as tk
 #-------------------------------------------------
 BASE_DIR     = Path(r"C:\boatrace\Management")
@@ -20,6 +20,7 @@ GUI_POS_Y    = 5
 SELCOL       = "#b1dbcc"
 BAT_GUI      = BASE_DIR / "boatrace_gui.bat"
 BAT_COMMIT   = Path(r"C:\boatrace\BR\Gitcommit.bat")
+BAT_DAILY    = Path(r"C:\boatrace\Import\daily_insert.py")
 
 GUI, MUI, HNH      = "Yu Gothic UI", "Meiryo UI", "Helvetica Neue Heavy"
 GR, SD, RD, RA, BD = "groove", "solid", "ridge", "raised", "bold"
@@ -225,10 +226,10 @@ class FileManagementGUI(tk.Tk):
         self.boot_gui    = tk.Button( self.frame_cat, image=self.icon_gui, relief="flat",
                                       command=lambda: self.on_launch(BAT_GUI)            )
 
-        self.btn_ui.grid(     row=0, column=0, padx=(0,15),  sticky= "w")
-        self.btn_import.grid( row=0, column=1, padx=(0,15),  sticky= "w")
-        self.btn_checker.grid(row=0, column=2, padx=(0,15),  sticky= "w")
-        self.boot_gui.grid(   row=0, column=3, padx=(12,0),  sticky= "w")
+        self.btn_ui.grid(     row=0, column=0, padx=(0,5),  sticky= "w")
+        self.btn_import.grid( row=0, column=1, padx=(0,5),  sticky= "w")
+        self.btn_checker.grid(row=0, column=2, padx=(0,5),  sticky= "w")
+        self.boot_gui.grid(   row=0, column=3, padx=(0,0),  sticky= "w")
 
         # アクションボタン
         self.frame_act = tk.Frame(self.frame_right, bg= "#222222")
@@ -243,7 +244,8 @@ class FileManagementGUI(tk.Tk):
         self.btn_exec   = tk.Button( self.frame_act, text= "実 行",  **btn_opt2,
                                      bg= "#AACCFF", fg= "#000000", command= self.on_execute )
         self.btn_upd    = tk.Button( self.frame_act, text="日時更新",**btn_opt2,
-                                     bg= "#66CC99", fg= "#000000", command= self.on_update )
+                                     bg= "#66CC99", fg= "#000000",
+                                     command=lambda:self.on_launch(BAT_DAILY, aug=" --all", cmd=True) )
         self.btn_cmt    = tk.Button( self.frame_act, text="Commit",  **btn_opt2,
                                      bg= "#66CC99", fg= "#000000",
                                      command=lambda:self.on_launch(BAT_COMMIT, cmd=True) )
@@ -266,14 +268,15 @@ class FileManagementGUI(tk.Tk):
         self.active_category = cat
         for key, btn in self.cat_buttons.items():
             if key == cat:
-                btn.config(bg= self.cat_active_color, fg= "#000000")
+                btn.config(bg= self.cat_active_color, fg="#000000")
             else:
-                btn.config(bg= self.cat_normal_color, fg= "#FFFFFF")
+                btn.config(bg= self.cat_normal_color, fg="#FFFFFF")
 
         subcats = sorted({r["サブカテゴリ"] for r in self.file_map if r["カテゴリ"] == cat})
         self.list_subcats.delete(0, "end")
 
-        for s in subcats: self.list_subcats.insert("end", f"  {s}")
+        for s in subcats:
+            self.list_subcats.insert("end", f"  {s}")
 
         self.list_files.delete(0, "end")
         self.lbl_active.config(text= "")
@@ -289,12 +292,13 @@ class FileManagementGUI(tk.Tk):
         if not self.active_category: return
 
         sel = self.list_subcats.curselection()
+
         if not sel: return
 
         subcat_text        = self.list_subcats.get(sel[0]).strip()
         self.active_subcat = subcat_text
-        files = [ r for r in self.file_map if r["カテゴリ"] == self.active_category
-                                      and r["サブカテゴリ"] == subcat_text          ]
+        files = [ r for r in self.file_map if r["カテゴリ"]     == self.active_category
+                                          and r["サブカテゴリ"] == subcat_text          ]
 
         self.current_file_records = files
         self.list_files.delete(0, "end")
@@ -496,32 +500,21 @@ class FileManagementGUI(tk.Tk):
         open_explr(str(UPLOAD_DIR), 1760, 647, 800, 700)
 
     #-------------------------------------------------------
-    def on_update(self):
-
-        dir = r"C:\boatrace\Import\daily_insert.py"
-        if not dir.exists():
-            self.show_msg("Error", f"daily_insert.py が存在しません。")
-            return
-        bat = dir + " --all"
-
-        subprocess.Popen(["cmd.exe", "/c", str(bat)],creationflags=subprocess.CREATE_NEW_CONSOLE)
-
-    #-------------------------------------------------------
-    def on_launch(self, dir:str, cmd:bool=False):
+    def on_launch(self, dir:str, aug:str="", cmd:bool=False):
 
         bat = dir
         if not bat.exists():
             self.show_msg("Error", f"{bat} が存在しません。")
             return
         if cmd:
-            subprocess.Popen(["cmd.exe", "/c", str(bat)],creationflags=subprocess.CREATE_NEW_CONSOLE)
+            subprocess.Popen(["cmd.exe", "/c", str(bat) + aug])
         else:
-            subprocess.Popen(str(bat), shell=True)
+            subprocess.Popen(str(bat) + aug, shell=True)
 
 
     # ---------------- 固定位置ユーザーダイアログ --------------------
-    def show_msg(self, kind:str, text:str, title:str= "",
-                      x_ofs:int=60, y_ofs:int=60, width:int=420):
+    def show_msg( self, kind:str, text:str, title:str= "",
+                      x_ofs:int=60, y_ofs:int=60, width:int=420 ):
 
         self.update_idletasks()
         x = self.winfo_rootx() + int(x_ofs)
@@ -567,61 +560,33 @@ class FileManagementGUI(tk.Tk):
         dlg.wait_window(dlg)
 
 # ==============================================================================
-import subprocess
+def open_explr(path: str, left=50, top=50, width=1000, height=700):
 
-def open_explr (path: str, left=50, top=50, width=1000, height=700):
+    target_path = os.path.abspath(path).lower()
+    shell       = win32com.client.Dispatch("Shell.Application")
+    
+    os.startfile(target_path)
 
-    ps = rf'''
-$ErrorActionPreference = 'SilentlyContinue'
-$path                  = "{path}"
+    hwnd = 0
 
-Invoke-Item -LiteralPath $path
-Add-Type -TypeDefinition @"
-using System;
-using System.Runtime.InteropServices;
-public static class U {{
-  [DllImport("user32.dll")] public static extern bool ShowWindowAsync(IntPtr hWnd, int nCmdShow);
-  [DllImport("user32.dll")] public static extern bool SetWindowPos(IntPtr hWnd, IntPtr hWndInsertAfter, int X, int Y, int cx, int cy, uint uFlags);
-}}
-"@
+    for _ in range(40):
+        time.sleep(0.01)
+        for window in shell.Windows():
+            try:
+                folder_path = window.Document.Folder.Self.Path.lower()
+                if folder_path == target_path:
+                    hwnd = window.HWND
+                    break
+            except Exception:
+                continue
+        if hwnd:
+            break
 
-$shell = $null
-$win   = $null
-try {{
-  $shell  = New-Object -ComObject Shell.Application
-  $target = (Resolve-Path $path).Path
+    if hwnd:
+        user32 = ctypes.windll.user32
+        user32.SetWindowPos(hwnd, 0, left, top, width, height, 0x0014)
+        user32.ShowWindow(hwnd, 1)
 
-  for ($i=0; $i -lt 40; $i++) {{
-    Start-Sleep -Milliseconds 100
-    foreach ($w in $shell.Windows()) {{
-      try {{
-        $p = $w.Document.Folder.Self.Path
-      }} catch {{ continue }}
-
-        if ([string]::Equals($p, $target, [System.StringComparison]::InvariantCultureIgnoreCase)) {{
-          $win = $w
-          break
-        }}
-    }}
-    if ($win) {{ break }}
-  }}
-
-  if ($win) {{
-    $h = [IntPtr]::new($win.HWND)
-    [U]::SetWindowPos($h, [IntPtr]::Zero, {left}, {top}, {width}, {height}, 0x0004 -bor 0x0010) | Out-Null
-    [U]::ShowWindowAsync($h, 1) | Out-Null
-  }}
-}}
-finally {{
-  if ($win)   {{ [void][Runtime.InteropServices.Marshal]::ReleaseComObject($win)   }}
-  if ($shell) {{ [void][Runtime.InteropServices.Marshal]::ReleaseComObject($shell) }}
-  [GC]::Collect(); [GC]::WaitForPendingFinalizers(); [GC]::Collect()
-}}
-'''
-    subprocess.Popen(
-        ["powershell", "-NoProfile", "-ExecutionPolicy", "Bypass",
-         "-WindowStyle", "Hidden", "-Command", ps],
-        shell=False                                                )
 # ==============================================================================
 if __name__ == "__main__":
     app = FileManagementGUI()

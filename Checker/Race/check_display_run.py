@@ -1,6 +1,5 @@
 ﻿# -*- coding: utf-8 -*-
-import sqlite3
-import argparse
+import sqlite3, argparse
 from pathlib import Path
 
 # --- 設定 ---
@@ -8,18 +7,16 @@ BASE_DIR = Path(r"C:\boatrace")
 DB_PATH  = BASE_DIR / "boatrace.db"
 
 def check_display_data(date_from, date_to):
-    """
-    Races.status='cancelled' を考慮して不備データを抽出する
-    """
+
     if not DB_PATH.exists():
         print(f"[ERR] データベースが見つかりません: {DB_PATH}")
         return
 
-    # SQLロジックの修正:
     # 1. Race_programs から該当日時のレース一覧を取得
     # 2. Races テーブルと結合して status を取得
     # 3. Display_run を LEFT JOIN してレコード数と内容をチェック
     # 4. HAVING句で「中止ではないのに6艇未満」または「出走艇に空データあり」を抽出
+
     sql = """
         SELECT 
             p.date, 
@@ -34,15 +31,18 @@ def check_display_data(date_from, date_to):
         FROM(SELECT DISTINCT date, venue_id, race_no 
                FROM Race_programs 
               WHERE date BETWEEN ? AND ?) p
-  INNER JOIN Races r       ON p.date = r.date
-                      AND p.venue_id = r.venue_id
-                      AND p.race_no  = r.race_no
+
+  INNER JOIN Races r       ON      p.date = r.date
+                           AND p.venue_id = r.venue_id
+                           AND p.race_no  = r.race_no
+
    LEFT JOIN Display_run d ON p.date = d.date 
-                      AND p.venue_id = d.venue_id 
-                      AND p.race_no  = d.race_no
+                           AND p.venue_id = d.venue_id 
+                           AND p.race_no  = d.race_no
+
     GROUP BY p.date, p.venue_id, p.race_no, r.status
-      HAVING(r.status != 'cancelled' AND record_count < 6) OR 
-            (missing_val_count > 0)
+      HAVING(r.status != 'cancelled' AND record_count < 6)
+          OR(missing_val_count > 0)
     ORDER BY p.date, p.venue_id, p.race_no;
         """
 
@@ -78,7 +78,7 @@ def check_display_data(date_from, date_to):
         print(f"[ERR] {e}")
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description="Display_run データの不備検査ツール（中止考慮版）")
+    parser = argparse.ArgumentParser(description="Display_run データ検査ツール")
     parser.add_argument("--date_from", required=True, help="開始日 (YYYY-MM-DD)")
     parser.add_argument("--date_to",   required=True, help="終了日 (YYYY-MM-DD)")
 

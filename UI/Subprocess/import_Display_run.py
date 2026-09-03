@@ -1,6 +1,7 @@
 ﻿# -*- coding: utf-8 -*-
 # C:\boatrace\UI\Subprocess\import_Display_run.py
 
+import Dal as dal
 import argparse, re, sqlite3, sys, warnings, logging, random, time
 from datetime  import datetime as dt
 from pathlib   import Path

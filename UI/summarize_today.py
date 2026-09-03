@@ -7,7 +7,9 @@ from datetime    import datetime, timedelta, timezone, date
 from typing      import Dict, List, Optional, Tuple
 from Helpers.scraper_odds import fetch_all_odds
 from Helpers.ev_scanner   import evaluate_ev, persist_odds_snapshot, ProbabilityProvider
+
 import sqlite3, subprocess, threading, time, sys, os, signal, argparse, re, json, ctypes
+import Dal as dal
 
 VENUES = [ "桐   生",  "戸   田", "江戸川", "平和島", "多摩川", "浜名湖", "蒲   郡", "常   滑",
            "   津   ", "三   国", "び わ こ", "住之江", "尼   崎", "鳴   門", "丸   亀", "児   島",
@@ -144,7 +146,7 @@ class SummarizeTodayInfo:
                                             venue_id=v_id, meta={"last_deadline":last_deadline}  ) )
 
         new_tasks.append( Task( kind="cancel", run_at=now, d=d, venue_id=0, race_no=0,
-                                meta={"interval_min": CANCEL_INTERVAL}                 ) )
+                                meta={"interval_min":CANCEL_INTERVAL}                  ) )
 
         with self._lock: 
             self.tasks.extend(new_tasks)
@@ -158,7 +160,7 @@ class SummarizeTodayInfo:
             oc = sum(1 for t in new_tasks if t.kind == "odds")
 
             self._log( f"tasks={len(new_tasks)}: dspl={bc} rslt={rc} change={cc} cancel={kc}"
-                       f"\n                 odds={oc}")
+                       f"\n                 odds={oc}"                                        )
 
     # ------------------------------------------------------
     def _rebuild_schedule_for_venue(self, d:date, v_id:int):
@@ -504,9 +506,9 @@ class SummarizeTodayInfo:
         task_name = f"【 result 】[{VENUES[t.venue_id-1]} {t.race_no:02}R] "
         self._log(f"{task_name} start")
 
-        rc, out, err = self._call_py(SP_RESULT, [ "--date",  t.d.strftime("%Y-%m-%d"),
-                                                  "--venue", str(t.venue_id),
-                                                  "--race",  str(t.race_no),          ])
+        rc, out, err = self._call_py( SP_RESULT, [  "--date", t.d.strftime("%Y-%m-%d"),
+                                                   "--venue", str(t.venue_id),
+                                                    "--race", str(t.race_no),           ] )
 
         if rc != 0:
             self._log(f"{task_name} {err.strip() or out.strip() or f'ExitCode={rc}'}")
@@ -523,14 +525,13 @@ class SummarizeTodayInfo:
         task_name = f"【change】[{VENUES[t.venue_id-1]}      ] "
         self._log(f"{task_name} start")
 
-        args = [ "--date", t.d.strftime("%Y-%m-%d"),
-                 "--venue", str(t.venue_id)          ]
+        args = ["--date", t.d.strftime("%Y-%m-%d"), "--venue", str(t.venue_id)]
 
         if not t.meta.get("first_done"):
             args.append("--first")
 
-        rc, out, err = self._call_py(SP_INFO, [ "A", "--date", t.d.strftime("%Y-%m-%d"),
-                                                  "--venue", str(t.venue_id),        ] )
+        rc, out, err = self._call_py( SP_INFO, [ "A", "--date", t.d.strftime("%Y-%m-%d"),
+                                                  "--venue", str(t.venue_id),            ] )
 
         if rc != 0:
             self._log(f"{task_name} DB update fail")
@@ -657,11 +658,11 @@ class SummarizeTodayInfo:
                                  ELSE 1
                             END                                         ) AS ng_count
                   FROM Race_programs rp
-             LEFT JOIN Display_run dr
+             LEFT JOIN Display_run   dr
                     ON dr.entry_id = rp.program_id
-                 WHERE rp.date     = ?
-                   AND rp.venue_id = ?
-                   AND rp.race_no  = ?
+                 WHERE     rp.date= ?
+                   AND rp.venue_id= ?
+                   AND  rp.race_no= ?
                 """,
                (d_iso, venue_id, race_no)).fetchone()
 
@@ -695,11 +696,13 @@ class SummarizeTodayInfo:
 
         with self._connect_ro() as conn:
             rows = conn.execute("""
-                SELECT captured_at, is_final, COUNT(*) AS cnt
+                SELECT captured_at, is_final,
+                       COUNT(*) AS cnt
                   FROM Odds_snapshots
                  WHERE date=? AND venue_id=? AND race_no=?
               GROUP BY captured_at, is_final
-                """, (d_iso, venue_id, race_no)).fetchall()
+                """,
+               (d_iso, venue_id, race_no)).fetchall()
 
         has_final = False
         set_count = 0
@@ -733,7 +736,9 @@ class SummarizeTodayInfo:
 
         cmd = [sys.executable, path] + args
         p   = subprocess.Popen( cmd, creationflags=0x08000000,
-                                stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True )
+                                            stdout=subprocess.PIPE,
+                                            stderr=subprocess.PIPE,
+                                              text=True             )
 
         try:
             while True:
@@ -775,8 +780,10 @@ class SummarizeTodayInfo:
         sql = """
               SELECT MAX(deadline_vote)
                 FROM Race_programs
-               WHERE date=? AND venue_id=?
+               WHERE     date= ?
+                 AND venue_id= ?
               """
+
         with self._connect_ro() as conn:
             cur = conn.execute(sql, (d.strftime("%Y-%m-%d"), venue_id))
             s   = cur.fetchone()[0]
@@ -806,11 +813,12 @@ class SummarizeTodayInfo:
         try:
             with open(CTL_PATH, "r", encoding="utf-8") as f:
                 d = json.load(f)
-                if not isinstance(d, dict): d = {}
+                if not isinstance(d, dict):
+                    d = {}
         except Exception:
             d = {}
-        return {"stop": bool(d.get("stop", False)),
-                "mute": bool(d.get("mute", False))}
+        return { "stop":bool(d.get("stop", False)),
+                 "mute":bool(d.get("mute", False))  }
     # ------------------------------------------------------
     def _ctl_watch(self):
 

@@ -1,4 +1,4 @@
-# -*- coding: utf-8 -*-
+﻿# -*- coding: utf-8 -*-
 # DAL (Data Access Layer) for BoatRaceDB  ── 高速化改修版
 
 from __future__ import annotations
@@ -14,7 +14,7 @@ BACKUP_DIR = Path(r"C:\boatrace\BACKUP\DB\DAL")
 WRITE_HEAD = re.compile(
                  r"^(?:INSERT|UPDATE|DELETE|REPLACE|CREATE|ALTER|DROP|VACUUM|ATTACH)\b", re.I )
 
-_shared_conn: Optional[sqlite3.Connection] = None
+_shared_conn:Optional[sqlite3.Connection] = None
 
 #---------------------------------------
 def _get_shared_conn() -> sqlite3.Connection:
@@ -30,6 +30,7 @@ def _get_shared_conn() -> sqlite3.Connection:
         _shared_conn.execute("PRAGMA cache_size    = -32000")
         _shared_conn.execute("PRAGMA temp_store    = MEMORY")
         _shared_conn.execute("PRAGMA mmap_size     = 268435456")
+
     return _shared_conn
 #---------------------------------------
 def close_shared():
@@ -41,14 +42,14 @@ def close_shared():
 #---------------------------------------
 def _connect(db_path:str = DB_PATH) -> sqlite3.Connection:
 
-    c = sqlite3.connect(db_path, timeout=30.0)
+    c             = sqlite3.connect(db_path, timeout=30.0)
     c.row_factory = sqlite3.Row
     c.execute("PRAGMA foreign_keys = ON")
 
     return c
 #---------------------------------------
 @contextmanager
-def connection(db_path:str = DB_PATH) -> Iterator[sqlite3.Connection]:
+def connection(db_path:str= DB_PATH) -> Iterator[sqlite3.Connection]:
 
     c = _connect(db_path)
     try:
@@ -61,7 +62,6 @@ def transaction(db_path:str = DB_PATH) -> Iterator[sqlite3.Connection]:
 
     with connection(db_path) as c:
         c.execute("BEGIN IMMEDIATE;")
-        #_ensure_backup_dir()
         #_auto_backup(db_path)
         try:
             yield c
@@ -73,11 +73,13 @@ def transaction(db_path:str = DB_PATH) -> Iterator[sqlite3.Connection]:
 def fetch_one(sql:str, params:Sequence[Any] = (), *, conn:Optional[sqlite3.Connection]=None):
 
     c = conn if conn is not None else _get_shared_conn()
+
     return c.execute(sql, params).fetchone()
 #---------------------------------------
 def fetch_all(sql:str, params:Sequence[Any] = (), *, conn:Optional[sqlite3.Connection]=None):
 
     c = conn if conn is not None else _get_shared_conn()
+
     return c.execute(sql, params).fetchall()
 #---------------------------------------
 def execute(sql:str, params:Sequence[Any] = (), *, conn:Optional[sqlite3.Connection]=None):
@@ -101,12 +103,11 @@ def executescript(script:str, *, conn:Optional[sqlite3.Connection]=None) -> None
         return
     with transaction() as c:
         c.executescript(script)
-#---------------------------------------
-def _ensure_backup_dir():
-    BACKUP_DIR.mkdir(parents=True, exist_ok=True)
+
 #---------------------------------------
 def _auto_backup(db_path: str):
 
+    BACKUP_DIR.mkdir(parents=True, exist_ok=True)
     src = Path(db_path)
     if not src.exists():
         return
@@ -130,6 +131,7 @@ def list_tables() -> list[str]:
 def list_columns(table:str) -> list[tuple[str, str]]:
 
     rows = fetch_all(f"PRAGMA table_info({table})")
+
     return [(r[1], r[2]) for r in rows]
 #---------------------------------------
 def vacuum(*, conn: Optional[sqlite3.Connection] = None):
