@@ -8,8 +8,11 @@
 
 2) ディレクトリ構成
 
+
 boatrace/
+
   boatrace.db                       # SQLite3 DB
+
   Dal.py                            # UI用DAL(sqlite3簡易ラッパ)
 
   UI/
@@ -36,7 +39,7 @@ boatrace/
       Custum_func.py                # tk.Frame tk.Label のｵﾘｼﾞﾅﾙ短縮表記ｸﾗｽ
 
       queries.py                    # 汎用クエリクラス
-          _pack                     # パッキングメソッド
+        _pack                       # パッキングメソッド
 
       build_rows.py
         make_rows                   # 各参照クエリを纏めてentry_rows, data_rowsを生成
@@ -59,12 +62,12 @@ boatrace/
 
     Widgets/
       widgets.py                    # ｻﾌﾞﾌﾟﾚｰｽﾎﾙﾀﾞｰ表示関連ｳｨｼﾞｪｯﾄ
-          framing_graph             # 当該ｺｰｽ別1,2,3着率ｸﾞﾗﾌの表示、主観選手からのｻﾌﾞｸﾞﾗﾌの表示
-          framing_figure            # ｽﾘｯﾄ予想図、展示航走ｽﾘｯﾄ、結果ｽﾘｯﾄ の表示
-          framing_weather           # 天候ｳｨｼﾞｪｯﾄ(天気、風向)の表示
-          framing_held_type_icon    # ﾚｰｽ選択画面開催種別ｱｲｺﾝの表示・更新
-          clear_all_lanes           # ﾒｲﾝﾌﾟﾚｰｽﾎﾙﾀﾞｰ内の各ｳｨｼﾞｪｯﾄをｸﾘｱ
-          set_player_image          # 画像読込/等倍比フィット
+        framing_graph               # 当該ｺｰｽ別1,2,3着率ｸﾞﾗﾌの表示、主観選手からのｻﾌﾞｸﾞﾗﾌの表示
+        framing_figure              # ｽﾘｯﾄ予想図、展示航走ｽﾘｯﾄ、結果ｽﾘｯﾄ の表示
+        framing_weather             # 天候ｳｨｼﾞｪｯﾄ(天気、風向)の表示
+        framing_held_type_icon      # ﾚｰｽ選択画面開催種別ｱｲｺﾝの表示・更新
+        clear_all_lanes             # ﾒｲﾝﾌﾟﾚｰｽﾎﾙﾀﾞｰ内の各ｳｨｼﾞｪｯﾄをｸﾘｱ
+        set_player_image            # 画像読込/等倍比フィット
 
   Import/
     import_B_txt.py                 # 出走表ﾃﾞｰﾀ取得ｽｸﾘﾌﾟﾄ
