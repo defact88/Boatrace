@@ -1,4 +1,4 @@
-﻿
+
 1) 起点
 
 実行: C:\boatrace\UI\boatrace_gui.py
@@ -7,7 +7,6 @@
           summarize_today_info.pyを起動し、各ｻﾌﾞﾌﾟﾛｾｽの実行・当日情報の更新を管理
 
 2) ディレクトリ構成
-
 
 boatrace/
 
