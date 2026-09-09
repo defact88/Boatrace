@@ -69,7 +69,6 @@ boatrace/
   Import/
     import_B_txt.py                 # 出走表ﾃﾞｰﾀ取得ｽｸﾘﾌﾟﾄ
     daily_insert.py                 # 日時更新(全日K,当日Bﾌｧｲﾙのｲﾝﾎﾟｰﾄ)
-
     ETL_K_results.py                # Races/Race_entries の各ﾃﾞｰﾀ取得・挿入ﾌﾟﾛｾｽのﾗｯﾊﾟｰ
     upsert_Race_result.py           # K_TEXT(公式レース結果情報)ﾌｧｲﾙからRace_resultへのﾃﾞｰﾀ抽出・挿入
     upsert_Result_entry.py          # K_TEXTﾌｧｲﾙからResult_entryへのﾃﾞｰﾀ抽出・挿入ﾌﾟﾛｾｽ
