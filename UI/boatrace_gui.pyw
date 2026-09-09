@@ -98,7 +98,8 @@ def d_range(d:str, range:int):
     d_t = date.fromisoformat(d)
     return (d_t -timedelta(days=range), d_t)
 
-# -- サマライザ制御：フラグI/O
+#-----------------------------
+# サマライザ制御：フラグI/O
 def ctl_read():
 
     try:
@@ -110,7 +111,7 @@ def ctl_read():
 
     return {"stop":bool(d.get("stop", False)), "mute":bool(d.get("mute", False))}
 
-# ----------------------------
+#-----------------------------
 def ctl_write(*, stop=None, mute=None):
 
     d = ctl_read()
@@ -173,9 +174,8 @@ class App(tk.Tk):
         self._ext_visible = False
         self._log_queue   = queue.Queue()
         self._log_buf     = deque(maxlen=5000)
-        self.after(100, self._drain_log_queue)
+        self.current      = None
 
-        self.current = None
         contanr      = cFr(self, bg=MAIN_BG) ;contanr.pack(fill=tk.BOTH, expand=True)
         self.contanr = contanr
         self.screens = { "Main":       MainScreen(parent=contanr, app=self),
@@ -185,8 +185,10 @@ class App(tk.Tk):
                           "RSS": RaceSelectScreen(parent=contanr, app=self, db_path=DB_PATH)  }
 
         self.show_screen("Main")
-        if ON_LAUNCH["ensure_prg"]:  self.after(0, self._ensure_programs_on_launch)
-        if ON_LAUNCH["summarrizer"]: self.after(0, self._start_summarizer_on_launch)
+        self.after(100, self._drain_log_queue)
+
+        if ON_LAUNCH["ensure_prg"]:  self.after(0,   self._ensure_programs_on_launch)
+        if ON_LAUNCH["summarrizer"]: self.after(100, self._start_summarizer_on_launch)
 
     # --------------------------------------------
     def show_screen(self, name:str):
@@ -284,7 +286,9 @@ class App(tk.Tk):
         # ----------
         def poll():
 
-            if not finished["done"]: self.after(30, poll) ;return
+            if not finished["done"]:
+                self.after(50, poll)
+                return
 
             try:              dlg.destroy()
             except Exception: pass
@@ -315,7 +319,8 @@ class App(tk.Tk):
             th = threading.Thread(target=self._reader_summarizer, daemon=True)
             th.start()
 
-        except Exception as e: print("[WARN] summarize_today launch failed:", e)
+        except Exception as e:
+            print("[WARN] summarize_today launch failed:", e)
 
     # --------------------------------------------
     def _reader_summarizer(self):
@@ -347,27 +352,12 @@ class App(tk.Tk):
                     except Exception: pass
         except queue.Empty: pass
 
-        self.after(100, self._drain_log_queue)
+        self.after(1000, self._drain_log_queue)
 
     # --------------------------------------------
     def _on_close(self):
 
-        proc = getattr(self, "_summ_proc", None)
-
-        if proc and proc.poll() is None:
-            try:
-                if hasattr(signal, "CTRL_BREAK_EVENT"):
-                    proc.send_signal(signal.CTRL_BREAK_EVENT)
-                else: proc.terminate()
-                proc.wait(timeout=5)
-
-            except Exception:
-                try:
-                    proc.terminate()
-                    proc.wait(timeout=3)
-                except Exception:
-                    try: proc.kill()
-                    except Exception: pass
+        ctl_write(stop=True)
 
         try:              self.destroy()
         except Exception: pass
@@ -418,8 +408,8 @@ class MainScreen(tk.Frame):
         self.btn_boot = ttk.Button(fr_bar1, text="停 止",  command=self._toggle_boot)
         btn_mute = ttk.Button(fr_bar2, text="ﾓﾆﾀ-出力",    command=self._toggle_mute)
         btn_extn = ttk.Button(fr_bar1, text="拡張ﾓﾆﾀ表示", command=self._toggle_ext_monitor)
-        lb_stat1 = cLbl(fr_bar1, text=" -- ", W=18, H=1, Bd=(3,GR), pady=3, **stat_opt)
-        lb_stat2 = cLbl(fr_bar2, text=" -- ", W=18, H=1, Bd=(3,GR), pady=3, **stat_opt)
+        lb_stat1 = cLbl(fr_bar1, text="--", W=18, H=1, Bd=(3,GR), pady=3, **stat_opt)
+        lb_stat2 = cLbl(fr_bar2, text="--", W=18, H=1, Bd=(3,GR), pady=3, **stat_opt)
 
         self.btn_boot.grid(row=0, column=0, sticky="w", padx= 20, ipady=2)
         btn_mute.grid(row=1, column=0, sticky="w", padx= 20, ipady=2)
@@ -441,9 +431,9 @@ class MainScreen(tk.Frame):
         btn_dbq.grid(row=2, column=1, ipady=18) ; btn_dbq.config(width=20)
 
         self._lbl_monitor = [lb_stat1, lb_stat2]
-        self.after(500, self._poll_monitor_state)
+        self.after(500, self._update_monitor_state)
 
-    # ------ 拡張 moni 表示/非表示 ハンドラ ------
+    #---------- 拡張 moni 表示/非表示 ------------
     def _toggle_ext_monitor(self):
 
         if getattr(self, "_ext_container", None) and self.app._ext_visible:
@@ -451,20 +441,19 @@ class MainScreen(tk.Frame):
         else:
             self._show_ext_monitor()
 
-    # --------------------------------------------
+    #---------- moni 出力ON/OFF(mute) ------------
     def _toggle_mute(self):
 
-        d = ctl_read()
-        ctl_write(mute=not d["mute"])
+        data = ctl_read()
+        ctl_write(mute=not data["mute"])
         self._update_monitor_state()
 
-    # --------------------------------------------
+    #----------  サマライザ 起動/停止 ------------
     def _toggle_boot(self):
 
-        proc       = getattr(self.app, "_summ_proc", None)
-        is_running = proc is not None and proc.poll() is None
+        proc = getattr(self.app, "_summ_proc", None)
 
-        if is_running:
+        if (proc is not None) and (proc.poll() is None):
             ctl_write(stop=True)
         else:
             ctl_write(stop=False)
@@ -483,10 +472,6 @@ class MainScreen(tk.Frame):
 
         if data["stop"] and is_running:
             self.after(1000, self._poll_monitor_state)
-        elif not data["stop"] and not is_running:
-            self.after(1000, self._poll_monitor_state)
-        else:
-            pass
 
     # --------------------------------------------
     def _update_monitor_state(self):

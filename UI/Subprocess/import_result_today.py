@@ -1,6 +1,7 @@
 ﻿# -*- coding: utf-8 -*-
 # C:\boatrace\UI\Subprocess\import_result_today.py
 
+import Dal as dal
 import argparse, re, sqlite3, sys, warnings, unicodedata, random, time
 from datetime  import datetime as dt
 from pathlib   import Path
@@ -22,16 +23,11 @@ HEADERS = { "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:142.0) G
             "Sec-Fetch-Mode": "navigate",
             "Sec-Fetch-Site": "none",
             "Sec-Fetch-User": "?1",
-            "Connection": "keep-alive",
-}
-# ----------------------------
-def conn():
-    c             = sqlite3.connect(DB_PATH)
-    c.row_factory = sqlite3.Row
-    c.execute("PRAGMA foreign_keys=ON;")
-    return c
+            "Connection": "keep-alive",                  }
+
 # ----------------------------
 def yyyymmdd(s: str) -> str:
+
     return s.replace("-", "")
 # ----------------------------------------------------------
 def build_ids(d_iso:str, venue_id:int, race_no:int, frame_no:int):
@@ -40,59 +36,67 @@ def build_ids(d_iso:str, venue_id:int, race_no:int, frame_no:int):
     ymd   = _date.strftime("%y%m%d")
     race_id  = int(f"{ymd}{venue_id:02d}{race_no:02d}")
     entry_id = int(f"{ymd}{venue_id:02d}{race_no:02d}{frame_no}")
+
     return race_id, entry_id
 
 # ----------------------------------------------------------
-def fetch_program(c:sqlite3.Connection, d_iso:str, venue_id:int, race_no:int):
+def fetch_program(d_iso:str, venue_id:int, race_no:int):
 
-    sql = """
-      SELECT frame_no, player_id, motor_no, boat_no
-        FROM Race_programs
-       WHERE date=? AND venue_id=? AND race_no=?
-       ORDER BY frame_no
-    """
-    rows = c.execute(sql, (d_iso, venue_id, race_no)).fetchall()
+    rows = dal.fetch_all("""
+               SELECT frame_no, player_id, motor_no, boat_no
+                 FROM Race_programs
+                WHERE     date=?
+                  AND venue_id=?
+                  AND  race_no=?
+             ORDER BY frame_no
+               """,
+               (d_iso, venue_id, race_no))
+
     return {r[0]:{"player_id":r[1], "motor_no":r[2], "boat_no":r[3]} for r in rows}
 
 # ------------------------------------------------------------
-def fetch_venues(c:sqlite3.Connection, d_iso:str):
+def fetch_venues(d_iso:str):
 
-    rows = c.execute("""
-           SELECT DISTINCT venue_id
-             FROM Race_programs
-            WHERE date     = ?
-              AND race_no  = ?
+    rows = dal.fetch_all("""
+               SELECT DISTINCT venue_id
+                 FROM Race_programs
+                WHERE    date=?
+                  AND race_no=?
            """,
-           (d_iso, 1),).fetchall()
+           (d_iso, 1))
 
     return tuple(row[0] for row in rows)
 
 # ------------------------------------------------------------
-def fetch_cancelled(c:sqlite3.Connection, d_iso:str, venue_id:int, race_no:int):
+def fetch_cancelled(d_iso:str, venue_id:int, race_no:int):
 
-    row = c.execute("""
+    row = dal.fetch_one("""
               SELECT status
                 FROM Races
-               WHERE date=? AND venue_id=? AND race_no=?
+               WHERE     date=?
+                 AND venue_id=?
+                 AND  race_no=?
               """,
-              (d_iso, venue_id, race_no)).fetchone()
+              (d_iso, venue_id, race_no))
 
     out = True if row and row[0] == 'cancelled' else False
 
     return out
 
 # ----------------------------------------------------------
-def fetch_race_meta(conn:sqlite3.Connection, d_iso:str, venue_id:int, race_no:int):
+def fetch_race_meta(d_iso:str, venue_id:int, race_no:int):
 
-    row = conn.execute("""
-        SELECT MIN(series_title) AS series_title,
-               MIN(grade)        AS grade,
-               MIN(day_no)       AS day_no,
-               MIN(race_title)   AS race_title
-          FROM Race_programs
-         WHERE date=? AND venue_id=? AND race_no=?
-
-           """, (d_iso, venue_id, race_no)).fetchone()
+    row = dal.fetch_one("""
+              SELECT MIN(series_title) AS series_title,
+                     MIN(grade)        AS grade,
+                     MIN(day_no)       AS day_no,
+                     MIN(race_title)   AS race_title
+                FROM Race_programs
+               WHERE     date=?
+                 AND venue_id=?
+                 AND  race_no=?
+              """,
+              (d_iso, venue_id, race_no))
 
     if not row: return None
 
@@ -102,14 +106,14 @@ def fetch_race_meta(conn:sqlite3.Connection, d_iso:str, venue_id:int, race_no:in
               "race_title": row[3], }
 
 # ------------ (周回短縮/安定板使用)取得 -------------------
-def parse_distance_and_stabilizer(soup: BeautifulSoup) -> tuple[int | None, int]:
-
+def parse_distance_and_stabilizer(soup:BeautifulSoup) -> tuple[int | None, int]:
 
     stabilizer = 1 if any( "安定板使用" in el.get_text(strip=True)
                            for el in soup.select("span.label2.is-type1")  ) else 0
 
     distance = None
-    h3 = soup.select_one("h3.title16_titleDetail__add2020")
+    h3       = soup.select_one("h3.title16_titleDetail__add2020")
+
     if h3:
         t = h3.get_text(" ", strip=True)
         if "1200m" in t:
@@ -120,7 +124,7 @@ def parse_distance_and_stabilizer(soup: BeautifulSoup) -> tuple[int | None, int]
     return distance, stabilizer
 
 # -------------- 気象情報取得(結果ページ) ------------------
-def parse_weather(soup: BeautifulSoup) -> dict:
+def parse_weather(soup:BeautifulSoup) -> dict:
 
     weather = None     # 天気
     node = soup.select_one(".weather1 .weather1_body .weather1_bodyUnit.is-weather .weather1_bodyUnitLabel .weather1_bodyUnitLabelTitle")
@@ -152,7 +156,7 @@ def parse_weather(soup: BeautifulSoup) -> dict:
              "wave_hgt": wave_hgt, }
 
 # ------------- ﾚｰｽ結果取得(着順テーブル) ------------------
-def parse_finish_table(soup: BeautifulSoup):
+def parse_finish_table(soup:BeautifulSoup):
 
     out    = {}
     target = None
@@ -166,7 +170,7 @@ def parse_finish_table(soup: BeautifulSoup):
             break
 
     if not target: return out
-    # ----------------------------------
+    # --------------
     def fault_from_token(tok: str):
 
         if tok in ("転", "落", "エ", "不", "沈", "失"):  return "S", 1
@@ -175,10 +179,12 @@ def parse_finish_table(soup: BeautifulSoup):
         if tok == "欠":                                  return "K", 0
 
         return "N", None
-    # ----------------------------------
+    # --------------
     for tb in target.find_all("tbody", recursive=False):
+
         tr = tb.find("tr")
         if not tr: continue
+
         tds = tr.find_all("td", recursive=False)
         if len(tds) < 4: continue
 
@@ -188,9 +194,10 @@ def parse_finish_table(soup: BeautifulSoup):
                          tds[0].get_text(strip=True)                 ).translate(FW2H)
         finish_rank = None
         fault_code, fault_level = "N", None
+
         if rk_txt.isdigit(): finish_rank = int(rk_txt)
         elif rk_txt == "＿": finish_rank = 0
-        else: fault_code, fault_level = fault_from_token(rk_txt)
+        else:                fault_code, fault_level = fault_from_token(rk_txt)
 
         # 2列目: 枠番（クラス is-boatColorN 優先）
         frame_no = None
@@ -201,11 +208,13 @@ def parse_finish_table(soup: BeautifulSoup):
         else:
             fr_txt = (tds[1].get_text(strip=True) or "").translate(FW2H)
             if fr_txt.isdigit(): frame_no = int(fr_txt)
+
         if not frame_no: continue
 
         # 3列目: 登番
-        pid_span = tds[2].select_one("span.is-fs12")
+        pid_span  = tds[2].select_one("span.is-fs12")
         player_id = None
+
         if pid_span:
             pid_txt = pid_span.get_text(strip=True).translate(FW2H)
             if pid_txt.isdigit(): player_id = int(pid_txt)
@@ -221,7 +230,7 @@ def parse_finish_table(soup: BeautifulSoup):
     return out
 
 # ----------- スタート情報(slit_ADJ/course)取得 ------------
-def parse_start_info(soup: BeautifulSoup):
+def parse_start_info(soup:BeautifulSoup):
 
     out      = {}
     rows     = soup.select("div.table1_boatImage1")
@@ -248,7 +257,7 @@ def parse_start_info(soup: BeautifulSoup):
     return out
 
 # ----------------------------------------------------------
-def parse_win_move(soup: BeautifulSoup) -> str | None:
+def parse_win_move(soup:BeautifulSoup) -> str | None:
 
     for tbl in soup.select("div.table1 > table"):
         thead = tbl.find("thead")
@@ -268,19 +277,9 @@ def parse_win_move(soup: BeautifulSoup) -> str | None:
     return None
 
 # ----------------------------------------------------------
-def insert_race(conn:sqlite3.Connection, d_iso:str, venue_id:int, race_no:int,
-                                                                race_meta:dict  ):
+def insert_race(d_iso:str, venue_id:int, race_no:int, race_meta:dict):
 
-    """
-    race_meta: { "distance":  1200|1800|None,
-                  "weather":   str|None,
-                 "wind_dir":   str|None,
-                 "wind_spd":   int|None,
-                 "wave_hgt":   int|None,
-               "stabilizer":     0|1          }
-    """
-
-    meta = fetch_race_meta(conn, d_iso, venue_id, race_no)
+    meta = fetch_race_meta(d_iso, venue_id, race_no)
     if not meta: return False
 
     race_id, _ = build_ids(d_iso, venue_id, race_no, 1)
@@ -318,11 +317,10 @@ def insert_race(conn:sqlite3.Connection, d_iso:str, venue_id:int, race_no:int,
                race_meta.get("wave_hgt"),
                race_meta.get("stabilizer"),                          )
 
-    return (conn.execute(sql, params)).rowcount
+    return dal.execute(sql, params)
 
 # ------------------------------------------------------------
-def upsert_results(conn:sqlite3.Connection, d_iso:str, venue_id:int, race_no:int,
-                   prog, fin, stinfo, winmv:str|None):
+def upsert_results(d_iso:str, venue_id:int, race_no:int, prog, fin, stinfo, winmv:str|None):
 
     sql = """
             INSERT
@@ -344,7 +342,9 @@ def upsert_results(conn:sqlite3.Connection, d_iso:str, venue_id:int, race_no:int
     winner_frame = None
 
     for fr, v in fin.items():
-        if v.get("finish_rank") == 1: winner_frame = fr; break
+        if v.get("finish_rank") == 1:
+            winner_frame = fr
+            break
 
     for fr in range(1, 7):
         base = prog.get(fr)
@@ -372,7 +372,7 @@ def upsert_results(conn:sqlite3.Connection, d_iso:str, venue_id:int, race_no:int
             player_id, course,   win_move,   finish_rank, fault_code, fault_level,
             motor_no,  boat_no, slit_adj,    race_time,  violation                  ))
 
-    return (conn.executemany(sql, params)).rowcount
+    return dal.executemany(sql, params)
 
 # ------------------------------------------------------------
 def main():
@@ -392,8 +392,7 @@ def main():
     if not args.race  and not args.ALL_race:
         print(f"input 'race_no'  or select 「--ALL_race」")  ;return
 
-    c        = conn()
-    target_v = fetch_venues(c, args.date) if args.ALL_venue else [args.venue]
+    target_v = fetch_venues(args.date) if args.ALL_venue else [args.venue]
 
     for jcd in target_v:
         target_r   = list(range(1, 13)) if args.ALL_race else [args.race]
@@ -401,16 +400,15 @@ def main():
 
         if args.ALL_race:
             for r in range(1,13):
-                if fetch_cancelled(c, args.date, jcd, r):
+                if fetch_cancelled(args.date, jcd, r):
                     r_no1_skip =True
                     break
 
         for rno in target_r:
             if r_no1_skip and rno == 1: continue
-            if fetch_cancelled(c, args.date, jcd, rno):
+            if fetch_cancelled(args.date, jcd, rno):
                 if not args.ALL_race:
                     print(f"[OK] {rno}R is cancelled. skip import_Result.")
-                    c.close()
                     return 0
                 print(f"[OK] jcd={jcd}  {rno}R is cancelled")
                 continue
@@ -447,40 +445,33 @@ def main():
                     return 3
                 continue
 
-            with conn() as c:
-                c.execute("PRAGMA foreign_keys=ON;")
+            prog = fetch_program(args.date, jcd, rno)
+            if not prog:
+                if not args.ALL_race:
+                    print("[WARN] Race_programs が未整備です")
+                    return 2
+                continue
 
-                prog = fetch_program(c, args.date, jcd, rno)
-                if not prog:
-                    if not args.ALL_race:
-                        print("[WARN] Race_programs が未整備です")
-                        c.close()
-                        return 2
-                    continue
- 
-                inserted = insert_race(c, args.date, jcd, rno, race_meta)
-                if not inserted:
-                    if not args.ALL_race:
-                        print("[WARN] Insert Races error")
-                        c.close()
-                        return 2
-                    continue
+            inserted = insert_race(args.date, jcd, rno, race_meta)
+            if not inserted:
+                if not args.ALL_race:
+                    print("[WARN] Insert Races error")
+                    return 2
+                continue
 
-                upserted = upsert_results(c, args.date, jcd, rno, prog, fin, stinfo, winmv)
-                if not upserted:
-                    if not args.ALL_race:
-                        print("[WARN] Upsert Race entries error")
-                        c.close()
-                        return 2
-                    continue
+            upserted = upsert_results(args.date, jcd, rno, prog, fin, stinfo, winmv)
+            if not upserted:
+                if not args.ALL_race:
+                    print("[WARN] Upsert Race entries error")
+                    return 2
+                continue
 
-            c.commit()
             if args.ALL_race: print(f"[JCD={jcd}  {rno} R] done.")
 
         if args.ALL_race: rno = "1～12"
         print(f"[OK] Insert: {args.date} jcd={jcd} {rno}R")
+
         if not args.ALL_venue:
-            c.close()
             return 0
     return 0
 

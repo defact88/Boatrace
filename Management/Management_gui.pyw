@@ -18,9 +18,6 @@ UPLOAD_DIR   = Path(r"C:\boatrace\Management\UPLOAD")
 GUI_POS_X    = 1750
 GUI_POS_Y    = 5
 SELCOL       = "#b1dbcc"
-BAT_GUI      = BASE_DIR / "boatrace_gui.bat"
-BAT_COMMIT   = Path(r"C:\boatrace\BR\Gitcommit.bat")
-BAT_DAILY    = Path(r"C:\boatrace\Import\daily_insert.py")
 
 GUI, MUI, HNH      = "Yu Gothic UI", "Meiryo UI", "Helvetica Neue Heavy"
 GR, SD, RD, RA, BD = "groove", "solid", "ridge", "raised", "bold"
@@ -112,15 +109,18 @@ class FileManagementGUI(tk.Tk):
 
         MNG_PATH     = r"C:\boatrace\Management\Management_gui.pyw"
         MNG_DIR      = r"C:\boatrace\Management"
-        BR_GUI_PATH  = r"C:\boatrace\UI\boatrace_gui.py"
+        BR_GUI_PATH  = Path(r"C:\boatrace\UI\boatrace_gui.pyw")
         BR_GUI_DIR   = r"C:\boatrace\UI"
         SCHEMA_PATH  = r"C:\boatrace\Schema\schema_all.sql"
         SCHEMA_DIR   = r"C:\boatrace\Schema"
         FILEMAP_PATH = r"C:\boatrace\Management\file_map.csv"
         ARGLIST_PATH = r"C:\boatrace\Management\args_table.csv"
         MAIN_DIR     = r"C:\boatrace"
-        IMP_DIR      = r"C:\boatrace\Import"
         BACKUP_DIR   = r"C:\boatrace\Backup"
+
+        BAT_COMMIT   = Path(r"C:\boatrace\BR\Gitcommit.bat")
+        DAILY_PATH   = Path(r"C:\boatrace\Import\daily_insert.py")
+
         base_size    = (1760, 950, 800, 500)
 
         # ----------
@@ -181,29 +181,26 @@ class FileManagementGUI(tk.Tk):
 
         #====== 中カラム =====
 
-        self.lbl_active   =   tk.Label( self.frame_center, text= "", relief= "groove", 
-                                        font=(MUI,11),
-                                        bg="#333333", fg="#66CCFF", anchor= "w", padx=15  )
-        self.list_files   = tk.Listbox( self.frame_center, height=9, relief="flat",
-                                        bg="#333333", fg= "#FFFFFF", activestyle= "none",
-                                        font=(MUI,11),
+        self.lbl_active  =   tk.Label( self.frame_center, text="", relief="groove", font=(MUI,11),
+                                        bg="#333333", fg="#66CCFF", anchor="w", padx=15  )
+        self.list_files  = tk.Listbox( self.frame_center, height=9, relief="flat", font=(MUI,11),
+                                        bg="#333333", fg="#FFFFFF", activestyle="none",
                                         selectbackground= SELCOL, exportselection= False  )
-        self.list_subcats = tk.Listbox( self.frame_center, height=6, relief="flat",
-                                        bg="#333333", fg= "#FFFFFF", activestyle= "none",
-                                        font=(MUI,11),
-                                        selectbackground= SELCOL, exportselection= False  )
+        self.list_subcat = tk.Listbox( self.frame_center, height=6, relief="flat", font=(MUI,11),
+                                        bg="#333333", fg="#FFFFFF", activestyle="none",
+                                        selectbackground=SELCOL, exportselection=False  )
 
-        self.lbl_active.pack(  fill= "x",                           pady=(0, 5))
-        self.list_files.pack(  fill= "both", expand= False, padx=2, pady=(5, 5))
-        self.list_subcats.pack(fill= "x",    expand= False, padx=2, pady=(5, 0))
-        self.list_files.bind(  "<<ListboxSelect>>", self.on_select_file)
-        self.list_subcats.bind("<<ListboxSelect>>", self.on_select_subcat)
+        self.lbl_active.pack(  fill="x",                          pady=(0, 5))
+        self.list_files.pack(  fill="both", expand=False, padx=2, pady=(5, 5))
+        self.list_subcat.pack(fill="x",    expand=False, padx=2, pady=(5, 0))
+        self.list_files.bind( "<<ListboxSelect>>", self.on_select_file)
+        self.list_subcat.bind("<<ListboxSelect>>", self.on_select_subcat)
 
         #====== 右カラム =====
 
         # 引数表示エリア
         self.fr_args    = tk.Frame(self.frame_right, bg="#333333",relief="ridge", bd=1)
-        self.fr_arglist = tk.Frame(self.fr_args, bg="#333333")
+        self.fr_arglist = tk.Frame(self.fr_args,     bg="#333333")
         self.fr_args.place(x=10, y=10, width=350, height=250)
         self.fr_arglist.pack(fill= "both", expand= False, padx=8, pady=4)
 
@@ -217,48 +214,46 @@ class FileManagementGUI(tk.Tk):
 
         self.icon_gui    = ImageTk.PhotoImage(Image.open(ICON_PATH).resize((40, 40)))
 
-        self.btn_ui      = tk.Button( self.frame_cat, text= "ＵＩ",    **btn_opt,
+        self.btn_ui      = tk.Button( self.frame_cat, text="ＵＩ",    **btn_opt,
                                       command=lambda: self.on_select_category("UI")      )
-        self.btn_import  = tk.Button( self.frame_cat, text= "Import",  **btn_opt,
+        self.btn_import  = tk.Button( self.frame_cat, text="Import",  **btn_opt,
                                       command=lambda: self.on_select_category("Import")  )
-        self.btn_checker = tk.Button( self.frame_cat, text= "Checker", **btn_opt,
+        self.btn_checker = tk.Button( self.frame_cat, text="Checker", **btn_opt,
                                       command=lambda: self.on_select_category("Checker") )
         self.boot_gui    = tk.Button( self.frame_cat, image=self.icon_gui, relief="flat",
-                                      command=lambda: self.on_launch(BAT_GUI)            )
+                                      command=lambda: self.on_launch(BR_GUI_PATH)        )
 
-        self.btn_ui.grid(     row=0, column=0, padx=(0,5),  sticky= "w")
-        self.btn_import.grid( row=0, column=1, padx=(0,5),  sticky= "w")
-        self.btn_checker.grid(row=0, column=2, padx=(0,5),  sticky= "w")
-        self.boot_gui.grid(   row=0, column=3, padx=(0,0),  sticky= "w")
+        self.btn_ui.grid(     row=0, column=0, padx=(0,5),  sticky="w")
+        self.btn_import.grid( row=0, column=1, padx=(0,5),  sticky="w")
+        self.btn_checker.grid(row=0, column=2, padx=(0,5),  sticky="w")
+        self.boot_gui.grid(   row=0, column=3, padx=(0,0),  sticky="w")
 
         # アクションボタン
-        self.frame_act = tk.Frame(self.frame_right, bg= "#222222")
+        self.frame_act = tk.Frame(self.frame_right, bg="#222222")
         self.frame_act.place(x=10, y=320, width=360, height=35)
 
-        btn_opt2 = dict(font= (MUI,10), width=7)
+        btn_opt2 = dict(font=(MUI,10), width=7)
 
-        self.btn_edit   = tk.Button( self.frame_act, text= "編 集",  **btn_opt2,
-                                     bg= "#555555", fg= "#FFFFFF", command= self.on_edit )
-        self.btn_backup = tk.Button( self.frame_act, text= "BackUp", **btn_opt2,
-                                     bg= "#555555", fg= "#FFFFFF", command= self.on_backup )
-        self.btn_exec   = tk.Button( self.frame_act, text= "実 行",  **btn_opt2,
-                                     bg= "#AACCFF", fg= "#000000", command= self.on_execute )
-        self.btn_upd    = tk.Button( self.frame_act, text="日時更新",**btn_opt2,
-                                     bg= "#66CC99", fg= "#000000",
-                                     command=lambda:self.on_launch(BAT_DAILY, aug=" --all", cmd=True) )
-        self.btn_cmt    = tk.Button( self.frame_act, text="Commit",  **btn_opt2,
-                                     bg= "#66CC99", fg= "#000000",
-                                     command=lambda:self.on_launch(BAT_COMMIT, cmd=True) )
+        self.btn_edit = tk.Button( self.frame_act, text="編 集",  **btn_opt2,
+                                   bg="#555555", fg="#FFFFFF", command=self.on_edit )
+        self.btn_bkup = tk.Button( self.frame_act, text="BackUp", **btn_opt2,
+                                   bg="#555555", fg="#FFFFFF", command=self.on_backup )
+        self.btn_exec = tk.Button( self.frame_act, text="実 行",  **btn_opt2,
+                                   bg="#AACCFF", fg="#000000", command=self.on_execute )
+        self.btn_upd  = tk.Button( self.frame_act, text="日時更新",**btn_opt2,
+                                   bg="#66CC99", fg="#000000",
+                                   command=lambda:self.on_launch(DAILY_PATH, aug=" --all", cmd=True) )
+        self.btn_cmt  = tk.Button( self.frame_act, text="Commit",  **btn_opt2,
+                                   bg="#66CC99", fg="#000000",
+                                   command=lambda:self.on_launch(BAT_COMMIT, cmd=True) )
 
-        self.btn_edit.grid(  row=0, column=0, padx=2)
-        self.btn_backup.grid(row=0, column=1, padx=2)
-        self.btn_exec.grid(  row=0, column=2, padx=2)
-        self.btn_upd.grid(   row=0, column=3, padx=2)
-        self.btn_cmt.grid(   row=0, column=4, padx=2)
+        self.btn_edit.grid(row=0, column=0, padx=2)
+        self.btn_bkup.grid(row=0, column=1, padx=2)
+        self.btn_exec.grid(row=0, column=2, padx=2)
+        self.btn_upd.grid( row=0, column=3, padx=2)
+        self.btn_cmt.grid( row=0, column=4, padx=2)
 
-        self.cat_buttons = { "Checker":self.btn_checker,
-                              "Import":self.btn_import,
-                                  "UI":self.btn_ui       }
+        self.cat_buttons = {"Checker":self.btn_checker, "Import":self.btn_import, "UI":self.btn_ui}
         self.cat_normal_color = "#444444"
         self.cat_active_color = SELCOL
 
@@ -273,10 +268,10 @@ class FileManagementGUI(tk.Tk):
                 btn.config(bg= self.cat_normal_color, fg="#FFFFFF")
 
         subcats = sorted({r["サブカテゴリ"] for r in self.file_map if r["カテゴリ"] == cat})
-        self.list_subcats.delete(0, "end")
+        self.list_subcat.delete(0, "end")
 
         for s in subcats:
-            self.list_subcats.insert("end", f"  {s}")
+            self.list_subcat.insert("end", f"  {s}")
 
         self.list_files.delete(0, "end")
         self.lbl_active.config(text= "")
@@ -291,11 +286,11 @@ class FileManagementGUI(tk.Tk):
 
         if not self.active_category: return
 
-        sel = self.list_subcats.curselection()
+        sel = self.list_subcat.curselection()
 
         if not sel: return
 
-        subcat_text        = self.list_subcats.get(sel[0]).strip()
+        subcat_text        = self.list_subcat.get(sel[0]).strip()
         self.active_subcat = subcat_text
         files = [ r for r in self.file_map if r["カテゴリ"]     == self.active_category
                                           and r["サブカテゴリ"] == subcat_text          ]
@@ -375,6 +370,17 @@ class FileManagementGUI(tk.Tk):
                 "name":arg, "required":required, "var":var_chk, "entry":ent } )
 
     #-------------------------------------------------------
+    def on_launch(self, path:str, aug:str="", cmd:bool=False):
+
+        if not path.exists():
+            self.show_msg("Error", f"{path} が存在しません。")
+            return
+        if cmd:
+            subprocess.Popen(["cmd.exe", "/c", str(path) + aug])
+        else:
+            subprocess.Popen(str(path) + aug, shell=True)
+
+    #-------------------------------------------------------
     def on_execute(self):
 
         if not self.active_record:
@@ -446,6 +452,7 @@ class FileManagementGUI(tk.Tk):
 
     #-------------------------------------------------------
     def _is_true(self, v:str) -> bool:
+
         s = (v or "").strip().lower()
         return s in {"1","true","t","yes","y","on","?","?"}
 
@@ -498,18 +505,6 @@ class FileManagementGUI(tk.Tk):
             return
 
         open_explr(str(UPLOAD_DIR), 1760, 647, 800, 700)
-
-    #-------------------------------------------------------
-    def on_launch(self, dir:str, aug:str="", cmd:bool=False):
-
-        bat = dir
-        if not bat.exists():
-            self.show_msg("Error", f"{bat} が存在しません。")
-            return
-        if cmd:
-            subprocess.Popen(["cmd.exe", "/c", str(bat) + aug])
-        else:
-            subprocess.Popen(str(bat) + aug, shell=True)
 
     # ---------------- 固定位置ユーザーダイアログ --------------------
     def show_msg( self, kind:str, text:str, title:str= "",

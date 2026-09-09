@@ -30,12 +30,7 @@ logging.basicConfig( filename = LOG_DIR / "import_D_error.log",
                      level    = logging.DEBUG,
                      format   = "%(asctime)s %(levelname)s %(message)s",
                      encoding = "utf-8",                                 )
-# ----------------------------
-def conn():
-    c             = sqlite3.connect(DB_PATH)
-    c.row_factory = sqlite3.Row
-    c.execute("PRAGMA foreign_keys=ON;")
-    return c
+
 # ----------------------------
 def yyyymmdd(s:str) -> str:
     return s.replace("-", "")
@@ -212,9 +207,9 @@ def parse_exhibition_tilt_parts(soup:BeautifulSoup):
     return out
 
 # ------------------------------------------------------------
-def fetch_program_players(c, d_iso:str, venue_id:int, race_no:int):
+def fetch_program_players(d_iso:str, venue_id:int, race_no:int):
 
-    rows = c.execute("""
+    rows = dal.fetch_all("""
            SELECT frame_no, player_id
              FROM Race_programs
             WHERE date     = ?
@@ -222,36 +217,36 @@ def fetch_program_players(c, d_iso:str, venue_id:int, race_no:int):
               AND race_no  = ?
          ORDER BY frame_no
            """,
-           (d_iso, venue_id, race_no), ).fetchall()
+           (d_iso, venue_id, race_no), )
 
     return [(int(r[0]), int(r[1])) for r in rows]
 # ------------------------------------------------------------
-def fetch_venues(c, d_iso:str):
+def fetch_venues(d_iso:str):
 
-    rows = c.execute("""
+    rows = dal.fetch_all("""
            SELECT DISTINCT venue_id
              FROM Race_programs
             WHERE date     = ?
               AND race_no  = ?
            """,
-           (d_iso, 1),).fetchall()
+           (d_iso, 1),)
 
     return tuple(row[0] for row in rows)
 # ------------------------------------------------------------
-def fetch_cancelled(c, d_iso:str, venue_id:int, race_no:int):
+def fetch_cancelled(d_iso:str, venue_id:int, race_no:int):
 
-    row = c.execute("""
+    row = dal.fetch_one("""
               SELECT status
                 FROM Races
                WHERE date=? AND venue_id=? AND race_no=?
               """,
-              (d_iso, venue_id, race_no)).fetchone()
+              (d_iso, venue_id, race_no))
 
     out = True if row and row[0] == 'cancelled' else False
 
     return out
 # ----------------------------------------------------------
-def upsert_Display_run(c, d_iso:str, v_id:int, r_no:int, per_frame, w):
+def upsert_Display_run(d_iso:str, v_id:int, r_no:int, per_frame, w):
 
     sql = """
         INSERT INTO Display_run( race_id,  entry_id,  venue_id,   date,       race_no,
@@ -292,12 +287,10 @@ def upsert_Display_run(c, d_iso:str, v_id:int, r_no:int, per_frame, w):
         params.append(( r_id, e_id,  v_id,   d_iso, r_no, weath, w_dir, w_spd, wave,  pid,
                         fr,   is_ms, course, ex,    slit, tilt,  parts, lap,   stabi       ))
 
-    #print(params)
-    c.executemany(sql, params)
-    c.commit()
+    dal.executemany(sql, params)
 
 # ----------------------------------------------------------
-def upsert_Display_run_partial(c, d_iso:str, v_id:int, r_no:int, per_frame, w ):
+def upsert_Display_run_partial(d_iso:str, v_id:int, r_no:int, per_frame, w ):
 
     sql = """
         INSERT INTO Display_run( race_id,   entry_id,   venue_id,   date,       race_no,
@@ -333,8 +326,7 @@ def upsert_Display_run_partial(c, d_iso:str, v_id:int, r_no:int, per_frame, w ):
         params.append(( r_id, e_id,  v_id, d_iso, r_no, weath, w_dir, w_spd, wave, pid,
                         fr,   is_ms, None, None,  None, tilt,  parts, lap,   stabi      ))
 
-    c.executemany(sql, params)
-    c.commit()
+    dal.executemany(sql, params)
 
 # ====================================================================
 def main(args_list=None):
@@ -355,17 +347,15 @@ def main(args_list=None):
         print(f"input 'race_no'  or select 「--ALL_race」")  ;return
 
     try:
-        c        = conn()
-        target_v = fetch_venues(c, args.date) if args.ALL_venue else [args.venue]
+        target_v = fetch_venues(args.date) if args.ALL_venue else [args.venue]
 
         for jcd in target_v:
             target_r = list(range(1, 13)) if args.ALL_race else [args.race]
 
             for rno in target_r:
-                if fetch_cancelled(c, args.date, jcd, rno):
+                if fetch_cancelled(args.date, jcd, rno):
                     if not args.ALL_race:
                         print(f"[OK] {rno}R is cancelled. skip Display_run insert.")
-                        c.close()
                         return 0
                     print(f"[OK] jcd={jcd}  {rno}R is cancelled")
                     continue
@@ -380,7 +370,6 @@ def main(args_list=None):
                         res.raise_for_status()
                     except Exception as e:
                         print(f"[ERR] Page access failed: {e}")
-                        c.close()
                         return 1
 
                 soup    = BeautifulSoup(res.text, "lxml")
@@ -391,11 +380,10 @@ def main(args_list=None):
                 weather["lap_reduct"] = meta["lap_reduct"]
                 weather["stabilizer"] = meta["stabilizer"]
 
-                prog = fetch_program_players(c, args.date, jcd, rno)
+                prog = fetch_program_players(args.date, jcd, rno)
                 if not prog:
                     if not args.ALL_race:
                         print(f"[WARN] jcd={jcd} {rno}R  Race_programs が未整備です")
-                        c.close()
                         return 2
                     continue
 
@@ -419,23 +407,20 @@ def main(args_list=None):
                                                                                               ) ]
 
                 if not_ready_frames:
-                    upsert_Display_run_partial(c, args.date, jcd, rno, per_frame, weather)
+                    upsert_Display_run_partial(args.date, jcd, rno, per_frame, weather)
                     if not args.ALL_race:
                         print("page update yet (Upsert partial)")
-                        c.close()
                         return 2
                     continue
 
-                upsert_Display_run(c, args.date, jcd, rno, per_frame, weather)
+                upsert_Display_run(args.date, jcd, rno, per_frame, weather)
                 if args.ALL_race: print(f"[JCD={jcd}  {rno} R] done.")
 
             if args.ALL_race: rno = "1～12"
             print(f"[OK] Upsert: {args.date} jcd={jcd} {rno}R")
 
-        c.close()
     except Exception as e:
         logging.error(f"error: {e}", exc_info=True)
-        c.close()
         raise
 
     return 0

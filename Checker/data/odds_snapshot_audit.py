@@ -1,21 +1,16 @@
 ﻿# -*- coding: utf-8 -*-
 # C:\boatrace\Tools\odds_snapshot_audit.py
 
-#   python odds_snapshot_audit.py                              (検査のみ、DB変更なし)
-#   python odds_snapshot_audit.py --thin                       (検査後、間引きを実行)
-#   python odds_snapshot_audit.py --date-from 2026-07-01 --date-to 2026-07-31 --thin
-
 from __future__ import annotations
 from datetime   import datetime as dt, timedelta
 from typing     import Dict, List, Tuple
 import argparse, sqlite3
 
-DB_PATH = r"C:\boatrace\boatrace.db"
-
+DB_PATH           = r"C:\boatrace\boatrace.db"
 TARGET_BET_TYPES  = ("3T", "3F", "2T", "KK",)
 EXPECTED_SET_SIZE = 185
 FULL_SET_MIN_ROWS = 100
-MAX_SET_COUNT    = 3
+MAX_SET_COUNT     = 3
 
 VENUES = [ None,    " 桐生 ", " 戸田 ", "江戸川", "平和島", "多摩川", "浜名湖", " 蒲郡 ",
           " 常滑 ", "  津  ", " 三国 ", "びわこ", "住之江", " 尼崎 ", " 鳴門 ", " 丸亀 ",
@@ -52,7 +47,8 @@ def _date_where(args):
 def _load_race_sets(c:sqlite3.Connection, where:str, params:list):
 
     rows = c.execute(f"""
-        SELECT date, venue_id, race_no, captured_at, is_final, COUNT(*) AS cnt
+        SELECT date, venue_id, race_no, captured_at, is_final,
+               COUNT(*) AS cnt
           FROM Odds_snapshots
          WHERE bet_type IN (?, ?, ?, ?)
         {where}
@@ -61,6 +57,7 @@ def _load_race_sets(c:sqlite3.Connection, where:str, params:list):
         """, (*TARGET_BET_TYPES, *params)).fetchall()
 
     races:Dict[Tuple, Dict[str, dict]] = {}
+
     for r in rows:
         key = (r["date"], r["venue_id"], r["race_no"])
         races.setdefault(key, {})[r["captured_at"]] = {"is_final":r["is_final"], "rows":r["cnt"]}
@@ -237,9 +234,9 @@ def do_thin(args, races:Dict[Tuple, Dict[str, dict]]):
 def main():
 
     ap = argparse.ArgumentParser(description="Odds_snapshots 検査/間引きツール")
-    ap.add_argument("--date-from", help="YYYY-MM-DD")
-    ap.add_argument("--date-to",   help="YYYY-MM-DD")
-    ap.add_argument("thin", action="store_true", help="検査後、間引きをDBに実行する")
+    ap.add_argument("--date_from", help="YYYY-MM-DD")
+    ap.add_argument("--date_to",   help="YYYY-MM-DD")
+    ap.add_argument("--thin", action="store_true", help="検査後、間引きをDBに実行する")
     args = ap.parse_args()
 
     races = do_inspect(args)

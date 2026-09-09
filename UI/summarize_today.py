@@ -810,9 +810,9 @@ class SummarizeTodayInfo:
         return False
 
     # ----------------------- ログ -------------------------
-    def _log(self, s:str):
+    def _log(self, s:str, mute:bool=False):
 
-        if not self.monitor: return
+        if not self.monitor and not mute: return
         try:              t = datetime.now(JST).strftime("%H:%M:%S")
         except Exception: t = "--:--:--"
 
@@ -828,8 +828,7 @@ class SummarizeTodayInfo:
                     d = {}
         except Exception:
             d = {}
-        return { "stop":bool(d.get("stop", False)),
-                 "mute":bool(d.get("mute", False))  }
+        return {"stop":bool(d.get("stop", False)), "mute":bool(d.get("mute", False))}
 
     # ------------------------------------------------------
     def _ctl_watch(self):
@@ -840,7 +839,7 @@ class SummarizeTodayInfo:
 
             if new_monitor != self.monitor:
                 self.monitor = new_monitor
-                self._log(f"[monitor] {'ON' if self.monitor else 'OFF'}")
+                self._log(f"[monitor] {'ON' if self.monitor else 'OFF'}", mute=True)
 
             if ctl["stop"]: self._stop = True
 
