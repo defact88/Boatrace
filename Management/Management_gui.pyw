@@ -1,10 +1,10 @@
 ﻿# -*- coding: utf-8 -*-
 # C:\boatrace\Management\Mmanagement_gui.pyw
 
-from tkinter             import messagebox
-from pathlib             import Path
-from PIL                 import Image, ImageTk
-from Helpers.Custum_func import cFr, cLbl, cBtn
+from tkinter     import messagebox
+from pathlib     import Path
+from PIL         import Image, ImageTk
+from Custum_func import cFr, cLbl, cBtn
 import subprocess, shutil, os, csv, datetime, time, ctypes, win32com.client
 import tkinter as tk
 #-------------------------------------------------
@@ -510,7 +510,6 @@ class FileManagementGUI(tk.Tk):
             subprocess.Popen(["cmd.exe", "/c", str(bat) + aug])
         else:
             subprocess.Popen(str(bat) + aug, shell=True)
-
 
     # ---------------- 固定位置ユーザーダイアログ --------------------
     def show_msg( self, kind:str, text:str, title:str= "",

@@ -145,6 +145,8 @@ CREATE TABLE Race_programs(
   day_no        INTEGER  NOT NULL,
   race_no       INTEGER  NOT NULL,
   race_title    TEXT     NOT NULL,
+  all_ladies    INTEGER           DEFAULT 0,
+  deadline_vote DATETIME NOT NULL,
 
   frame_no      INTEGER  NOT NULL,
   player_id     INTEGER  NOT NULL REFERENCES Players(player_id),
@@ -153,9 +155,7 @@ CREATE TABLE Race_programs(
   boat_no       INTEGER  NOT NULL,
   motor_ave     REAL     NOT NULL,
   boat_ave      REAL     NOT NULL,
-  deadline_vote DATETIME NOT NULL,
   is_absent     INTEGER  NOT NULL DEFAULT 0,
-  all_ladies    INTEGER           DEFAULT 0,
 
   UNIQUE(program_id, player_id)
 );

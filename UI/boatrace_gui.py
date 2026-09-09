@@ -77,23 +77,54 @@ ODDS_WINDOW   = r"C:\boatrace\UI\odds_window.py"
 
 # ===========  共通ヘルパー  ===========
 def jst_today() -> date:
+
     JST = timezone(timedelta(hours=9))
     return dt.now(JST).date()
-# --------
+
+#-----------------------------
 def today_iso() -> str:
+
     return jst_today().strftime("%Y-%m-%d")
-# --------
+
+#-----------------------------
 def wid_txt(s:str) -> str:
+
     hair = "\u200A" 
     return hair.join(list(s))
-# --------
+
+#-----------------------------
 def d_range(d:str, range:int):
+
     d_t = date.fromisoformat(d)
     return (d_t -timedelta(days=range), d_t)
+
+# -- サマライザ制御：フラグI/O
+def ctl_read():
+
+    try:
+        with open(CTL_PATH, "r", encoding="utf-8") as f:
+            d = json.load(f)
+            if not isinstance(d, dict): d = {}
+    except Exception:
+        d = {}
+
+    return {"stop":bool(d.get("stop", False)), "mute":bool(d.get("mute", False))}
+
+# ----------------------------
+def ctl_write(*, stop=None, mute=None):
+
+    d = ctl_read()
+    if stop is not None: d["stop"] = bool(stop)
+    if mute is not None: d["mute"] = bool(mute)
+
+    os.makedirs(os.path.dirname(CTL_PATH), exist_ok=True)
+    with open(CTL_PATH, "w", encoding="utf-8") as f:
+        json.dump(d, f, ensure_ascii=False)
 
 # ====================  モーダル進行ダイアログ  ======================
 # --------------------------------------------------------------------
 class ProgressDialog(tk.Toplevel):
+
     def __init__(self, parent, title="処理中", message="しばらくお待ちください..."):
         super().__init__(parent)
 
@@ -116,12 +147,14 @@ class ProgressDialog(tk.Toplevel):
         y = parent.winfo_rooty() + (parent.winfo_height() - self.winfo_height()) // 2
 
         self.geometry(f"+{max(x, 0)}+{max(y, 0)}")
+
     # ----------------------------------
     def _disable_close(self): pass
 
 # ==========================  App ルータ =============================
 # --------------------------------------------------------------------
 class App(tk.Tk):
+
     def __init__(self):
         super().__init__()
 
@@ -209,7 +242,7 @@ class App(tk.Tk):
         except Exception as e:
             messagebox.showerror("ウィンドウ生成エラー", f"{e}\n\n{traceback.format_exc()}")
 
-    # ======  起動直後：当日分のBデータ確保  =====
+    # ======  起動直後：当日分 Bデータ更新  =====
     def _ensure_programs_on_launch(self):
 
         d_iso = today_iso()
@@ -264,11 +297,12 @@ class App(tk.Tk):
         th.start()
 
         self.after(200, poll)
-    # --------------------------------------------
+
+    # ============  サマライザー起動  ============
     def _start_summarizer_on_launch(self):
 
         try:
-            self._ctl_write(stop=False, mute=False)
+            ctl_write(stop=False, mute=False)
             self._summ_proc = subprocess.Popen( [(sys.executable or "python"), SUMMARIZ],
                                                  cwd           = str(Path(SUMMARIZ).parent),
                                                  stdin         = subprocess.DEVNULL,
@@ -335,34 +369,13 @@ class App(tk.Tk):
                     try: proc.kill()
                     except Exception: pass
 
-        try: self.destroy()
+        try:              self.destroy()
         except Exception: pass
-
-    # -------- サマライザ制御：フラグI/O ---------
-    def _ctl_read(self):
-
-        try:
-            with open(CTL_PATH, "r", encoding="utf-8") as f:
-                d = json.load(f)
-                if not isinstance(d, dict): d = {}
-        except Exception:
-            d = {}
-        return {"stop": bool(d.get("stop", False)),
-                "mute": bool(d.get("mute", False))}
-
-    # --------------------------------------------
-    def _ctl_write(self, *, stop=None, mute=None):
-
-        d = self._ctl_read()
-        if stop is not None: d["stop"] = bool(stop)
-        if mute is not None: d["mute"] = bool(mute)
-        os.makedirs(os.path.dirname(CTL_PATH), exist_ok=True)
-        with open(CTL_PATH, "w", encoding="utf-8") as f:
-            json.dump(d, f, ensure_ascii=False)
 
 # ========================== メイン画面 ==============================
 # --------------------------------------------------------------------
 class MainScreen(tk.Frame):
+
     def __init__(self, parent, app:App):
         super().__init__(parent)
 
@@ -403,7 +416,7 @@ class MainScreen(tk.Frame):
         stat_opt = {"bg":"white", "fg":"black"}
 
         self.btn_boot = ttk.Button(fr_bar1, text="停 止",  command=self._toggle_boot)
-        btn_mute = ttk.Button(fr_bar2, text="ﾓﾆﾀ-出力",    command=self._toggle_monitor)
+        btn_mute = ttk.Button(fr_bar2, text="ﾓﾆﾀ-出力",    command=self._toggle_mute)
         btn_extn = ttk.Button(fr_bar1, text="拡張ﾓﾆﾀ表示", command=self._toggle_ext_monitor)
         lb_stat1 = cLbl(fr_bar1, text=" -- ", W=18, H=1, Bd=(3,GR), pady=3, **stat_opt)
         lb_stat2 = cLbl(fr_bar2, text=" -- ", W=18, H=1, Bd=(3,GR), pady=3, **stat_opt)
@@ -428,9 +441,9 @@ class MainScreen(tk.Frame):
         btn_dbq.grid(row=2, column=1, ipady=18) ; btn_dbq.config(width=20)
 
         self._lbl_monitor = [lb_stat1, lb_stat2]
-        self._poll_monitor_label()
+        self.after(500, self._poll_monitor_state)
 
-    # --------------------------------------------
+    # ------ 拡張 moni 表示/非表示 ハンドラ ------
     def _toggle_ext_monitor(self):
 
         if getattr(self, "_ext_container", None) and self.app._ext_visible:
@@ -438,11 +451,68 @@ class MainScreen(tk.Frame):
         else:
             self._show_ext_monitor()
 
-    # -------------- ハンドラ --------------------
-    def _toggle_monitor(self):
-        d = self._ctl_read()
-        self._ctl_write(mute=not d["mute"])
-        self._update_monitor_label()
+    # --------------------------------------------
+    def _toggle_mute(self):
+
+        d = ctl_read()
+        ctl_write(mute=not d["mute"])
+        self._update_monitor_state()
+
+    # --------------------------------------------
+    def _toggle_boot(self):
+
+        proc       = getattr(self.app, "_summ_proc", None)
+        is_running = proc is not None and proc.poll() is None
+
+        if is_running:
+            ctl_write(stop=True)
+        else:
+            ctl_write(stop=False)
+            self.app._start_summarizer_on_launch()
+
+        self._poll_monitor_state()
+
+    # --------------------------------------------
+    def _poll_monitor_state(self):
+
+        self._update_monitor_state()
+
+        data       = ctl_read()
+        proc       = getattr(self.app, "_summ_proc", None)
+        is_running = (proc is not None) and (proc.poll() is None)
+
+        if data["stop"] and is_running:
+            self.after(1000, self._poll_monitor_state)
+        elif not data["stop"] and not is_running:
+            self.after(1000, self._poll_monitor_state)
+        else:
+            pass
+
+    # --------------------------------------------
+    def _update_monitor_state(self):
+
+        try:
+            data       = ctl_read()
+            proc       = getattr(self.app, "_summ_proc", None)
+            is_running = (proc is not None) and (proc.poll() is None)
+
+            if is_running:
+                txt1 = "停止要求中" if data["stop"] else "稼働中"
+                opt1 = dict(bg="yellow") if data["stop"] else dict(bg="#ceffd3")
+                self.btn_boot.config(text="停 止")
+            else:
+                txt1 = "停止中"
+                opt1 = dict(bg="#dedede", fg="black")
+                self.btn_boot.config(text="起 動")
+
+            txt2 = "ON" if (not data["mute"]) else "OFF"
+            opt2 = dict(bg="yellow") if txt2 == "OFF" else dict(bg="#ceffd3")
+
+            self._lbl_monitor[0].config(text=f"{txt1}", **opt1, font=(MUI,9))
+            self._lbl_monitor[1].config(text=f"{txt2}", **opt2, font=(MUI,9))
+
+        except Exception as e:
+            print("[WARN] monitor label update:", e)
 
     # --------------------------------------------
     def _show_ext_monitor(self):
@@ -482,60 +552,6 @@ class MainScreen(tk.Frame):
             self.app.geometry(f"1150x{h}")
         except Exception: pass
 
-    # -------- サマライザ制御：フラグI/O ---------
-    def _ctl_read(self) -> dict:
-
-        try:
-            with open(CTL_PATH, "r", encoding="utf-8") as f:
-                d = json.load(f)
-                if not isinstance(d, dict): d = {}
-        except Exception: d = {}
-
-        return {"stop": bool(d.get("stop", False)),
-                "mute": bool(d.get("mute", False))}
-
-    # --------------------------------------------
-    def _ctl_write(self, *, stop=None, mute=None):
-
-        d = self._ctl_read()
-        if stop is not None: d["stop"] = bool(stop)
-        if mute is not None: d["mute"] = bool(mute)
-
-        os.makedirs(os.path.dirname(CTL_PATH), exist_ok=True)
-        with open(CTL_PATH, "w", encoding="utf-8") as f:
-            json.dump(d, f, ensure_ascii=False)
-
-    # --------------------------------------------
-    def _update_monitor_label(self):
-        try:
-            d    = self._ctl_read()
-            proc = getattr(self.app, "_summ_proc", None)
-            is_running = proc is not None and proc.poll() is None
-
-            if is_running:
-                txt1 = "停止要求中" if d["stop"] else "稼働中"
-                opt1 = dict(bg="yellow") if d["stop"] else dict(bg="#ceffd3")
-                self.btn_boot.config(text="停 止")
-            else:
-                txt1 = "停止中"
-                opt1 = dict(bg="#dedede", fg="black")
-                self.btn_boot.config(text="起 動")
-
-            txt2 = "ON" if (not d["mute"]) else "OFF"
-            opt2 = dict(bg="yellow") if txt2 == "OFF" else dict(bg="#ceffd3")
-
-            if hasattr(self, "_lbl_monitor"):
-                self._lbl_monitor[0].config(text=f"{txt1}", **opt1, font=(MUI,9))
-                self._lbl_monitor[1].config(text=f"{txt2}", **opt2, font=(MUI,9))
-
-        except Exception as e: print("[WARN] monitor label update:", e)
-
-    # --------------------------------------------
-    def _poll_monitor_label(self):
-
-        self._update_monitor_label()
-        self.after(1000, self._poll_monitor_label)
-
     # --------------------------------------------
     def _hide_ext_monitor(self):
 
@@ -549,17 +565,6 @@ class MainScreen(tk.Frame):
             h = max(self.app.winfo_height(), 500)
             self.app.geometry(f"600x{h}")
         except Exception: pass
-    # --------------------------------------------
-    def _toggle_boot(self):
-
-        proc = getattr(self.app, "_summ_proc", None)
-        is_running = proc is not None and proc.poll() is None
-
-        if is_running:
-            self._ctl_write(stop=True)
-        else:
-            self._ctl_write(stop=False)
-            self.app._start_summarizer_on_launch()
 
 # =====================   出走表ウィンドウ  ==========================
 # --------------------------------------------------------------------
@@ -883,15 +888,15 @@ class RaceWindow(tk.Toplevel):
             elif float(row.get('stav')) <= 0.12: stav_opt = ST_OPT[1]
             else:                                stav_opt = ST_OPT[0]
 
-            if   row.get('rate1') >= 30: rate1_opt = RATE_OPT[1]
-            elif row.get('rate1') <= 10: rate1_opt = RATE_OPT[2]
-            else:                        rate1_opt = RATE_OPT[0]
-            if   row.get('rate2') >= 50: rate2_opt = RATE_OPT[1]
-            elif row.get('rate2') <= 30: rate2_opt = RATE_OPT[2]
-            else:                        rate2_opt = RATE_OPT[0]
-            if   row.get('rate3') >= 70: rate3_opt = RATE_OPT[1]
-            elif row.get('rate3') <= 50: rate3_opt = RATE_OPT[2]
-            else:                        rate3_opt = RATE_OPT[0]
+            if   row.get('rate1') >= 33.3: rate1_opt = RATE_OPT[1]
+            elif row.get('rate1') <= 10:   rate1_opt = RATE_OPT[2]
+            else:                          rate1_opt = RATE_OPT[0]
+            if   row.get('rate2') >= 55:   rate2_opt = RATE_OPT[1]
+            elif row.get('rate2') <= 20:   rate2_opt = RATE_OPT[2]
+            else:                          rate2_opt = RATE_OPT[0]
+            if   row.get('rate3') >= 70:   rate3_opt = RATE_OPT[1]
+            elif row.get('rate3') <= 30:   rate3_opt = RATE_OPT[2]
+            else:                          rate3_opt = RATE_OPT[0]
 
             wdg_m["frno"].config( text= str(frn),   **FRM_COLOR[frn]  )
             wdg_m["name"].config( text= f"{row.get('name')}"          )

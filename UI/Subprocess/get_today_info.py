@@ -87,7 +87,7 @@ def parse_cancellations(html_text:str) -> list[tuple[int, int]]:
 #-----------------------------------------------------------
 def fetch_race_meta(d_iso:str, venue_id:int, race_no:int):
 
-    row = dal.fetchone("""
+    row = dal.fetch_one("""
         SELECT MIN(series_title) AS series_title,
                MIN(grade)        AS grade,
                MIN(day_no)       AS day_no,
@@ -108,7 +108,7 @@ def insert_cancelled(d_iso:str, venue_id:int, from_rno:int) -> int:
     inserted = 0
     for rno in range(from_rno, 13):
 
-        row = dal.fetchone("""
+        row = dal.fetch_one("""
                   SELECT 1 
                     FROM Races
                    WHERE date=? AND venue_id=? AND race_no=?
@@ -132,7 +132,7 @@ def insert_cancelled(d_iso:str, venue_id:int, from_rno:int) -> int:
                  ( race_id, d_iso,  venue_id, meta["series_title"], meta["grade"],
                     meta["day_no"], rno,  meta["race_title"],                  )           )
 
-        inserted  += cur.rowcount
+        inserted += cur
 
     return inserted 
 

@@ -88,7 +88,7 @@ def insert_races(c:sqlite3.Connection, r:Dict):
 
     pre_cnt = c.total_changes
     c.execute("""
-        INSERT INTO races(
+        INSERT OR IGNORE INTO races(
             race_id,  date,       venue_id,    race_no,
             day_no,   race_title, grade,       series_title,
             weather,  wind_dir,   wind_spd,    wave_hgt,

@@ -21,12 +21,12 @@ Import,Import_K,ETL_K_results.py,C:\boatrace\Import\ETL_K_results.py,1
 Import,Import_K,upsert_Grade.py,C:\boatrace\Import\upsert_Grade.py,1
 Import,Import_K,parse_and_upsert.py,C:\boatrace\Import\parse_and_upsert.py,1
 Import,Import_K,make_grade_txt.py,C:\boatrace\Import\make_grade_txt.py,0
-UI,Main_Unit,Dal.py,C:\boatrace\UI\Dal.py,1
+UI,Main_Unit,Dal.py,C:\boatrace\Dal.py,1
 UI,Main_Unit,summarize_today.py,C:\boatrace\UI\summarize_today.py,1
 UI,Main_Unit,boatrace_gui.py,C:\boatrace\UI\boatrace_gui.py,1
 UI,Main_Unit,odds_window.py,C:\boatrace\UI\odds_window.py,1
 UI,Main_Unit,Management_gui.py,C:\boatrace\Management\Management_gui.pyw,1
-UI,Main_Unit,API_GUI,C:\boatrace\Management\Gemini_API\API_GUI.py,0
+UI,Main_Unit,API_GUI,C:\boatrace\Management\API_GUI\API_GUI.py,0
 UI,Screens,DB_ops.py,C:\boatrace\UI\Screens\db_ops.py,0
 UI,Screens,DB_schem.py,C:\boatrace\UI\Screens\db_schem.py,0
 UI,Screens,DB_query.py,C:\boatrace\UI\Screens\DB_query.py,0

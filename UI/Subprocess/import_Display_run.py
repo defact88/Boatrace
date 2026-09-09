@@ -337,7 +337,7 @@ def upsert_Display_run_partial(c, d_iso:str, v_id:int, r_no:int, per_frame, w ):
     c.commit()
 
 # ====================================================================
-def main():
+def main(args_list=None):
 
     ap = argparse.ArgumentParser()
     ap.add_argument("--date",  required=True, help="YYYY-MM-DD")
@@ -346,7 +346,7 @@ def main():
     ap.add_argument("--ALL_venue", action="store_true")
     ap.add_argument("--ALL_race",  action="store_true")
 
-    args = ap.parse_args()
+    args = ap.parse_args(args_list)
     hd   = yyyymmdd(args.date)
 
     if not args.venue and not args.ALL_venue:
@@ -421,7 +421,7 @@ def main():
                 if not_ready_frames:
                     upsert_Display_run_partial(c, args.date, jcd, rno, per_frame, weather)
                     if not args.ALL_race:
-                        print("[page not update yet] Upsert: partial")
+                        print("page update yet (Upsert partial)")
                         c.close()
                         return 2
                     continue

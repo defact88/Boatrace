@@ -12,10 +12,10 @@ from mdit_py_plugins.front_matter import front_matter_plugin
 GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY")
 OPENAI_API_KEY = os.environ.get("OPENAI_API_KEY")
 
-LOGS_DIR     = r"C:\boatrace\Management\Gemini_API\logs"
-PROMPTS_JSON = r"C:\boatrace\Management\Gemini_API\prompts.json"
-PROMPTS_TEXT = r"C:\boatrace\Management\Gemini_API\prompts.txt"
-PROFILE_JSON = r"C:\boatrace\Management\Gemini_API\profile.json" 
+LOGS_DIR     = r"C:\boatrace\Management\API_GUI\logs"
+PROMPTS_JSON = r"C:\boatrace\Management\API_GUI\prompts.json"
+PROMPTS_TEXT = r"C:\boatrace\Management\API_GUI\prompts.txt"
+PROFILE_JSON = r"C:\boatrace\Management\API_GUI\profile.json" 
 MAX_CONTEXT  = 200
 
 if not os.path.exists(LOGS_DIR):

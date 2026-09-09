@@ -9,17 +9,18 @@ from typing         import List, Tuple, Optional
 from wcwidth        import wcswidth
 from curl_cffi      import requests
 
-DB     = r"C:\boatrace\boatrace.db"
+DB       = r"C:\boatrace\boatrace.db"
+LOG_PATH = Path(r"C:\boatrace\Archive\logs\daily_insert\Grade")
 
-HEADERS = { "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:142.0) Gecko/20100101 Firefox/142.0",
-            "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
-            "Accept-Language": "ja,en-US;q=0.7,en;q=0.3",
-            "Upgrade-Insecure-Requests": "1",
-            "Sec-Fetch-Dest": "document",
-            "Sec-Fetch-Mode": "navigate",
-            "Sec-Fetch-Site": "none",
-            "Sec-Fetch-User": "?1",
-            "Connection": "keep-alive",
+HEADERS  = { "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:142.0) Gecko/20100101 Firefox/142.0",
+             "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+             "Accept-Language": "ja,en-US;q=0.7,en;q=0.3",
+             "Upgrade-Insecure-Requests": "1",
+             "Sec-Fetch-Dest": "document",
+             "Sec-Fetch-Mode": "navigate",
+             "Sec-Fetch-Site": "none",
+             "Sec-Fetch-User": "?1",
+             "Connection": "keep-alive",
 }
 CC_LCC = re.compile(r"(チャレンジカップ|レディースＣＣ)", re.I)
 QC     = re.compile(r"(クイーンズクライマックス|賞金女王決定戦)", re.I)
@@ -429,9 +430,15 @@ def cnt_grades_inDB(c:sqlite3.Connection, year:int):
 #============================ MAIN ===================================
 def upsert_Grade(year:int, date_from:str=None, date_to:str=None, overwrite:bool=False ):
 
+    file_name = f"Grade_{date_from}～{date_to}.log"
+    log_file  = LOG_PATH / file_name
+    log_file.parent.mkdir(parents=True, exist_ok=True)
+    log = open(log_file, "a", encoding="utf-8", newline="\n")
+
     lines  = load_schedule_lines(year)
     z_from = f"{year}-01-01"
     z_to   = f"{year}-12-31"
+
     if date_from: z_from = max(z_from, date_from)
     if date_to:   z_to   = min(z_to,   date_to)
 
@@ -473,11 +480,11 @@ def upsert_Grade(year:int, date_from:str=None, date_to:str=None, overwrite:bool=
             summs2 = f"( {exe_date[0]:>}～{exe_date[-1]} )"
 
             if len(exe_date) > base_days +2:
-                print( f"{summs1}\t{summs2} ★★ 警告:期間超過 days = {len(exe_date)} ★★")
+                log.write( f"{summs1}\t{summs2} ★★ 警告:期間超過 days = {len(exe_date)} ★★\n")
                 bad_days += 1
 
             n = upsert_event_grade(c, v_id, exe_date, g_num, overwrite=overwrite)
-            print(f"{summs1}\t{summs2}\t{len(exe_date)}日間：総更新数{n}")
+            log.write(f"{summs1}\t{summs2}\t{len(exe_date)}日間：総更新数{n}\n")
 
             if g_num in cnt_upserted_gr: cnt_upserted_gr[g_num] += n
 

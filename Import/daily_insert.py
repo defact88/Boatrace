@@ -5,22 +5,21 @@ from __future__      import annotations
 from pathlib         import Path
 from datetime        import datetime as dt, date, timedelta
 from update_FLstate  import update_FLstate
-from sub.ETL_Display import ETL_import_Display
+import ETL_import_Display
+import ETL_K_results
+import import_B_txt
+
 import argparse, sqlite3, subprocess, sys, os
 
-BASE       = Path(r"C:\boatrace")
-SUB        = Path(r"C:\boatrace\Import") 
-DB_PATH    = BASE / r"boatrace.db"
-ETL_PATH   = SUB / r"ETL_k_results.py"
-LOG_PATH   = BASE / r"Archive\logs\daily_insert"
-IMPORT_B   = SUB / r"import_B_txt.py"
-IMPORT_D   = BASE / r"UI\Subprocess\ETL_import_Display.py"
+BASE     = Path(r"C:\boatrace")
+DB_PATH  = BASE / r"boatrace.db"
+LOG_PATH = BASE / r"Archive\logs\daily_insert"
+IMPORT_D = BASE / r"UI\Subprocess\ETL_import_Display.py"
 
 #-----------------------------------------------------------
 def ensure_programs(d_iso:str):
 
     with sqlite3.connect(str(DB_PATH), timeout=60) as con:
-
         (cnt,) = con.execute("""
                      SELECT COUNT(1)
                        FROM Race_programs
@@ -36,56 +35,46 @@ def ensure_programs(d_iso:str):
         return False
 
 #-----------------------------------------------------------
-def run_subprocess( date_iso:str, kind:str, overwrite:bool=False, background:bool=False ):
-
-    py  = sys.executable or "python"
-
-    if kind == "K":
-        cmd = [ py, str(ETL_PATH), "--date_from", date_iso, "--date_to", date_iso, "--overwrite"]
-        if background:
-            cmd.append("--external")
-    elif kind == "B":
-        cmd = [ py, str(IMPORT_B), "--date", date_iso]
-        if overwrite: cmd.append("--overwrite")
-
-    opt = dict(     cwd= str(BASE),
-                  check= True,
-                timeout= 300,       )
+def call_K(date_iso:str, overwrite:bool=False, background:bool=False):
 
     if background:
-        file_name = f"{kind}_{date_iso}.log"
-        log       = LOG_PATH / kind / file_name
+        file_name = f"K_{date_iso}.log"
+        log       = LOG_PATH / "K" / file_name
         log.parent.mkdir(parents=True, exist_ok=True)
         log_file = open(log, "w", encoding="utf-8")
 
-        opt.update( creationflags= 0x08000000,
-                           stdout= log_file,
-                           stderr= log_file,
-                            stdin= subprocess.DEVNULL,
-                             text= True,               )
-
-    try:
-        proc = subprocess.run(cmd, **opt)
-        print(proc.returncode)
-
-    except subprocess.TimeoutExpired:
-        if not background:
-            p = "ETL_K_results.py" if K else "import_B_txt.py"
-            print(f"[TIMEOUT] {p} exceeded\n")
-        else: pass
-
-    except Exception as e:
-        print(str(e))
+        sys.stdout = log_file
+        sys.stderr = log_file
+    argv = ["--date_from", date_iso, "--date_to", date_iso, "--external"]
+    if overwrite:
+        argv.append("--overwrite")
+    ETL_K_results.main(argv)
 
 #-----------------------------------------------------------
-def run_import_display(date_frm:str, date_to:str, background:bool=False):
+def call_B(date_iso:str, overwrite:bool=False, background:bool=False):
 
     if background:
-        if date_frm == date_to:
-            file_name = f"display_{date_frm}.log"
+        file_name = f"B_{date_iso}.log"
+        log       = LOG_PATH / "B" / file_name
+        log.parent.mkdir(parents=True, exist_ok=True)
+        log_file = open(log, "w", encoding="utf-8")
+
+        sys.stdout = log_file
+        sys.stderr = log_file
+    argv = ["--date", date_iso]
+    if overwrite:
+        argv.append("--overwrite")
+    import_B_txt.main(argv)
+
+#-----------------------------------------------------------
+def run_import_display(date_from:str, date_to:str, background:bool=False):
+
+    if background:
+        if date_from == date_to:
+            file_name = f"display_{date_from}.log"
             log = LOG_PATH / "D" / file_name
         else:
-            file_name = f"display_{date_frm}-{date_to}.log"
+            file_name = f"display_{date_from}-{date_to}.log"
             log = LOG_PATH / "D" / file_name
         log.parent.mkdir(parents=True, exist_ok=True)
 
@@ -95,7 +84,7 @@ def run_import_display(date_frm:str, date_to:str, background:bool=False):
 
         with open(log, "w", encoding="utf-8") as log_file:
             py  = sys.executable
-            cmd = [ py, str(IMPORT_D), "--date_from", date_frm, "--date_to", date_to,]
+            cmd = [ py, str(IMPORT_D), "--date_from", date_from, "--date_to", date_to,]
             opt = dict( creationflags= subprocess.CREATE_NO_WINDOW,
                                stdout= log_file,
                                stderr= log_file,
@@ -113,7 +102,7 @@ def run_import_display(date_frm:str, date_to:str, background:bool=False):
                 print(str(e))
 
     else:
-        ETL_import_Display(date_frm, date_to)
+        ETL_import_Display.main(["--date_from", date_from, "--date_to", date_to])
 
 #===============================================================================
 def parse_args():
@@ -136,7 +125,6 @@ def main():
     if args.date and (args.date_from or args.date_to):
         print("date / (date_from , date_to) 両方の指定はできません")
         raise SystemExit(2)
-
     if (args.date_from and not args.date_to) or (args.date_to and not args.date_from):
         print("(--date_from , --date_to) を併せて指定してください")
         raise SystemExit(2)
@@ -144,13 +132,10 @@ def main():
     if args.all:
         d_f = (dt.today() - timedelta(days=10)).strftime("%Y-%m-%d")
         d_t = dt.today().strftime("%Y-%m-%d")
-
     elif args.date:
         d_f, d_t = args.date, args.date
-
     elif args.date_from and args.date_to:
         d_f, d_t = args.date_from, args.date_to
-
     else:
         _today   = dt.today().strftime("%Y-%m-%d")
         d_f, d_t = _today, _today
@@ -159,10 +144,10 @@ def main():
     while _date <= d_t:
         if not args.overwrite and ensure_programs(_date):
             print(f"[{_date}] B_file is already imported")
-            run_subprocess(yesterday(_date), "K", args.overwrite, args.background)
+            call_K(yesterday(_date), args.overwrite, args.background)
         else:
-            run_subprocess(_date,            "B", args.overwrite, args.background)
-            run_subprocess(yesterday(_date), "K", args.overwrite, args.background)
+            call_B(_date, args.overwrite, args.background)
+            call_K(yesterday(_date), args.overwrite)
 
         _date = (dt.fromisoformat(_date) + timedelta(days=1)).strftime("%Y-%m-%d")
 
@@ -171,6 +156,7 @@ def main():
     run_import_display(yesterday(d_f), yesterday(d_t), args.background)
 
     sys.exit(0)
+
 #-----------------------------
 def yesterday(_date:str):
 

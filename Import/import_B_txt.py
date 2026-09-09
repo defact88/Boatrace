@@ -508,7 +508,7 @@ def iter_target_dates(args: argparse.Namespace) -> List[date]:
     return [jst_today()]
 
 # ==============================================================================
-def parse_args():
+def parse_args(argv=None):
 
     p = argparse.ArgumentParser(description="Bﾌｧｲﾙ取得Insert")
     p.add_argument("--date",                           help="対象日(YYYY-MM-DD)")
@@ -517,12 +517,12 @@ def parse_args():
     p.add_argument("--overwrite", action="store_true", help="上書きﾓｰﾄﾞ")
     p.add_argument("--html",                           help="HTML(PATH)指定")
 
-    return p.parse_args()
+    return p.parse_args(argv)
 
 # ============================= メイン ===============================
-def main() -> int:
+def main(argv=None) -> int:
 
-    args   = parse_args()
+    args   = parse_args(argv)
     dates  = iter_target_dates(args)
     today  = jst_today()
 

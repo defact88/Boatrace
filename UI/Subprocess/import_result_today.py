@@ -443,7 +443,7 @@ def main():
             lack = [fr for fr in range(1, 7) if fr not in fin]
             if lack:
                 if not args.ALL_race:
-                    print(f"[page not update yet] Insert: skip")
+                    print(f"page update yet")
                     return 3
                 continue
 

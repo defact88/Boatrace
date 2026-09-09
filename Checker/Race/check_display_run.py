@@ -6,52 +6,49 @@ from pathlib import Path
 BASE_DIR = Path(r"C:\boatrace")
 DB_PATH  = BASE_DIR / "boatrace.db"
 
-def check_display_data(date_from, date_to):
+def check_display_data(date_from, date_to, quiet_mode=False):
 
     if not DB_PATH.exists():
         print(f"[ERR] データベースが見つかりません: {DB_PATH}")
         return
 
-    # 1. Race_programs から該当日時のレース一覧を取得
-    # 2. Races テーブルと結合して status を取得
-    # 3. Display_run を LEFT JOIN してレコード数と内容をチェック
-    # 4. HAVING句で「中止ではないのに6艇未満」または「出走艇に空データあり」を抽出
-
     sql = """
-        SELECT 
-            p.date, 
-            p.venue_id, 
-            p.race_no,
-            r.status,
-            COUNT(d.frame_no) as record_count,
-            SUM(CASE WHEN d.is_absent = 0 AND (d.exhibition IS NULL OR
-                                                 d.slit_ADJ IS NULL OR
-                                                     d.tilt IS NULL    )
-                     THEN 1 ELSE 0 END) as missing_val_count
-        FROM(SELECT DISTINCT date, venue_id, race_no 
-               FROM Race_programs 
-              WHERE date BETWEEN ? AND ?) p
+        SELECT r.date, 
+               r.venue_id, 
+               r.race_no,
+               r.status,
+               COUNT(d.frame_no) as record_count,
+               SUM(CASE WHEN(d.is_absent = 0 AND e.fault_code != 'K') 
+                         AND( d.exhibition IS NULL OR 
+                                d.slit_ADJ IS NULL OR 
+                                    d.tilt IS NULL)
+                        THEN 1 ELSE 0 END) as missing_val_count
 
-  INNER JOIN Races r       ON      p.date = r.date
-                           AND p.venue_id = r.venue_id
-                           AND p.race_no  = r.race_no
+          FROM Races r
+    INNER JOIN Race_entries e ON     r.date = e.date 
+                             AND r.venue_id = e.venue_id 
+                             AND  r.race_no = e.race_no
 
-   LEFT JOIN Display_run d ON p.date = d.date 
-                           AND p.venue_id = d.venue_id 
-                           AND p.race_no  = d.race_no
+     LEFT JOIN Display_run d  ON     e.date = d.date 
+                             AND e.venue_id = d.venue_id 
+                             AND  e.race_no = d.race_no 
+                             AND e.frame_no = d.frame_no
 
-    GROUP BY p.date, p.venue_id, p.race_no, r.status
-      HAVING(r.status != 'cancelled' AND record_count < 6)
-          OR(missing_val_count > 0)
-    ORDER BY p.date, p.venue_id, p.race_no;
-        """
-
+         WHERE r.date BETWEEN ? AND ?
+      GROUP BY r.date, r.venue_id, r.race_no, r.status
+        HAVING (r.status != 'cancelled' AND record_count < 6)
+            OR (missing_val_count > 0)
+      ORDER BY r.date, r.venue_id, r.race_no;
+                """
     try:
         with sqlite3.connect(DB_PATH) as conn:
             conn.row_factory = sqlite3.Row
-            cursor = conn.cursor()
+            cursor           = conn.cursor()
             cursor.execute(sql, (date_from, date_to))
             rows = cursor.fetchall()
+
+        if quiet_mode:
+            return len(rows) > 0
 
         if not rows:
             print(f"指定期間 ({date_from} ～ {date_to}) に不備のあるデータは見つかりませんでした。")
@@ -78,6 +75,7 @@ def check_display_data(date_from, date_to):
         print(f"[ERR] {e}")
 
 if __name__ == "__main__":
+
     parser = argparse.ArgumentParser(description="Display_run データ検査ツール")
     parser.add_argument("--date_from", required=True, help="開始日 (YYYY-MM-DD)")
     parser.add_argument("--date_to",   required=True, help="終了日 (YYYY-MM-DD)")

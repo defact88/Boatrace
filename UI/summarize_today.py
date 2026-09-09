@@ -28,7 +28,7 @@ LOCK_PATH      = os.path.join(BASE_DIR, r"tmp\json\summarizer.lock")
 CHANGE_INTERVAL = 300  # Change: 1R締切から n秒 間隔で巡回
 CANCEL_INTERVAL = 15   # Cancel:            n分 間隔で巡回
 OFFSET_DISPLAY  = 12   #   展示:   前レース締切から n分後 に実行
-OFFSET_RESULT   = 25   #   結果: 当該レース締切から n分後 に実行
+OFFSET_RESULT   = 20   #   結果: 当該レース締切から n分後 に実行
 RETRY_DIS       = 60   #   展示：未反映なら n秒後に再試行
 RETRY_RES       = 180  #   結果：未反映なら n秒後に再試行
 RETRY_NUM       = 10   #   展示/結果: リトライ回数
@@ -159,8 +159,8 @@ class SummarizeTodayInfo:
             kc = sum(1 for t in new_tasks if t.kind == "cancel")
             oc = sum(1 for t in new_tasks if t.kind == "odds")
 
-            self._log( f"tasks={len(new_tasks)}: dspl={bc} rslt={rc} change={cc} cancel={kc}"
-                       f"\n                 odds={oc}"                                        )
+            print( f" all tasks={len(new_tasks)}:\n"
+                   f" dspl={bc} / rslt={rc} / change={cc} / cancel={kc} / odds={oc}" )
 
     # ------------------------------------------------------
     def _rebuild_schedule_for_venue(self, d:date, v_id:int):
@@ -239,7 +239,7 @@ class SummarizeTodayInfo:
     # ------------------------------------------------------
     def run_forever(self, tick_sec:int =10):
 
-        if self.monitor: self._log("[start] SummarizeTodayInfo loop")
+        if self.monitor: self._log("[SummarizeTodayInfo loop] start")
         try:
             while not self._stop:
                 now     = self._now()
@@ -296,7 +296,7 @@ class SummarizeTodayInfo:
                 except: pass
 
             self.conn.close()
-            if self.monitor: self._log("[stop] SummarizeTodayInfo loop")
+            if self.monitor: self._log("[SummarizeTodayInfo loop] is stopped")
 
     # ------- 内部処理 -------
     def _now(self) -> datetime:
@@ -360,7 +360,8 @@ class SummarizeTodayInfo:
         try:
             if self._stop:
                 t.disabled = True
-                self._log(f"[{t.kind} {VENUES[t.venue_id-1]} {t.race_no}]R stop requested; skip")
+                self._log( f"[    info    ] 【{t.kind}】[{VENUES[t.venue_id-1]}"
+                           f" {t.race_no}R] stop requested; skip"               )
                 return
 
             ok  = False
@@ -369,24 +370,26 @@ class SummarizeTodayInfo:
                 if t.kind   == "display":
                     if self._is_cancelled(t.d, t.venue_id, t.race_no):
                         t.disabled = True
-                        self._log(f"[display {VENUES[t.venue_id-1]} {t.race_no}]R skip (cancelled)")
+                        self._log( f"[    info    ] 【display 】[{VENUES[t.venue_id-1]}"
+                                   f" {t.race_no:02}R]  is cancelled (skip)"              )
                         return
                     ok = self._exec_display(t)
                     if not ok:
                         t.next_try_at = now + timedelta(seconds=RETRY_DIS)
-                        print( f"【display】[{VENUES[t.venue_id-1]}{t.race_no}]R]"
-                               f" ー再実行ー[{t.next_try_at.strftime('%H:%M:%S')}]" )
+                        print( f"[    info    ] 【display 】[{VENUES[t.venue_id-1]} {t.race_no:02}R]"
+                               f"  retry at [{t.next_try_at.strftime('%H:%M:%S')}]" )
 
                 elif t.kind == "result":
                     if self._is_cancelled(t.d, t.venue_id, t.race_no):
                         t.disabled = True
-                        self._log(f"[result  {VENUES[t.venue_id-1]} {t.race_no}]R skip (cancelled)")
+                        self._log( f"[    info    ] 【result】{VENUES[t.venue_id-1]}"
+                                   f" {t.race_no:02}R]  is cancelled (skip)"                 )
                         return
                     ok = self._exec_result(t)
                     if not ok: 
                         t.next_try_at = now + timedelta(seconds=RETRY_RES)
-                        print( f"【result】[{VENUES[t.venue_id-1]}{t.race_no}]R]"
-                               f" ー再実行ー[{t.next_try_at.strftime('%H:%M:%S')}]" )
+                        print( f"[    info    ] 【result】[{VENUES[t.venue_id-1]}{t.race_no:02}R]"
+                               f"  retry at [{t.next_try_at.strftime('%H:%M:%S')}]" )
 
                 elif t.kind == "change":
                     if self._venue_finished(t.d, t.venue_id, now):
@@ -403,7 +406,8 @@ class SummarizeTodayInfo:
                 elif t.kind == "odds":
                     if self._is_cancelled(t.d, t.venue_id, t.race_no):
                         t.disabled = True
-                        self._log(f"[odds  {VENUES[t.venue_id-1]} {t.race_no}]R skip (cancelled)")
+                        print( f"[    info    ] 【  odds  】[{VENUES[t.venue_id-1]}"
+                               f" {t.race_no:02}R]  is cancelled (skip)")
                         return
                     ok       = self._exec_odds(t)
                     interval = self._calc_odds_interval(t, now)
@@ -416,7 +420,7 @@ class SummarizeTodayInfo:
             except Exception as e:
                 ok  = False
                 err = str(e)
-                self._log(f"[{t.kind} {VENUES[t.venue_id-1]} {t.race_no}]R 内部エラー: {err}")
+                self._log(f"【{t.kind}】[{VENUES[t.venue_id-1]} {t.race_no:02}R]  内部エラー:{err}")
 
             t.tries += 1
             if err: t.last_error = err
@@ -425,7 +429,7 @@ class SummarizeTodayInfo:
             else:
                 if (not ok) and t.kind in ("display","result") and t.tries >= RETRY_NUM:
                     t.disabled = True
-                    print(f"[{t.kind}]  リトライオーバー タスク破棄")
+                    self._log(f"【{t.kind}】 リトライオーバー (タスク破棄)")
 
         finally:
             with self._lock:
@@ -483,7 +487,7 @@ class SummarizeTodayInfo:
     # -------------------- 個別実行 ------------------------
     def _exec_display(self, t:Task) -> bool:
 
-        task_name = f"【display】[{VENUES[t.venue_id-1]} {t.race_no:02}R] "
+        task_name = f"【display 】[{VENUES[t.venue_id-1]} {t.race_no:02}R] "
         self._log(f"{task_name} start")
 
         rc, out, err = self._call_py( SP_BEFORE, [  "--date", t.d.strftime("%Y-%m-%d"),
@@ -503,7 +507,7 @@ class SummarizeTodayInfo:
     # ------------------------------------------------------
     def _exec_result(self, t:Task) -> bool:
 
-        task_name = f"【 result 】[{VENUES[t.venue_id-1]} {t.race_no:02}R] "
+        task_name = f"【 result  】[{VENUES[t.venue_id-1]} {t.race_no:02}R] "
         self._log(f"{task_name} start")
 
         rc, out, err = self._call_py( SP_RESULT, [  "--date", t.d.strftime("%Y-%m-%d"),
@@ -522,7 +526,7 @@ class SummarizeTodayInfo:
     # ------------------------------------------------------
     def _exec_change(self, t:Task) -> bool:
 
-        task_name = f"【change】[{VENUES[t.venue_id-1]}      ] "
+        task_name = f"【change】[{VENUES[t.venue_id-1]}       ] "
         self._log(f"{task_name} start")
 
         args = ["--date", t.d.strftime("%Y-%m-%d"), "--venue", str(t.venue_id)]
@@ -565,7 +569,7 @@ class SummarizeTodayInfo:
     # ------------------------------------------------------
     def _exec_cancel(self, t:Task):
 
-        task_name = f"【cancel 】[   {t.d.strftime('%m-%d')}    ] "
+        task_name = f"【cancel 】[    {t.d.strftime('%m-%d')}    ] "
         self._log(f"{task_name} start")
         rc, out, err = self._call_py( SP_INFO, ["B", "--date", t.d.strftime("%Y-%m-%d"),] )
         if rc != 0:
@@ -596,7 +600,7 @@ class SummarizeTodayInfo:
     # ------------------------------------------------------
     def _exec_odds(self, t:Task) -> bool:
 
-        task_name = f"【 odds  】[{VENUES[t.venue_id-1]} {t.race_no:02}R] "
+        task_name = f"【  odds  】[{VENUES[t.venue_id-1]} {t.race_no:02}R] "
 
         self._log(f"{task_name} called")
 
@@ -752,6 +756,7 @@ class SummarizeTodayInfo:
                         return 1, "", "Terminated by stop request"
         except Exception as e:
             return 1, "", str(e)
+
     # ------------------------------------------------------
     def _connect_ro(self) -> sqlite3.Connection:
 
@@ -759,6 +764,7 @@ class SummarizeTodayInfo:
         conn.row_factory = sqlite3.Row
 
         return conn
+
     # ------------------------------------------------------
     def _is_cancelled(self, d:date, venue_id:int, race_no:int) -> bool:
 
@@ -774,6 +780,7 @@ class SummarizeTodayInfo:
             cur = conn.execute(sql, (d_iso, venue_id, race_no))
 
             return cur.fetchone() is not None
+
     # ------------------------------------------------------
     def _venue_finished(self, d:date, venue_id:int, now:datetime) -> bool:
 
@@ -790,6 +797,7 @@ class SummarizeTodayInfo:
         last = self._parse_deadline(s) if s else None
 
         return bool(last and now >= last)
+
     # ------------------------------------------------------
     def _has_task(self, kind:str, d:date, venue_id:int, race_no:int) -> bool:
 
@@ -798,7 +806,9 @@ class SummarizeTodayInfo:
                 if ( t.kind==kind and t.d==d and t.venue_id==venue_id
                             and t.race_no==race_no and not t.disabled ):
                     return True
+
         return False
+
     # ----------------------- ログ -------------------------
     def _log(self, s:str):
 
@@ -807,6 +817,7 @@ class SummarizeTodayInfo:
         except Exception: t = "--:--:--"
 
         print(f"[{t}] {s}", flush=True)
+
     # ------------------------------------------------------
     def _ctl_read(self) -> dict:
 
@@ -819,6 +830,7 @@ class SummarizeTodayInfo:
             d = {}
         return { "stop":bool(d.get("stop", False)),
                  "mute":bool(d.get("mute", False))  }
+
     # ------------------------------------------------------
     def _ctl_watch(self):
 
@@ -833,6 +845,7 @@ class SummarizeTodayInfo:
             if ctl["stop"]: self._stop = True
 
             time.sleep(1.0)
+
     # ------------------------------------------------------
     def stop(self):
 
@@ -850,6 +863,7 @@ def main():
     if not _acquire_singleton_lock():
         print("[INFO] Another instance is already running. Exiting.")
         return
+
     try:
         ap = argparse.ArgumentParser()
         ap.add_argument("--date", help="YYYY-MM-DD")
@@ -865,13 +879,17 @@ def main():
             d = jst_today()
 
         app = SummarizeTodayInfo(DB_PATH, monitor=True)
-        if args.date: app._sim_date = d
-        print(f"[init] schedule date={d}")
+        if args.date:
+            app._sim_date = d
+
+        print(f"[init] schedule date {d}")
+
         app.build_schedule_for_date(d)
         app.run_forever(tick_sec=5)
 
     finally:
         _release_singleton_lock()
+
 #-----------------------------------------------------------
 def _acquire_singleton_lock() -> bool:
 
@@ -879,11 +897,13 @@ def _acquire_singleton_lock() -> bool:
         try:
             with open(LOCK_PATH, "r") as f:
                 old_pid = int(f.read().strip())
+
             PROCESS_QUERY_LIMITED = 0x1000
             h = ctypes.windll.kernel32.OpenProcess(PROCESS_QUERY_LIMITED, False, old_pid)
             if h:
                 ctypes.windll.kernel32.CloseHandle(h)
                 return False
+
         except Exception:
             pass
 
@@ -892,25 +912,31 @@ def _acquire_singleton_lock() -> bool:
         f.write(str(os.getpid()))
 
     return True
+
 # ----------------------------
 def _release_singleton_lock():
 
-    try: os.remove(LOCK_PATH)
+    try:              os.remove(LOCK_PATH)
     except Exception: pass
 
 #-----------------------------
 def jst_today() -> date:
+
     return datetime.now(JST).date()
 
 #-----------------------------------------------------------
 def _install_signal_handlers(app:"SummarizeTodayInfo"):
+
+    #-----
     def _stop(_sig, _frm):
-        try: app.stop()
+        try:              app.stop()
         except Exception: pass
+    #-----
     for sig in (getattr(signal, "SIGBREAK", None), signal.SIGINT, signal.SIGTERM):
         if sig: 
-            try: signal.signal(sig, _stop)
+            try:              signal.signal(sig, _stop)
             except Exception: pass
-#-----------------------------------------------------------
+
+#=====================================================================
 if __name__ == "__main__":
     main()
