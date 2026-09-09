@@ -1,4 +1,4 @@
-
+﻿
 1) 起点
 
 実行: C:\boatrace\UI\boatrace_gui.py
@@ -8,7 +8,7 @@
 
 2) ディレクトリ構成
 
-'''
+```
 boatrace/
 
   boatrace.db                       # SQLite3 DB
@@ -94,7 +94,7 @@ boatrace/
       check_finals.py               
       check_series_title.py         
       update_is_prefinal.py         
-'''
+```
 
 3)主要クラス（コンストラクタ引数）
 
