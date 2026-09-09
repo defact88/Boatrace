@@ -137,15 +137,18 @@ class LaneCenterManager:
                 opt   = OPT[0] if row == self.subj_c else OPT[1]
                 if col >= 4: opt = OPT[2]
                 lb_wm.config(text=cnt if cnt else "", **opt)
+
     #-------------------------------------------------------
     def _change_disp(self):
         self.disp = 1 - self.disp
         self.totl.configure(relief=GR if self.disp else RD)
         self._render_distribute_table(self.rows)
+
     #-----------------------------------
     def _on_subject_course_btn(self, c:int):
         self.subj_c = c
         self._render_distribute_table(self.rows)
+
     #-----------------------------------
     def _toggle_subject_rank(self, rk: int):
         self.subj_r = 0 if self.subj_r == rk else rk
