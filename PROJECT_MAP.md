@@ -58,17 +58,17 @@ boatrace/
           persist_odds_snapshot     # oddsﾃﾞｰﾀ挿入ﾍﾙﾊﾟｰ
 
     Widgets/
-      widgets.py                    # ｻﾌﾞﾌﾟﾚｰｽﾎﾙﾀﾞｰ表示のｳｨｼﾞｪｯﾄ
+      widgets.py                    # ｻﾌﾞﾌﾟﾚｰｽﾎﾙﾀﾞｰ表示関連ｳｨｼﾞｪｯﾄ
           framing_graph             # 当該ｺｰｽ別1,2,3着率ｸﾞﾗﾌの表示、主観選手からのｻﾌﾞｸﾞﾗﾌの表示
           framing_figure            # ｽﾘｯﾄ予想図、展示航走ｽﾘｯﾄ、結果ｽﾘｯﾄ の表示
           framing_weather           # 天候ｳｨｼﾞｪｯﾄ(天気、風向)の表示
           framing_held_type_icon    # ﾚｰｽ選択画面開催種別ｱｲｺﾝの表示・更新
           clear_all_lanes           # ﾒｲﾝﾌﾟﾚｰｽﾎﾙﾀﾞｰ内の各ｳｨｼﾞｪｯﾄをｸﾘｱ
-          images.py                 # 画像読込/等倍比フィット
+          set_player_image          # 画像読込/等倍比フィット
 
   Import/
     import_B_txt.py                 # 出走表ﾃﾞｰﾀ取得ｽｸﾘﾌﾟﾄ
-    daily_insert.py                 # 日時更新(全日K,当日Bﾌｧｲﾙのｲﾝﾎﾟｰﾄ:ｽｹｼﾞｭｰﾗ起動ｽｸﾘﾌﾟﾄ)
+    daily_insert.py                 # 日時更新(全日K,当日Bﾌｧｲﾙのｲﾝﾎﾟｰﾄ)
 
     ETL_K_results.py                # Races/Race_entries の各ﾃﾞｰﾀ取得・挿入ﾌﾟﾛｾｽのﾗｯﾊﾟｰ
     upsert_Race_result.py           # K_TEXT(公式レース結果情報)ﾌｧｲﾙからRace_resultへのﾃﾞｰﾀ抽出・挿入
