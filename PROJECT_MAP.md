@@ -1,4 +1,4 @@
-
+﻿
 1) 起点
 
 実行: C:\boatrace\UI\boatrace_gui.py
@@ -10,10 +10,10 @@
 
 boatrace/
   boatrace.db                       # SQLite3 DB
+  Dal.py                            # UI用DAL(sqlite3簡易ラッパ)
 
   UI/
     boatrace_gui.py                 # エントリ/ルータ/共通設定
-    Dal.py                          # UI用DAL(sqlite3簡易ラッパ)
     summarize_today.py              # 本体起動時に実行するｻﾌﾞﾌﾟﾛｾｽ(当日情報取得各pyの実行管理)
     odds_window.pyw                 # RaceWindow起動時に別ﾌﾟﾛｾｽで実行されるｵｯｽﾞ表示画面
 
@@ -21,8 +21,8 @@ boatrace/
       import_Display_run.py         # 展示航走ﾃﾞｰﾀの取得,抽出,挿入
       import_Result_today.py        # ﾚｰｽ結果ﾃﾞｰﾀの取得,抽出,挿入(翌日日時更新時に正規ﾃﾞｰﾀでUPDATE)
       get_today_info.py
-          get_change_info           # 当日変更情報(締切時刻,欠場艇等)の取得,抽出,挿入
-          get_cancel_info           # 当日中止ﾚｰｽの取得,抽出,挿入
+        get_change_info             # 当日変更情報(締切時刻,欠場艇等)の取得,抽出,挿入
+        get_cancel_info             # 当日中止ﾚｰｽの取得,抽出,挿入
 
     Screens/                        # 画面クラス
       DB_ops.py                     # DBOpsScreen(DB参照GUI)クラス
@@ -39,23 +39,23 @@ boatrace/
           _pack                     # パッキングメソッド
 
       build_rows.py
-          make_rows                 # 各参照クエリを纏めてentry_rows, data_rowsを生成
-          make_sub_rows             # 各参照クエリを纏めてsub_rowsを生成
-          query_Race_programs       # Header ﾃﾞｰﾀ参照クエリ
-          query_Players             # 選手基本ﾃﾞｰﾀ参照クエリ
-          query_result              # 結果ﾃﾞｰﾀ参照クエリ
-          query_Display_run         # 展示航走ﾃﾞｰﾀ参照クエリ
+        make_rows                   # 各参照クエリを纏めてentry_rows, data_rowsを生成
+        make_sub_rows               # 各参照クエリを纏めてsub_rowsを生成
+        query_Race_programs         # Header ﾃﾞｰﾀ参照クエリ
+        query_Players               # 選手基本ﾃﾞｰﾀ参照クエリ
+        query_result                # 結果ﾃﾞｰﾀ参照クエリ
+        query_Display_run           # 展示航走ﾃﾞｰﾀ参照クエリ
 
       series_idx.py
-          uodate_series_idx         # Mein Right の節間成績表示・更新
-          build_day_labels          # 日程ラベルの構築
+        uodate_series_idx           # Mein Right の節間成績表示・更新
+        build_day_labels            # 日程ラベルの構築
 
       scraper_odds.py
-          fetch_all_odds            # odds_window.pywのｵｯｽﾞ取得/ﾊﾟｰｽ ﾍﾙﾊﾟｰ
+        fetch_all_odds              # odds_window.pywのｵｯｽﾞ取得/ﾊﾟｰｽ ﾍﾙﾊﾟｰ
 
       ev_scanner.py
-          evaluate_ev               # 予想ｴﾝｼﾞﾝ（未完成）
-          persist_odds_snapshot     # oddsﾃﾞｰﾀ挿入ﾍﾙﾊﾟｰ
+        evaluate_ev                 # 予想ｴﾝｼﾞﾝ（未完成）
+        persist_odds_snapshot       # oddsﾃﾞｰﾀ挿入ﾍﾙﾊﾟｰ
 
     Widgets/
       widgets.py                    # ｻﾌﾞﾌﾟﾚｰｽﾎﾙﾀﾞｰ表示関連ｳｨｼﾞｪｯﾄ
@@ -73,7 +73,6 @@ boatrace/
     upsert_Race_result.py           # K_TEXT(公式レース結果情報)ﾌｧｲﾙからRace_resultへのﾃﾞｰﾀ抽出・挿入
     upsert_Result_entry.py          # K_TEXTﾌｧｲﾙからResult_entryへのﾃﾞｰﾀ抽出・挿入ﾌﾟﾛｾｽ
     upsert_Grade.py                 # 公式ﾍﾟｰｼﾞHMLからRace_result.gradeへのﾃﾞｰﾀ抽出・挿入
-
     import_Fan_txt.py               # FAN_TEXTﾌｧｲﾙからPlayers/Season_resultへのﾃﾞｰﾀ抽出・挿入
     DL_player_img.py                # 公式ﾍﾟｰｼﾞから選手画像の取得ﾌﾟﾛｾｽ
     update_FLstate.py               # Race_entriesからPlayers.flying_st/late_st(今期ﾌﾗｲﾝｸﾞ/出遅れ情報)のﾃﾞｰﾀ算出・挿入ﾌﾟﾛｾｽ
@@ -81,17 +80,17 @@ boatrace/
 
   Checker/
     data/
-        odds_snapshot_audit.py      # テーブルOdds_snapshotsの重複・過剰データの検査/削除スクリプト
+      odds_snapshot_audit.py        # テーブルOdds_snapshotsの重複・過剰データの検査/削除スクリプト
     Player/
-        check_score_ave.py          # 
-        check_score_ave_ALL.py      # 
-        list_player_in_final.py     # 
-        show_player_term.py         # 
+      check_score_ave.py            
+      check_score_ave_ALL.py        
+      list_player_in_final.py       
+      show_player_term.py           
     Race/
-        check_display_run.py        # 
-        check_finals.py             # 
-        check_series_title.py       # 
-        update_is_prefinal.py       # 
+      check_display_run.py          
+      check_finals.py               
+      check_series_title.py         
+      update_is_prefinal.py         
 
 
 3)主要クラス（コンストラクタ引数）
