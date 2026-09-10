@@ -621,9 +621,8 @@ class SummarizeTodayInfo:
         do_full     = is_final or (last is None) or ( (self._now() -last).total_seconds() >= 300 )
         hits        = evaluate_ev(data, t.d, t.venue_id, t.race_no, self.prob_provider)
 
-        with self._connect_ro() as conn:
-            persist_odds_snapshot( conn, data, t.d, t.venue_id, t.race_no,
-                                   hits=hits, is_final=is_final, do_full=do_full )
+        persist_odds_snapshot( data, t.d, t.venue_id, t.race_no,
+                               hits=hits, is_final=is_final, do_full=do_full )
 
         if do_full:
             self._last_snapshot[key] = self._now()

@@ -61,6 +61,7 @@ def synthetic_odds(odd_list:list[float]) -> float:
 
 #===============================================================================
 class OddsWindow(tk.Tk):
+
     def __init__(self, date:str, venue_id:int, race_no:int, interval_min:int=1, players:dict={}):
         super().__init__()
 

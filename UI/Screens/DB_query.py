@@ -22,6 +22,7 @@ FINAL    = ["", "0", "1"]
 
 # ==============================================================================
 class DBQueryScreen(ttk.Frame):
+
     def __init__(self, parent, app:App, db_path:str):
         super().__init__(parent)
 

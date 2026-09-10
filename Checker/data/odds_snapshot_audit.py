@@ -164,7 +164,7 @@ def do_inspect(args) -> Dict[Tuple, Dict[str, dict]]:
         """,
         (*TARGET_BET_TYPES, *params)).fetchall()
 
-    print("f\n[  日付     開催場/ﾚｰｽNo.  レコード数/セット数 ]\n")
+    print(f"\n[  日付     開催場/ﾚｰｽNo.  レコード数/セット数 ]\n")
     for r in summary:
         print(f"{r['date']}  {VENUES[r['venue_id']]} {r['race_no']:>2}R  :  "
               f"rows={r['total_rows']:>5,}  sets={r['total_sets']:>3,}"

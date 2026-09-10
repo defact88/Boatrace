@@ -24,7 +24,8 @@ GUI, MUI           = "Yu Gothic UI", "Meiryo UI"
 GR, SD, RD, RA, BD = "groove", "solid", "ridge", "raised", "bold"
 ALL, CT            = "nsew", "center"
 SCOL               = "#a5e6ff"
-MAIN_COL           = "#F0F4FA"
+MAIN_BG            = "#F0F4FA"
+#MAIN_BG            = "SystemButtonFace"
 
 GRADE_OPT    = [ {"font":(MUI, 10    ), "bg":"white", "fg":"black" },
                  {"font":(MUI, 10    ), "bg":"white", "fg":"black" },
@@ -44,6 +45,7 @@ def today_iso() -> str:
 # ======================== レース選択画面 ============================
 # --------------------------------------------------------------------
 class RaceSelectScreen(tk.Frame):
+
     def __init__(self, parent, app, db_path):
         super().__init__(parent)
 
@@ -98,7 +100,7 @@ class RaceSelectScreen(tk.Frame):
         self.btn_next = ttk.Button(fr_ctrl, text="＞", width=3, command=lambda:self._shift_date( 1))
         self.btn_odds = cBtn( fr_ctrl, text="オッズ ON", width=10, bg="#fbffcb", relief="ridge",
                                                                  command=lambda:self._odds_on() )
-        self.lbl_date = cLbl(fr_ctrl, text=self._date_title(), font=(MUI,11), bg=MAIN_COL)
+        self.lbl_date = cLbl(fr_ctrl, text=self._date_title(), font=(MUI,11), bg=MAIN_BG)
 
         self.ent_range.grid(row=0, column=1)
         self.btn_prev.grid( row=0, column=0, padx=(140,0))
@@ -166,14 +168,14 @@ class RaceSelectScreen(tk.Frame):
         widg  = self._cells.get(venue_id)
 
         if widg is None:
-            self.fr_cel = cFr(self.fr_grid, W=110, H=110, bd=1, Rel=SD, bg=MAIN_COL)
+            self.fr_cel = cFr(self.fr_grid, W=110, H=110, bd=1, Rel=SD, bg=MAIN_BG)
             self.fr_cel._grid(R=row, C=col, Stk=ALL) ;self.fr_cel.Pgate()
             self.fr_cel.Rconf(0, W=1) ; self.fr_cel.Cconf(0, W=1)
             self.fr_cel.Rconf(1, W=1) ; self.fr_cel.Cconf(1, W=1)
             self.fr_cel.Rconf(2, W=1)
 
             lb_ven = cLbl(self.fr_cel, anc=CT, **v_opt, bd=1, Rel=RD)
-            lb_upL = cLbl(self.fr_cel, anc="e", text="", font=(MUI,11), bg=MAIN_COL)
+            lb_upL = cLbl(self.fr_cel, anc="e", text="", font=(MUI,11), bg=MAIN_BG)
             lb_upR = cLbl(self.fr_cel, anc=CT,  text="")
             lb_dwn = cLbl(self.fr_cel, anc=CT,  text="")
 
@@ -192,9 +194,9 @@ class RaceSelectScreen(tk.Frame):
             cel._grid(R=row, C=col, Stk=ALL)
 
         if info is None:
-            widg["upL"].configure(text="", bg=MAIN_COL, fg="black")
-            widg["upR"].configure(text="", bg=MAIN_COL, fg="black")
-            widg["dwn"].configure(text="", bg=MAIN_COL, fg="black")
+            widg["upL"].configure(text="", bg=MAIN_BG, fg="black")
+            widg["upR"].configure(text="", bg=MAIN_BG, fg="black")
+            widg["dwn"].configure(text="", bg=MAIN_BG, fg="black")
             self._apply_click_binding(widg, venue_id, enabled=False)
             framing_held_type_icon(self, widg["upR"], 0)
         else:

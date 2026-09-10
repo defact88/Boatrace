@@ -31,7 +31,8 @@ ALL, CT            = "nsew", "center"
 
 SCOL     = "#a5e6ff"
 BG_COLOR = "#e9f1f2"
-MAIN_BG  = "#F0F4FA"
+MAIN_BG  = "#F0F4FA" 
+#MAIN_BG  = "SystemButtonFace"
 
 VENUES = [ "桐生","戸田",  "江戸川","平和島","多摩川","浜名湖","蒲郡","常滑", "津",
            "三国","びわこ","住之江","尼崎",  "鳴門",  "丸亀",  "児島","宮島", "徳山",
@@ -163,6 +164,7 @@ class App(tk.Tk):
         self.title(APP_TITLE)
         self.geometry("700x600+500+250")
         self.minsize(500, 400)
+        self.configure(bg=MAIN_BG)
 
         style = ttk.Style()
         style.configure("r.TButton", font=(MUI,9   ), anchor="center")
@@ -198,7 +200,7 @@ class App(tk.Tk):
         scr = self.screens[name] ;scr.pack(fill=tk.BOTH, expand=True)
         self.current = scr
 
-        if   name == "DBO": self.geometry("1500x900")
+        if   name == "DBO": self.geometry("1800x1200")
         elif name == "DBS": self.geometry("1300x900")
         elif name == "DBQ": self.geometry("1350x900")
         elif name == "RSS": self.geometry( "740x600+500+400")

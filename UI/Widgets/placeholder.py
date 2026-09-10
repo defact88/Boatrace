@@ -183,13 +183,6 @@ def build_sub_placeholder(self, parent:tk.Frame): #  1188  318
     fr_btA1 = cFr(fr_btnA, W= 60, H= 22, Bd=(1,GR)) ;fr_btA1._grid(R=0, C=0) ;fr_btA1.Pgate()
     self.bt_ctw = cBtn(fr_btA1, W=50, H=19, text="", Bd=(1,RA)) ;self.bt_ctw._grid(R=0, C=0)
 
-
-
-
-
-
-
-
     fr_venA.Rconf(0, W=1) ;fr_venA.Cconf(0, W=1)
     fr_venA.Rconf(1, W=1)
     fr_venB.Rconf(0, W=1) ;fr_venB.Cconf(0, W=1)
@@ -292,10 +285,10 @@ def build_sub_placeholder(self, parent:tk.Frame): #  1188  318
         lb_flyg = cLbl(fr_lanC, Anc=CT, font=(MUI, 9,BD), bg="white", fg="red", Bd=(1,RD))
         lb_tilt = cLbl(fr_lanD, Anc=CT, font=(MUI, 8,BD), bg="white",           Bd=(1,RD))
         lb_exhi = cLbl(fr_exhi, Anc=CT, font=(MUI, 8,BD), bg=SCOL)
-        lb_cnt  = cLbl(fr_lanF, Anc=CT, font=(GUI, 8,BD), bg="#f9f9f9",           Bd=(1,GR))
-        lb_rpr1 = cLbl(fr_repr, Anc=CT, font=(MUI, 8   ), bg="#f9f9f9"                     )
-        lb_rpr2 = cLbl(fr_repr, Anc=CT, font=(MUI, 8   ), bg="#f9f9f9"                     )
-        lb_rpr3 = cLbl(fr_repr, Anc=CT, font=(MUI, 8   ), bg="#f9f9f9"                     )
+        lb_cnt  = cLbl(fr_lanF, Anc=CT, font=(GUI, 8,BD), bg="#f9f9f9",         Bd=(1,GR))
+        lb_rpr1 = cLbl(fr_repr, Anc=CT, font=(MUI, 8   ), bg="#f9f9f9"                   )
+        lb_rpr2 = cLbl(fr_repr, Anc=CT, font=(MUI, 8   ), bg="#f9f9f9"                   )
+        lb_rpr3 = cLbl(fr_repr, Anc=CT, font=(MUI, 8   ), bg="#f9f9f9"                   )
 
         lb_frno._grid(          Stk=ALL)
         lb_name._grid(          Stk=ALL)

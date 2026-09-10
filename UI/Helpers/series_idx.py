@@ -170,6 +170,7 @@ def get_lineup(entry_rows):
 def get_results(_date:str, base_day:str, race_no:int, venue_id:int, player_id:int):
 
     is_base_day = (_date == base_day)
+
     if is_base_day:
         rows = dal.fetch_all(
             """

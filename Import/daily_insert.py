@@ -45,9 +45,12 @@ def call_K(date_iso:str, overwrite:bool=False, background:bool=False):
 
         sys.stdout = log_file
         sys.stderr = log_file
+
     argv = ["--date_from", date_iso, "--date_to", date_iso, "--external"]
+
     if overwrite:
         argv.append("--overwrite")
+
     ETL_K_results.main(argv)
 
 #-----------------------------------------------------------
@@ -61,9 +64,12 @@ def call_B(date_iso:str, overwrite:bool=False, background:bool=False):
 
         sys.stdout = log_file
         sys.stderr = log_file
+
     argv = ["--date", date_iso]
+
     if overwrite:
         argv.append("--overwrite")
+
     import_B_txt.main(argv)
 
 #-----------------------------------------------------------
@@ -76,6 +82,7 @@ def run_import_display(date_from:str, date_to:str, background:bool=False):
         else:
             file_name = f"display_{date_from}-{date_to}.log"
             log = LOG_PATH / "D" / file_name
+
         log.parent.mkdir(parents=True, exist_ok=True)
 
         startupinfo             = subprocess.STARTUPINFO()

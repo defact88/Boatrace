@@ -5,7 +5,7 @@ from tkinter     import messagebox
 from pathlib     import Path
 from PIL         import Image, ImageTk
 from Custum_func import cFr, cLbl, cBtn
-import subprocess, shutil, os, csv, datetime, time, ctypes, win32com.client
+import subprocess, shutil, os, csv, datetime, time, ctypes, win32com.client, sys
 import tkinter as tk
 #-------------------------------------------------
 BASE_DIR     = Path(r"C:\boatrace\Management")
@@ -109,7 +109,7 @@ class FileManagementGUI(tk.Tk):
 
         MNG_PATH     = r"C:\boatrace\Management\Management_gui.pyw"
         MNG_DIR      = r"C:\boatrace\Management"
-        BR_GUI_PATH  = Path(r"C:\boatrace\UI\boatrace_gui.pyw")
+        BR_GUI_PATH  = Path(r"C:\boatrace\UI\boatrace_gui.py")
         BR_GUI_DIR   = r"C:\boatrace\UI"
         SCHEMA_PATH  = r"C:\boatrace\Schema\schema_all.sql"
         SCHEMA_DIR   = r"C:\boatrace\Schema"
@@ -221,7 +221,7 @@ class FileManagementGUI(tk.Tk):
         self.btn_checker = tk.Button( self.frame_cat, text="Checker", **btn_opt,
                                       command=lambda: self.on_select_category("Checker") )
         self.boot_gui    = tk.Button( self.frame_cat, image=self.icon_gui, relief="flat",
-                                      command=lambda: self.on_launch(BR_GUI_PATH)        )
+                                      command=lambda: self.on_launch(BR_GUI_PATH, cmd=True)        )
 
         self.btn_ui.grid(     row=0, column=0, padx=(0,5),  sticky="w")
         self.btn_import.grid( row=0, column=1, padx=(0,5),  sticky="w")
@@ -375,10 +375,11 @@ class FileManagementGUI(tk.Tk):
         if not path.exists():
             self.show_msg("Error", f"{path} が存在しません。")
             return
+
         if cmd:
             subprocess.Popen(["cmd.exe", "/c", str(path) + aug])
         else:
-            subprocess.Popen(str(path) + aug, shell=True)
+            subprocess.Popen([sys.executable, str(path) + aug], shell=True)
 
     #-------------------------------------------------------
     def on_execute(self):

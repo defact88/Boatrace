@@ -1,6 +1,7 @@
 ﻿# -*- coding: utf-8 -*-
 # C:\boatrace\UI\Helpers\ev_scanner.py
 
+import Dal as dal
 from datetime import datetime as dt, date
 import sqlite3
 
@@ -24,7 +25,9 @@ class ProbabilityProvider:
         return {}
 #-----------------------------
 def _build_race_id(d:date, venue_id:int, race_no:int) -> int:
+
     ymd = d.strftime("%y%m%d")
+
     return int(f"{ymd}{venue_id:02d}{race_no:02d}")
 
 #-----------------------------
@@ -75,8 +78,8 @@ def evaluate_ev( data:dict, d:date, venue_id:int, race_no:int,
     return hits
 
 #-----------------------------------------------------------
-def persist_odds_snapshot( conn:sqlite3.Connection, data:dict, d:date, venue_id:int,
-                           race_no:int, hits:list, is_final:bool, do_full:bool ):
+def persist_odds_snapshot( data:dict, d:date, venue_id:int, race_no:int,
+                           hits:list, is_final:bool, do_full:bool        ):
 
     now      = dt.now()
     race_id  = _build_race_id(d, venue_id, race_no)
@@ -98,14 +101,13 @@ def persist_odds_snapshot( conn:sqlite3.Connection, data:dict, d:date, venue_id:
 
     if not rows: return 0
 
-    with conn:
-        conn.executemany("""
-            INSERT INTO Odds_snapshots( race_id, date, venue_id, race_no, bet_type,
-                                        boat1, boat2, boat3, odds, raw_odds, is_absent,
-                                        captured_at, is_final                          )
-                 VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)
-            ON CONFLICT (date, venue_id, race_no, bet_type, boat1, boat2, boat3, captured_at)
-            DO NOTHING
-            """, rows)
+    dal.executemany("""
+        INSERT INTO Odds_snapshots( race_id, date, venue_id, race_no, bet_type,
+                                    boat1, boat2, boat3, odds, raw_odds, is_absent,
+                                    captured_at, is_final                          )
+             VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?)
+        ON CONFLICT (date, venue_id, race_no, bet_type, boat1, boat2, boat3, captured_at)
+        DO NOTHING
+        """, rows)
 
     return len(rows)

@@ -8,6 +8,10 @@ from tkinterweb         import HtmlFrame
 from tkinter            import scrolledtext
 from mdit_py_plugins.front_matter import front_matter_plugin
 
+GUI, MUI, HNH, CBR = "Yu Gothic UI", "Meiryo UI", "Helvetica Neue Heavy", "Cambria"
+GR, SD, RD, RA, BD = "groove", "solid", "ridge", "raised", "bold"
+ALL, CT            = "nsew", "center"
+
 # --- 設定 ---
 GEMINI_API_KEY = os.environ.get("GEMINI_API_KEY")
 OPENAI_API_KEY = os.environ.get("OPENAI_API_KEY")
@@ -21,7 +25,7 @@ MAX_CONTEXT  = 200
 if not os.path.exists(LOGS_DIR):
     os.makedirs(LOGS_DIR)
 
-DEFAULT_PROMPTS = {"標準": "あなたは有能なアシスタントです。回答は常に最新の情報を考慮してください。",}
+DEFAULT_PROMPTS = {"標準": "あなたは有能なAIアシスタントです。",}
 
 #-------------------------------------------------
 def load_system_prompts():
@@ -204,27 +208,27 @@ class MultiLLMWin11App:
                    command= self.select_file,
                         bg= "#ffb325",
                     relief= "raised",
-                   borderwidth=1,            ).pack(side=tk.LEFT, padx=10)
+                   borderwidth=1,             ).pack(side=tk.LEFT, padx=10)
 
         self.btn_save_code = tk.Button( self.toolbar,
-                                           text= "Extract Last Code",
-                                        command= self.save_last_code,
-                                             bg= "#2d4a2e",
-                                             fg= "#ffffff",
-                                         relief= "raised",
-                                        borderwidth=1,                )
+                                               text="Extract Last Code",
+                                            command=self.save_last_code,
+                                                 bg="#2d4a2e",
+                                                 fg="#ffffff",
+                                             relief="raised",
+                                        borderwidth=1,                   )
         self.btn_save_code.pack(side=tk.RIGHT)
 
         # テキスト入力エリア
         self.txt_input = tk.Text( self.bottom_frame,
-                                    wrap= tk.WORD,
-                                    font= ("Meiryo UI", 12),
-                                      bg= "#2d2d2d",
-                                      fg= "#ffffff",
-                                  height= 8,
-                                  relief= tk.SOLID,
-                                       borderwidth= 1,
-                                  insertbackground= "white", )
+                                              wrap=tk.WORD,
+                                              font=("Meiryo UI", 12),
+                                                bg="#2d2d2d",
+                                                fg="#ffffff",
+                                            height=8,
+                                            relief=tk.SOLID,
+                                       borderwidth=1,
+                                  insertbackground="white",           )
         self.txt_input.pack(fill=tk.X, pady=10)
         self.txt_input.bind("<Control-Return>", lambda e:self.send_message())
 
@@ -235,7 +239,7 @@ class MultiLLMWin11App:
                                         fg= "white",
                                       font= ("Segoe UI", 10, "bold"),
                                     height= 2,
-                                    relief= "raised",               )
+                                    relief= "raised",                 )
         self.btn_send.pack(fill=tk.X)
 
     #---------------------------------------------
@@ -334,7 +338,7 @@ class MultiLLMWin11App:
         async with self.client.stream("POST", url, headers=headers, json=payload) as response:
             if response.status_code != 200:
                 error_body = await response.aread()
-                self.full_log_md += f"*[API Error {response.status_code}]: {error_body.decode()}*\n"
+                self.full_log_md += f"*[API Error {response.status_code}]:{error_body.decode()}*\n"
                 self.render_html()
                 return
 
@@ -420,6 +424,7 @@ class MultiLLMWin11App:
         self.btn_send.config(state=tk.DISABLED)
 
         user_md = f"\n<div class='user-box'>[YOU]</div>\n\n{display_p}\n\n"
+
         self.full_log_md += user_md
         self.render_html()
 
@@ -428,14 +433,14 @@ class MultiLLMWin11App:
         with open(self.current_thread_file, "r", encoding="utf-8") as f:
             data = json.load(f)
 
-        history     = data.get("history", [])
-        base_sys    = self.system_prompts.get(self.selected_system_key.get(), "").strip()
-
+        history        = data.get("history", [])
+        base_sys       = self.system_prompts.get(self.selected_system_key.get(), "").strip()
         common_profile = ""
+
         if os.path.exists(PROFILE_JSON):
             try:
                 with open(PROFILE_JSON, "r", encoding="utf-8") as f:
-                    p_data = json.load(f)
+                    p_data         = json.load(f)
                     common_profile = p_data.get("common_profile", "").strip()
             except:
                 pass
@@ -486,6 +491,7 @@ class MultiLLMWin11App:
 
         except Exception as e:
             self.full_log_md += f"\n\n*[System Error: {str(e)}]*\n"
+
         finally:
             self.render_html()
             self.btn_send.config(state=tk.NORMAL)
@@ -499,12 +505,12 @@ class MultiLLMWin11App:
         edit_win.configure(bg="#1e1e1e")
 
         txt_edit = scrolledtext.ScrolledText( edit_win,
-                                               width= 60,
-                                              height= 20,
-                                                font= ("Consolas", 10),
-                                                  bg= "#2d2d2d",
-                                                  fg= "#ffffff",
-                                              insertbackground="white", )
+                                                        width= 60,
+                                                        height= 20,
+                                                          font= ("Consolas", 10),
+                                                            bg= "#2d2d2d",
+                                                            fg= "#ffffff",
+                                              insertbackground="white",           )
         txt_edit.pack(padx=20, pady=20)
         txt_edit.insert(tk.END, json.dumps(self.system_prompts, ensure_ascii=False, indent=2))
         #-----------
@@ -525,7 +531,7 @@ class MultiLLMWin11App:
                    command= save,
                         bg= "#0078d7",
                         fg= "white",
-                    relief= tk.FLAT,   ).pack(pady=10)
+                    relief= tk.FLAT,     ).pack(pady=10)
 
     #---------------------------------------------
     def edit_user_profile(self):
@@ -536,15 +542,15 @@ class MultiLLMWin11App:
 
         tk.Label( edit_win,
                   text="すべてのチャット（システムプロンプトの先頭）に自動追加される自由記述欄です。",
-                  bg="#1e1e1e", fg="#aaaaaa", font=("Meiryo UI", 9) ).pack(pady=(15,0))
+                  bg="#1e1e1e", fg="#aaaaaa", font=(MUI,9) ).pack(pady=(15,0))
 
         txt_edit = scrolledtext.ScrolledText( edit_win,
-                                               width= 70,
-                                              height= 15,
-                                                font= ("Meiryo UI", 11),
-                                                  bg= "#2d2d2d",
-                                                  fg= "#ffffff",
-                                              insertbackground="white", )
+                                                         width= 70,
+                                                        height= 15,
+                                                          font= (MUI, 11),
+                                                            bg= "#2d2d2d",
+                                                            fg= "#ffffff",
+                                              insertbackground="white",    )
         txt_edit.pack(padx=20, pady=10)
 
         current_text = ""
@@ -575,13 +581,14 @@ class MultiLLMWin11App:
                         bg= "#2d4a2e",
                         fg= "white",
                     relief= tk.FLAT,
-                    height= 2, width= 15 ).pack(pady=(0, 15))
+                    height= 2, width= 15    ).pack(pady=(0, 15))
 
     #---------------------------------------------
     def save_last_code(self):
 
         if not self.last_answer:
             return
+
         codes = re.findall(r"'''(.*?)'''", self.last_answer, re.DOTALL)
         if not codes:
             codes = re.findall(r"```(.*?)```", self.last_answer, re.DOTALL)
