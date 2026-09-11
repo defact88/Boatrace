@@ -378,7 +378,10 @@ class FileManagementGUI(tk.Tk):
             return
 
         if cmd:
-            subprocess.Popen(["cmd.exe", "/c", str(path) + aug])
+            if str(path)[-3:] == ".py":
+                subprocess.Popen(["cmd.exe", "/c", "python " + str(path) + aug])
+            else:
+                subprocess.Popen(["cmd.exe", "/c", str(path) + aug])
         else:
             subprocess.Popen([sys.executable, str(path) + aug], shell=True)
 
