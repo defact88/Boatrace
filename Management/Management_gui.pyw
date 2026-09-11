@@ -120,6 +120,7 @@ class FileManagementGUI(tk.Tk):
 
         BAT_COMMIT   = Path(r"C:\boatrace\BR\Gitcommit.bat")
         DAILY_PATH   = Path(r"C:\boatrace\Import\daily_insert.py")
+        BR_GUI       = r"python C:\boatrace\UI\boatrace_gui.py"
 
         base_size    = (1760, 950, 800, 500)
 
@@ -221,7 +222,7 @@ class FileManagementGUI(tk.Tk):
         self.btn_checker = tk.Button( self.frame_cat, text="Checker", **btn_opt,
                                       command=lambda: self.on_select_category("Checker") )
         self.boot_gui    = tk.Button( self.frame_cat, image=self.icon_gui, relief="flat",
-                                      command=lambda: self.on_launch(BR_GUI_PATH)        )
+                                      command=lambda: self.on_launch(BR_GUI)             )
 
         self.btn_ui.grid(     row=0, column=0, padx=(0,5),  sticky="w")
         self.btn_import.grid( row=0, column=1, padx=(0,5),  sticky="w")
@@ -378,7 +379,7 @@ class FileManagementGUI(tk.Tk):
             return
 
         if cmd:
-            subprocess.Popen(["cmd.exe", "/c", "python " + str(path) + aug])
+            subprocess.Popen(["cmd.exe", "/c", str(path) + aug])
         else:
             subprocess.Popen([sys.executable, str(path) + aug], shell=True)
 
