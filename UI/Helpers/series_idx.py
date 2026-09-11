@@ -368,17 +368,14 @@ def _paint_abcd(self, cells:list[tk.Frame], r_no, cour, s_adj, fin, date, f_no:i
 
     if not r_no or "": return
 
-    col = FRAME_COLORS[f_no]
+    col   = FRAME_COLORS[f_no]
     s_adj = s_adj[1:] if s_adj else ""
+
     if fin in ("F", "L", "S", "K"):
         fg_CD = "red" 
-        txt_E = "-"  ;fg_E = "black"
+
     else: 
         fg_CD = "black"
-        txt_E = abs(RNK_BY_C_POINT[cour][fin])
-        if RNK_BY_C_POINT[cour][fin]  < 0: fg_E = "red"
-        if RNK_BY_C_POINT[cour][fin] == 0: fg_E = "black"
-        if RNK_BY_C_POINT[cour][fin]  > 0: fg_E = "blue"
 
     lbl = tk.Label(cells[0], text=f"{r_no}R", bg="white", anchor=CT, font=(MUI,8), cursor="hand2")
     lbl.bind("<Button-1>", lambda e, d=date: self._reload_for(d, self.venue_id, r_no, R=1))
@@ -390,9 +387,6 @@ def _paint_abcd(self, cells:list[tk.Frame], r_no, cour, s_adj, fin, date, f_no:i
          )._pack(expand=True, fill="both")
     cLbl( cells[3], text=fin, fg=fg_CD, bg="white", Anc=CT, font=(GUI,10,BD)
          )._pack(expand=True, fill="both")
-    cLbl( cells[4], text=txt_E if not txt_E == 0 else "", fg=fg_E, bg="white", Anc=CT, font=(GUI,8,BD) 
-         )._pack(expand=True, fill="both")
-
 
 # ================= Right: 2走インデックス 表示/更新 ==================
 def _assign_other_run(self):

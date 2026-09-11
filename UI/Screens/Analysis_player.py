@@ -116,7 +116,7 @@ class PlayerAnalysisScreen(tk.Toplevel):
         self.disp        = 0
         self.player_id   = p_id
         self.venue_id    = v_id
-        self.period      = 9
+        self.period      = 12
         self.grade_key   = [0, 1, 2, 3, 4, 5]
 
         self.grade_state  = { (0, 1):True, (2,):True, (3, 4):True, (5,):True }

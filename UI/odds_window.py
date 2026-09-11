@@ -9,8 +9,6 @@ from Helpers.Custum_func    import cFr, cLbl, cBtn, cEnt, cCvs
 from Helpers.scraper_odds   import fetch_all_odds
 from Helpers.selenium_buyer import SeleniumBuyer, PurchaseError, LoginError
 import tkinter as tk
-import ctypes
-from ctypes import wintypes
 
 DB            = r"C:\boatrace\boatrace.db"
 ODDS_CTL_PATH = r"C:\boatrace\tmp\json\odds_ctl.json"
@@ -105,13 +103,12 @@ class OddsWindow(tk.Tk):
                                 ("  予想配当",  180, CT ), ]
 
         self._update_Players(self.date, self.venue_id, self.race_no)
-
         self._build_ui()
 
-        self._ctl_poll_id = None  # odds_ctl.json ポーリング管理
-        self.after(200, self._start_fetch)
-        self.after(500, self._ctl_loop)   # CTLポーリング独立ループ開始
+        th = threading.Thread(target=self._read_stdin_loop, daemon=True)
+        th.start()
 
+        self.after(200, self._start_fetch)
         self.protocol("WM_DELETE_WINDOW", self._on_ow_close)
 
     #-------------------------
@@ -123,80 +120,57 @@ class OddsWindow(tk.Tk):
 
         return {n:{1:False, 2:False} for n in range(1,7)}
 
-    # -------------- odds_ctl.json ポーリング独立ループ --------------
-    def _ctl_loop(self):
-
-        self._poll_odds_ctl()
-        self._ctl_poll_id = self.after(1000, self._ctl_loop)
-
-    # -------------- odds_ctl.json 読み取り・処理 ------------------
-    def _poll_odds_ctl(self):
+    # -------- 標準入力待受スレッドループ --------
+    def _read_stdin_loop(self):
 
         try:
-            with open(ODDS_CTL_PATH, "r", encoding="utf-8") as f:
-                d = json.load(f)
-                if not isinstance(d, dict): d = {}
-        except Exception:
-            d = {}
+            for line in iter(sys.stdin.readline, ''):
+                line = line.strip()
+                if not line:
+                    continue
+                try:
+                    data = json.loads(line)
+                except Exception:
+                    continue
 
-        if d.get("state") == "stop":
+                self.after(0, lambda d=data: self._handle_command(d))
+        except Exception:
+            pass
+
+    # ----------- 受信コマンド処理 ---------------
+    def _handle_command(self, d: dict):
+
+        state = d.get("state")
+        if state == "stop":
             self._on_ow_close()
             return
-        if d.get("state") == "iconify"   and self.state() != 'iconic':
-            self.iconify()
-        if d.get("state") == "deiconify" and self.state() == 'iconic':
-            self.deiconify()
-            self._shut_up_taskbar()
 
-        new_date  = d.get("date",  self.date)
+        if state == "withdraw":
+            self.withdraw()
+        elif state in ("deiconify", "normal"):
+            self.deiconify()
+
+        new_date  = d.get("date", self.date)
         new_venue = d.get("venue", self.venue_id)
-        new_race  = d.get("race",  self.race_no)
-        changed  = ( new_date  != self.date     or
-                     new_venue != self.venue_id or
-                     new_race  != self.race_no     )
+        new_race  = d.get("race", self.race_no)
+
+        changed = (new_date != self.date or int(new_venue) != self.venue_id or int(new_race) != self.race_no)
 
         if changed and not self.loading:
-            self._switch_race_from_ctl(new_date, new_venue, new_race)
+            self.date     = new_date
+            self.venue_id = int(new_venue)
+            self._switch_race(int(new_race))
 
-    # --- CTL 経由でのレース切り替え ---
-    def _switch_race_from_ctl(self, new_date:str, new_venue:int, new_race:int):
-
-        self.date     = new_date
-        self.venue_id = int(new_venue)
-        self._switch_race(int(new_race))
-
-    # ------ ウィンドウ終了処理 --------
+    # ----------- ウィンドウ終了処理 -------------
     def _on_ow_close(self):
 
-        if self._ctl_poll_id is not None:
-            try: self.after_cancel(self._ctl_poll_id)
-            except Exception: pass
-            self._ctl_poll_id = None
-
         if self.after_id is not None:
-            try: self.after_cancel(self.after_id)
+            try: self.after_id.after_cancel(self.after_id)
             except Exception: pass
             self.after_id = None
 
         try: self.destroy()
         except Exception: pass
-
-    #-----------------------------------
-    def _shut_up_taskbar(self):
-
-        self.attributes('-topmost', True)
-
-        x = self.winfo_rootx() + self.winfo_width() // 2
-        y = self.winfo_rooty() + self.winfo_height() // 2
-
-        old_pos = (ctypes.wintypes.POINT)()
-        ctypes.windll.user32.GetCursorPos(ctypes.byref(old_pos))
-        ctypes.windll.user32.SetCursorPos(x, y)
-        ctypes.windll.user32.mouse_event(0x0002, 0, 0, 0, 0)
-        ctypes.windll.user32.mouse_event(0x0004, 0, 0, 0, 0)
-
-        ctypes.windll.user32.SetCursorPos(old_pos.x, old_pos.y)
-        self.attributes('-topmost', False)
 
     #====================== UI 構築 ========================
     def _build_ui(self):

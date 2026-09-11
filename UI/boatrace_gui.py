@@ -99,30 +99,6 @@ def d_range(d:str, range:int):
     d_t = date.fromisoformat(d)
     return (d_t -timedelta(days=range), d_t)
 
-#-----------------------------
-# サマライザ制御：フラグI/O
-def ctl_read():
-
-    try:
-        with open(CTL_PATH, "r", encoding="utf-8") as f:
-            d = json.load(f)
-            if not isinstance(d, dict): d = {}
-    except Exception:
-        d = {}
-
-    return {"stop":bool(d.get("stop", False)), "mute":bool(d.get("mute", False))}
-
-#-----------------------------
-def ctl_write(*, stop=None, mute=None):
-
-    d = ctl_read()
-    if stop is not None: d["stop"] = bool(stop)
-    if mute is not None: d["mute"] = bool(mute)
-
-    os.makedirs(os.path.dirname(CTL_PATH), exist_ok=True)
-    with open(CTL_PATH, "w", encoding="utf-8") as f:
-        json.dump(d, f, ensure_ascii=False)
-
 # ====================  モーダル進行ダイアログ  ======================
 # --------------------------------------------------------------------
 class ProgressDialog(tk.Toplevel):
@@ -167,14 +143,13 @@ class App(tk.Tk):
         self.configure(bg=MAIN_BG)
 
         style = ttk.Style()
-        style.configure("r.TButton", font=(MUI,9   ), anchor="center")
-        style.configure("y.TButton", font=(MUI,8,BD), anchor="center")
-        style.configure("m.TButton", font=(MUI,9   ), anchor="center")
+        style.configure("r.TButton", font=(MUI,9), anchor="center")
+        style.configure("y.TButton", font=(MUI,9), backgroud="blue", anchor="center")#ダメ、変わらん
+        style.configure("m.TButton", font=(MUI,9), anchor="center")
 
         self._summ_proc   = None
         self._ext_text    = None
         self._ext_visible = False
-        self._log_queue   = queue.Queue()
         self._log_buf     = deque(maxlen=5000)
         self.current      = None
 
@@ -187,10 +162,9 @@ class App(tk.Tk):
                           "RSS": RaceSelectScreen(parent=contanr, app=self, db_path=DB_PATH)  }
 
         self.show_screen("Main")
-        self.after(100, self._drain_log_queue)
 
         if ON_LAUNCH["ensure_prg"]:  self.after(0,   self._ensure_programs_on_launch)
-        if ON_LAUNCH["summarrizer"]: self.after(100, self._start_summarizer_on_launch)
+        if ON_LAUNCH["summarrizer"]: self.after(500, self._start_summarizer_on_launch)
 
     # --------------------------------------------
     def show_screen(self, name:str):
@@ -246,7 +220,7 @@ class App(tk.Tk):
         except Exception as e:
             messagebox.showerror("ウィンドウ生成エラー", f"{e}\n\n{traceback.format_exc()}")
 
-    # ======  起動直後：当日分 Bデータ更新  =====
+    # =============  日時更新 起動  ==============
     def _ensure_programs_on_launch(self):
 
         d_iso = today_iso()
@@ -263,7 +237,7 @@ class App(tk.Tk):
 
         if cnt > 0: return
 
-        dlg = ProgressDialog(self, title="Loading...",message=f"{d_iso} の日時更新中")
+        dlg      = ProgressDialog(self, title="Loading...",message=f"{d_iso} の日時更新中")
         finished = {"done":False, "ok":False, "err":None}
         # ----------
         def worker():
@@ -289,11 +263,10 @@ class App(tk.Tk):
         def poll():
 
             if not finished["done"]:
-                self.after(50, poll)
+                self.after(100, poll)
                 return
 
-            try:              dlg.destroy()
-            except Exception: pass
+            dlg.destroy()
 
             if not finished["ok"]:
                 messagebox.showerror( "当日データ取得エラー", finished["err"] )
@@ -308,15 +281,18 @@ class App(tk.Tk):
     def _start_summarizer_on_launch(self):
 
         try:
-            ctl_write(stop=False, mute=False)
+            self._summ_stop = False
+            self._summ_mute = False
             self._summ_proc = subprocess.Popen( [(sys.executable or "python"), SUMMARIZ],
                                                  cwd           = str(Path(SUMMARIZ).parent),
-                                                 stdin         = subprocess.DEVNULL,
+                                                 stdin         = subprocess.PIPE,
                                                  stdout        = subprocess.PIPE,
                                                  stderr        = subprocess.STDOUT,
                                                  text          = True,
                                                  bufsize       = 1,
                                                  creationflags = 0x00000200                  )
+
+            self._send_summarizer_command({"stop": False, "mute": False})
 
             th = threading.Thread(target=self._reader_summarizer, daemon=True)
             th.start()
@@ -325,41 +301,52 @@ class App(tk.Tk):
             print("[WARN] summarize_today launch failed:", e)
 
     # --------------------------------------------
+    def _send_summarizer_command(self, cmd: dict):
+
+        if self._summ_proc and self._summ_proc.poll() is None:
+            try:
+                if self._summ_proc.stdin:
+                    self._summ_proc.stdin.write(json.dumps(cmd, ensure_ascii=False) + "\n")
+                    self._summ_proc.stdin.flush()
+            except Exception as e:
+                print(f"[WARN] _send_summarizer_command: {e}")
+
+    # --------------------------------------------
     def _reader_summarizer(self):
 
         try:
             if not self._summ_proc or not self._summ_proc.stdout:
                 return
             for line in iter(self._summ_proc.stdout.readline, ''):
-                self._log_queue.put(line.rstrip("\r\n"))
-        except Exception: pass
+                cleaned = line.rstrip("\r\n")
+                self._log_buf.append(cleaned)
+                if self._ext_visible:
+                    self.after(0, lambda l=cleaned: self._append_ext_log(l))
+        except Exception:
+            pass
 
         finally:
             try:
                 if self._summ_proc and self._summ_proc.stdout:
                     self._summ_proc.stdout.close()
-            except Exception: pass
+            except Exception:
+                pass
 
     # --------------------------------------------
-    def _drain_log_queue(self):
+    def _append_ext_log(self, line: str):
 
-        try:
-            while True:
-                line = self._log_queue.get_nowait()
-                self._log_buf.append(line)
-                if self._ext_text is not None and self._ext_visible:
-                    try:
-                        self._ext_text.insert("end", line + "\n")
-                        self._ext_text.see("end")
-                    except Exception: pass
-        except queue.Empty: pass
-
-        self.after(1000, self._drain_log_queue)
+        if self._ext_text is not None and self._ext_visible:
+            try:
+                self._ext_text.insert("end", line + "\n")
+                self._ext_text.see("end")
+            except Exception:
+                pass
 
     # --------------------------------------------
     def _on_close(self):
 
-        ctl_write(stop=True)
+        self._summ_stop = True
+        self._send_summarizer_command({"stop":True})
 
         try:              self.destroy()
         except Exception: pass
@@ -400,24 +387,24 @@ class MainScreen(tk.Frame):
         fr_body.Rconf(1, W=1) ; fr_body.Cconf(1, W=1)
         fr_body.Rconf(2, W=1)
 
-        cLbl(fr_titl, text="Boat Race GUI", font=(MUI,16,BD))._grid(R=0, C=0, Stk=ALL)
+        cLbl(fr_titl, text="  BoatRace GUI", font=(MUI,13,BD))._grid(R=0, C=0, Stk=ALL)
         cLbl(fr_titl, text="MAIN MENU    ", font=(GUI,12,BD))._grid(R=0, C=1, Stk=ALL)
-        cLbl( fr_panl, text="リアルタイム  サマライザ",font=(GUI,10,BD), Anc="n"
+        cLbl( fr_panl, text="ー Realtime summarizer ー",font=(GUI,10,BD), Anc="n"
              )._grid(R=0, C=0, Cspan=2, Stk="n", pady=(0, 10))
 
-        stat_opt = {"bg":"white", "fg":"black"}
+        stat_opt = {"bg":"white", "fg":"black", "font":(MUI,9)}
 
-        self.btn_boot = ttk.Button(fr_bar1, text="停 止",  command=self._toggle_boot)
-        btn_mute = ttk.Button(fr_bar2, text="ﾓﾆﾀ-出力",    command=self._toggle_mute)
-        btn_extn = ttk.Button(fr_bar1, text="拡張ﾓﾆﾀ表示", command=self._toggle_ext_monitor)
-        lb_stat1 = cLbl(fr_bar1, text="--", W=18, H=1, Bd=(3,GR), pady=3, **stat_opt)
-        lb_stat2 = cLbl(fr_bar2, text="--", W=18, H=1, Bd=(3,GR), pady=3, **stat_opt)
+        self.btn_boot = ttk.Button(fr_bar1, text="停 止",  style= "r.TButton", command=self._toggle_boot)
+        btn_mute = ttk.Button(fr_bar2, text="ﾓﾆﾀ-出力",    style= "r.TButton", command=self._toggle_mute)
+        self.btn_extn = ttk.Button(fr_bar1, text="拡張ﾓﾆﾀ   表示 ", style= "y.TButton", command=self._toggle_ext_monitor)
+        lb_stat1 = cLbl(fr_bar1, text="--", W=18, H=1, Bd=(2,GR), pady=3, **stat_opt)
+        lb_stat2 = cLbl(fr_bar2, text="--", W=18, H=1, Bd=(2,GR), pady=3, **stat_opt)
 
         self.btn_boot.grid(row=0, column=0, sticky="w", padx= 20, ipady=2)
         btn_mute.grid(row=1, column=0, sticky="w", padx= 20, ipady=2)
         lb_stat1.grid(row=0, column=1, sticky="w", padx=(0, 140))
-        lb_stat2.grid(row=1, column=1, sticky="w", padx=(0, 265))
-        btn_extn.grid(row=0, column=2, sticky="w", padx= 0, ipady=2)
+        lb_stat2.grid(row=1, column=1, sticky="w", padx=(0, 266))
+        self.btn_extn.grid(row=0, column=2, sticky="w", padx= 0, ipady=6, ipadx=4)
 
         btn_dbo = ttk.Button(fr_body, text="Ｄ Ｂ  参 照", command=lambda:app.show_screen("DBO"))
         btn_dbs = ttk.Button(fr_body, text="SCHEMA 編 集", command=lambda:app.show_screen("DBS"))
@@ -433,21 +420,22 @@ class MainScreen(tk.Frame):
         btn_dbq.grid(row=2, column=1, ipady=18) ; btn_dbq.config(width=20)
 
         self._lbl_monitor = [lb_stat1, lb_stat2]
-        self.after(500, self._update_monitor_state)
+        self.after(1000, self._update_monitor_state)
 
     #---------- 拡張 moni 表示/非表示 ------------
     def _toggle_ext_monitor(self):
 
         if getattr(self, "_ext_container", None) and self.app._ext_visible:
             self._hide_ext_monitor()
+            self.btn_extn.configure(text="拡張ﾓﾆﾀ   表示 ", style= "r.TButton") 
         else:
             self._show_ext_monitor()
-
+            self.btn_extn.configure(text="拡張ﾓﾆﾀ 非表示", style= "y.TButton") 
     #---------- moni 出力ON/OFF(mute) ------------
     def _toggle_mute(self):
 
-        data = ctl_read()
-        ctl_write(mute=not data["mute"])
+        self.app._summ_mute = not getattr(self.app, "_summ_mute", False)
+        self.app._send_summarizer_command({"mute": self.app._summ_mute})
         self._update_monitor_state()
 
     #----------  サマライザ 起動/停止 ------------
@@ -456,9 +444,11 @@ class MainScreen(tk.Frame):
         proc = getattr(self.app, "_summ_proc", None)
 
         if (proc is not None) and (proc.poll() is None):
-            ctl_write(stop=True)
+            self.app._summ_stop = True
+            self.app._send_summarizer_command({"stop": True})
         else:
-            ctl_write(stop=False)
+            self.app._summ_stop = False
+            self.app._summ_mute = False
             self.app._start_summarizer_on_launch()
 
         self._poll_monitor_state()
@@ -468,31 +458,31 @@ class MainScreen(tk.Frame):
 
         self._update_monitor_state()
 
-        data       = ctl_read()
         proc       = getattr(self.app, "_summ_proc", None)
         is_running = (proc is not None) and (proc.poll() is None)
 
-        if data["stop"] and is_running:
+        if self.app._summ_stop and is_running:
             self.after(1000, self._poll_monitor_state)
 
     # --------------------------------------------
     def _update_monitor_state(self):
 
         try:
-            data       = ctl_read()
-            proc       = getattr(self.app, "_summ_proc", None)
-            is_running = (proc is not None) and (proc.poll() is None)
+            proc        = getattr(self.app, "_summ_proc", None)
+            is_running  = (proc is not None) and (proc.poll() is None)
+            is_stop_req = getattr(self.app, "_summ_stop", False)
+            is_mute     = getattr(self.app, "_summ_mute", False)
 
             if is_running:
-                txt1 = "停止要求中" if data["stop"] else "稼働中"
-                opt1 = dict(bg="yellow") if data["stop"] else dict(bg="#ceffd3")
+                txt1 = "停止要求中" if is_stop_req else "稼働中"
+                opt1 = dict(bg="yellow") if is_stop_req else dict(bg="#ceffd3")
                 self.btn_boot.config(text="停 止")
             else:
                 txt1 = "停止中"
                 opt1 = dict(bg="#dedede", fg="black")
                 self.btn_boot.config(text="起 動")
 
-            txt2 = "ON" if (not data["mute"]) else "OFF"
+            txt2 = "ON" if (not is_mute) else "OFF"
             opt2 = dict(bg="yellow") if txt2 == "OFF" else dict(bg="#ceffd3")
 
             self._lbl_monitor[0].config(text=f"{txt1}", **opt1, font=(MUI,9))
@@ -556,6 +546,7 @@ class MainScreen(tk.Frame):
 # =====================   出走表ウィンドウ  ==========================
 # --------------------------------------------------------------------
 class RaceWindow(tk.Toplevel):
+
     def __init__(self, app:App, date:str, venue_id:int, range_d:int=270, sub_window:bool=False):
         super().__init__(app)
 
@@ -696,7 +687,10 @@ class RaceWindow(tk.Toplevel):
 
             if self.sub_window[1] == 0:
                 if self._odds_proc and self._odds_proc.poll() is None:
-                    self._odds_ctl_write(state="deiconify")
+                    self._send_odds_command({ "state":"deiconify",
+                                               "date":self.date,
+                                              "venue":self.venue_id,
+                                               "race":self.race_no   })
                 else: self._start_odds_proc()
             else:
                 pass   # result_window は後で実装
@@ -708,21 +702,28 @@ class RaceWindow(tk.Toplevel):
 
             if self.sub_window[1] == 0:
                 if self._odds_proc and self._odds_proc.poll() is None:
-                    self._odds_ctl_write(state="iconify")
+                    self._send_odds_command({"state": "withdraw"})
             else:
                 pass   # result_window は後で実装
 
     # --------------- odds subprocess 起動 -----------------
     def _start_odds_proc(self):
 
-        self._odds_ctl_write(date=self.date, venue=self.venue_id, race=self.race_no, state="normal")
-
         try:
             self._odds_proc = subprocess.Popen(
                 [ sys.executable, ODDS_WINDOW, "--date", self.date,
                                               "--venue", str(self.venue_id),
                                                "--race", str(self.race_no), ],
+                          stdin=subprocess.PIPE,
+                         stdout=subprocess.PIPE,
+                           text=True,
+                        bufsize=1,
                   creationflags=0x00000200,                                    )
+
+            self._send_odds_command({   "date": self.date,
+                                       "venue": self.venue_id,
+                                        "race": self.race_no,
+                                       "state": "deiconify"   })
 
         except Exception as e:
             messagebox.showerror("odds_window 起動エラー", str(e))
@@ -730,27 +731,16 @@ class RaceWindow(tk.Toplevel):
             self.bt_toggle_sub.config(bg="#ececec", relief=RA)
             return
 
-    # --------------- odds_ctl.json 書き込み ---------------
-    def _odds_ctl_write(self, *, date=None, venue=None, race=None, state=None):
+    # -------------- 標準入力へコマンドを送信 --------------
+    def _send_odds_command(self, cmd:dict):
 
-        try:
+        if self._odds_proc and self._odds_proc.poll() is None:
             try:
-                with open(ODDS_CTL_PATH, "r", encoding="utf-8") as f:
-                    d = json.load(f)
-                    if not isinstance(d, dict): d = {}
-            except Exception:
-                d = {}
-
-            if date  is not None: d["date"]   = date
-            if venue is not None: d["venue"]  = venue
-            if race  is not None: d["race"]   = race
-            if state is not None: d["state"]  = state
-
-            os.makedirs(os.path.dirname(ODDS_CTL_PATH), exist_ok=True)
-            with open(ODDS_CTL_PATH, "w", encoding="utf-8") as f:
-                json.dump(d, f, ensure_ascii=False)
-        except Exception as e:
-            print(f"[WARN] odds_ctl_write: {e}")
+                if self._odds_proc.stdin:
+                    self._odds_proc.stdin.write(json.dumps(cmd, ensure_ascii=False) + "\n")
+                    self._odds_proc.stdin.flush()
+            except Exception as e:
+                print(f"[WARN] _send_odds_command: {e}")
 
     # ============== オッズ/結果 切替ボタン ================
     def _change_sub_window(self, date, venue_id, race_no):
@@ -783,7 +773,7 @@ class RaceWindow(tk.Toplevel):
         self.entry_rows, self.data_rows = make_rows(self)
 
         if self._odds_proc and self._odds_proc.poll() is None:
-            self._odds_ctl_write(date=date, venue=venue_id, race=race_no)
+            self._send_odds_command({"date":date, "venue":venue_id, "race":race_no})
 
         self._update(R)
     # ---------------------------------
@@ -1054,7 +1044,7 @@ class RaceWindow(tk.Toplevel):
 
         if self._odds_proc and self._odds_proc.poll() is None:
             try:
-                self._odds_ctl_write(state="stop")
+                self._send_odds_command({"state":"stop"})
                 self._odds_proc.wait(timeout=3)
             except subprocess.TimeoutExpired:
                 self._odds_proc.terminate()
@@ -1062,7 +1052,6 @@ class RaceWindow(tk.Toplevel):
                 pass
             finally:
                 self._odds_proc = None
-        self._odds_ctl_write(state="normal")
 # -----------------------------------------------------------------------------
 if __name__ == "__main__":
     app = App()

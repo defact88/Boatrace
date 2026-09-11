@@ -221,7 +221,7 @@ class FileManagementGUI(tk.Tk):
         self.btn_checker = tk.Button( self.frame_cat, text="Checker", **btn_opt,
                                       command=lambda: self.on_select_category("Checker") )
         self.boot_gui    = tk.Button( self.frame_cat, image=self.icon_gui, relief="flat",
-                                      command=lambda: self.on_launch(BR_GUI_PATH, cmd=True)        )
+                                      command=lambda: self.on_launch(BR_GUI_PATH)        )
 
         self.btn_ui.grid(     row=0, column=0, padx=(0,5),  sticky="w")
         self.btn_import.grid( row=0, column=1, padx=(0,5),  sticky="w")
@@ -233,6 +233,7 @@ class FileManagementGUI(tk.Tk):
         self.frame_act.place(x=10, y=320, width=360, height=35)
 
         btn_opt2 = dict(font=(MUI,10), width=7)
+        btn_opt3 = dict(font=(MUI, 8), padx=5, pady=5, width=7)
 
         self.btn_edit = tk.Button( self.frame_act, text="編 集",  **btn_opt2,
                                    bg="#555555", fg="#FFFFFF", command=self.on_edit )
@@ -240,7 +241,7 @@ class FileManagementGUI(tk.Tk):
                                    bg="#555555", fg="#FFFFFF", command=self.on_backup )
         self.btn_exec = tk.Button( self.frame_act, text="実 行",  **btn_opt2,
                                    bg="#AACCFF", fg="#000000", command=self.on_execute )
-        self.btn_upd  = tk.Button( self.frame_act, text="日時更新",**btn_opt2,
+        self.btn_upd  = tk.Button( self.frame_act, text="日時 更新",**btn_opt3,
                                    bg="#66CC99", fg="#000000",
                                    command=lambda:self.on_launch(DAILY_PATH, aug=" --all", cmd=True) )
         self.btn_cmt  = tk.Button( self.frame_act, text="Commit",  **btn_opt2,
@@ -377,7 +378,7 @@ class FileManagementGUI(tk.Tk):
             return
 
         if cmd:
-            subprocess.Popen(["cmd.exe", "/c", str(path) + aug])
+            subprocess.Popen(["cmd.exe", "/c", "python " + str(path) + aug])
         else:
             subprocess.Popen([sys.executable, str(path) + aug], shell=True)
 

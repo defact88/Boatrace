@@ -53,7 +53,7 @@ class RaceSelectScreen(tk.Frame):
         self.db_path   = db_path
         self.date      = today_iso()
         self.range_var = tk.StringVar(value="270")
-        self.ow        = True
+        self.ow        = False
         self._cells:dict[int, dict[str, tk.Widget]] = {}
 
         fr_root = cFr(self,    W=740, H=600, px=40, py=30)
@@ -88,7 +88,7 @@ class RaceSelectScreen(tk.Frame):
                                                command=lambda: self.app.show_screen("Main") )
         btn_main.grid(row=0, column=0, ipady=5, sticky="w")
 
-        cLbl( fr_hedr, W=33, anc=CT, text="表示レース  選 択", font=(GUI,11,BD)
+        cLbl( fr_hedr, W=33, anc=CT, text="出走表 表示レース  選 択", font=(GUI,11,BD)
              )._grid(R=0, C=1, Stk="w", padx=(20,0))
 
         # Controls row
@@ -98,9 +98,9 @@ class RaceSelectScreen(tk.Frame):
         self.ent_range = ttk.Entry(fr_rnge, width=8, textvariable=self.range_var, justify="right")
         self.btn_prev = ttk.Button(fr_ctrl, text="＜", width=3, command=lambda:self._shift_date(-1))
         self.btn_next = ttk.Button(fr_ctrl, text="＞", width=3, command=lambda:self._shift_date( 1))
-        self.btn_odds = cBtn( fr_ctrl, text="オッズ ON", width=10, bg="#fbffcb", relief="ridge",
-                                                                 command=lambda:self._odds_on() )
-        self.lbl_date = cLbl(fr_ctrl, text=self._date_title(), font=(MUI,11), bg=MAIN_BG)
+        self.btn_odds = cBtn( fr_ctrl, text="オッズ OFF", width=10, bg="white", relief="raised",
+                                        font=(MUI,10), command=lambda:self._odds_on() )
+        self.lbl_date = cLbl(fr_ctrl, text=self._date_title(), font=(MUI,10), bg=MAIN_BG)
 
         self.ent_range.grid(row=0, column=1)
         self.btn_prev.grid( row=0, column=0, padx=(140,0))

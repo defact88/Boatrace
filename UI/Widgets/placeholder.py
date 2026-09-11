@@ -110,7 +110,7 @@ def build_main_placeholder(self, parent:tk.Frame):
         fr_Rgt.place(x=764, y=0) ;fr_Rgt.Pgate()
 
         for c in range(14):  fr_Rgt.Cconf(c, W=1, uniform=ln)
-        for r in range(1,6): fr_Rgt.Rconf(r, W=1, uniform=ln)
+        for r in range(1,5): fr_Rgt.Rconf(r, W=1, uniform=ln)
         for i in range(7):
             fr_hdr = cFr(fr_Rgt, W=29, H=25, bg=BG_COL, Bd=(1,RA))
             fr_hdr._grid(R=0, C=i*2, Cspan=2, Stk=ALL) ;fr_hdr.Pgate()
@@ -118,15 +118,16 @@ def build_main_placeholder(self, parent:tk.Frame):
 
         for col in range(14):
             cells = []
-            for row in range(1, 6):
+            for row in range(1, 5):
                 bd= (1,RA) if row == 1 else (1,GR)
-                fr_cell = cFr(fr_Rgt, W=29, H=28, bg="white", Bd=bd)
+                fr_cell = cFr(fr_Rgt, W=29, H=33, bg="white", Bd=bd)
                 fr_cell._grid(R=row, C=col, Stk=ALL, py=(1,0)) ;fr_cell.Pgate()
                 cells.append(fr_cell)
             R_bdy.append(cells)
 
         fr_idx = cFr(fr_Rgt, W=27, Bd=(1,GR), bg=BG_COL)
         fr_idx._grid(R=0, C=14, Rspan=6, Stk=ALL);fr_idx.Pgate()
+
         for i in range(3):
             fr_idx.Rconf(i, W=1, uniform=f"IDX{ln}")
             fr_inr = cFr(fr_idx, Bd=(1, "flat"), bg=BG_COL)

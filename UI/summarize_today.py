@@ -22,7 +22,6 @@ SP_DIR         = os.path.join(BASE_DIR, r"UI\Subprocess")
 SP_INFO        = os.path.join(SP_DIR, "get_today_info.py")
 SP_BEFORE      = os.path.join(SP_DIR, "import_Display_run.py")
 SP_RESULT      = os.path.join(SP_DIR, "import_result_today.py")
-CTL_PATH       = os.path.join(BASE_DIR, r"tmp\json\ctl.json")
 LOCK_PATH      = os.path.join(BASE_DIR, r"tmp\json\summarizer.lock")
 # ルール（定数）
 CHANGE_INTERVAL = 300  # Change: 1R締切から n秒 間隔で巡回
@@ -70,7 +69,7 @@ class SummarizeTodayInfo:
         self._final_snapshot:set[Tuple]           = set()
         self.prob_provider = ProbabilityProvider()         # 予想ロジック実装後差し替え
 
-        th = threading.Thread(target=self._ctl_watch, daemon=True)
+        th = threading.Thread(target=self._stdin_watch, daemon=True)
         th.start()
         self._threads.add(th)
 
@@ -485,6 +484,29 @@ class SummarizeTodayInfo:
                      meta={"deadline":deadline, "prio":1}                                 )
 
     # -------------------- 個別実行 ------------------------
+    def _call_py(self, path:str, args:List[str]) -> Tuple[int, str, str]:
+
+        cmd = [sys.executable, path] + args
+        p   = subprocess.Popen( cmd, creationflags=0x08000000,
+                                             stdin=subprocess.DEVNULL,
+                                            stdout=subprocess.PIPE,
+                                            stderr=subprocess.PIPE,
+                                              text=True             )
+
+        try:
+            while True:
+                try:
+                    out, err = p.communicate(timeout=1.0)
+                    return p.returncode, out, err
+                except subprocess.TimeoutExpired:
+                    if self._stop:
+                        p.terminate()
+                        p.wait(timeout=3)
+                        return 1, "", "Terminated by stop request"
+        except Exception as e:
+            return 1, "", str(e)
+
+    # ------------------------------------------------------
     def _exec_display(self, t:Task) -> bool:
 
         task_name = f"【display 】[{VENUES[t.venue_id-1]} {t.race_no:02}R] "
@@ -529,13 +551,12 @@ class SummarizeTodayInfo:
         task_name = f"【change】[{VENUES[t.venue_id-1]}       ] "
         self._log(f"{task_name} start")
 
-        args = ["--date", t.d.strftime("%Y-%m-%d"), "--venue", str(t.venue_id)]
+        _args = ["A", "--date", t.d.strftime("%Y-%m-%d"), "--venue", str(t.venue_id)]
 
         if not t.meta.get("first_done"):
-            args.append("--first")
+            _args.append("--first")
 
-        rc, out, err = self._call_py( SP_INFO, [ "A", "--date", t.d.strftime("%Y-%m-%d"),
-                                                  "--venue", str(t.venue_id),            ] )
+        rc, out, err = self._call_py(SP_INFO, _args)
 
         if rc != 0:
             self._log(f"{task_name} DB update fail")
@@ -735,28 +756,6 @@ class SummarizeTodayInfo:
             return None
 
     # ------------------------------------------------------
-    def _call_py(self, path:str, args:List[str]) -> Tuple[int, str, str]:
-
-        cmd = [sys.executable, path] + args
-        p   = subprocess.Popen( cmd, creationflags=0x08000000,
-                                            stdout=subprocess.PIPE,
-                                            stderr=subprocess.PIPE,
-                                              text=True             )
-
-        try:
-            while True:
-                try:
-                    out, err = p.communicate(timeout=1.0)
-                    return p.returncode, out, err
-                except subprocess.TimeoutExpired:
-                    if self._stop:
-                        p.terminate()
-                        p.wait(timeout=3)
-                        return 1, "", "Terminated by stop request"
-        except Exception as e:
-            return 1, "", str(e)
-
-    # ------------------------------------------------------
     def _connect_ro(self) -> sqlite3.Connection:
 
         conn = sqlite3.connect(self.db_path, check_same_thread=False)
@@ -818,32 +817,31 @@ class SummarizeTodayInfo:
         print(f"[{t}] {s}", flush=True)
 
     # ------------------------------------------------------
-    def _ctl_read(self) -> dict:
+    def _stdin_watch(self):
 
         try:
-            with open(CTL_PATH, "r", encoding="utf-8") as f:
-                d = json.load(f)
-                if not isinstance(d, dict):
-                    d = {}
+            for line in sys.stdin:
+                line = line.strip()
+                if not line:
+                    continue
+                try:
+                    cmd = json.loads(line)
+                    if isinstance(cmd, dict):
+                        if "stop" in cmd:
+                            self._stop = bool(cmd["stop"])
+                            if self._stop:
+                                self._log("[control] stop requested", mute=True)
+                        if "mute" in cmd:
+                            new_monitor = not bool(cmd["mute"])
+                            if new_monitor != self.monitor:
+                                self.monitor = new_monitor
+                                self._log(f"[monitor] {'ON' if self.monitor else 'OFF'}", mute=True)
+                except json.JSONDecodeError:
+                    pass
+                except Exception as e:
+                    self._log(f"[WARN] _stdin_watch error: {e}", mute=True)
         except Exception:
-            d = {}
-        return {"stop":bool(d.get("stop", False)), "mute":bool(d.get("mute", False))}
-
-    # ------------------------------------------------------
-    def _ctl_watch(self):
-
-        while True:
-            ctl         = self._ctl_read()
-            new_monitor = (not ctl["mute"])
-
-            if new_monitor != self.monitor:
-                self.monitor = new_monitor
-                self._log(f"[monitor] {'ON' if self.monitor else 'OFF'}", mute=True)
-
-            if ctl["stop"]: self._stop = True
-
-            time.sleep(1.0)
-
+            pass
     # ------------------------------------------------------
     def stop(self):
 
