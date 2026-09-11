@@ -376,9 +376,7 @@ class FileManagementGUI(tk.Tk):
         if not path.exists():
             self.show_msg("Error", f"{path} が存在しません。")
             return
-        if str(path)[-3:] == ".py":
-            subprocess.Popen(["cmd.exe", "/c", "python", str(path) + aug])
-            return
+
         if cmd:
             subprocess.Popen(["cmd.exe", "/c", str(path) + aug])
         else:
