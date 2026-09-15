@@ -4,5 +4,5 @@ from .DB_query           import DBQueryScreen
 from .Analysis_player    import PlayerAnalysisScreen
 from .Analysis_venue     import VenuesAnalysisScreen
 from .Analysis_motor     import MotorAnalysisScreen
-from .same_period_player import PlayerSamePeriodScreen
+from .classification     import PlayerClassificationScreen
 from .Race_select_screen import RaceSelectScreen

@@ -13,7 +13,7 @@ import os, tkinter as tk, Dal as dal
 from Helpers.Custum_func    import cFr, cLbl, cBtn
 from Helpers.queries        import Query
 from Widgets.widgets        import set_player_image, framing_graph
-from Screens.same_period_player import PlayerSamePeriodScreen
+from Screens.classification import PlayerClassificationScreen
 
 
 GUI, MUI       = "Yu Gothic UI", "Meiryo UI"
@@ -91,9 +91,9 @@ def wid_txt(s: str) -> str:
     return hair.join(list(s))
 #===============================================================================
 class PlayerAnalysisScreen(tk.Toplevel):
-    def __init__( self, master, p_id:int, v_id:Optional[int]= None,
-                                         d_iso:Optional[str]= None,
-                                           cou:Optional[int]= None  ):
+    def __init__( self, master, p_id:int, v_id:Optional[int]=None,
+                                         d_iso:Optional[str]=None,
+                                           cou:Optional[int]=None  ):
         super().__init__(master)
 
         self.title("")
@@ -237,6 +237,9 @@ class PlayerAnalysisScreen(tk.Toplevel):
             if r == 3:
                 lbl.bind("<Button-1>",lambda e:self._same_period())
                 lbl.config(cursor="hand2")
+            if r == 4:
+                lbl.bind("<Button-1>",lambda e:self._same_region())
+                lbl.config(cursor="hand2")
 
         # 直近5期適用級 ------
         self._class  = {}
@@ -347,7 +350,7 @@ class PlayerAnalysisScreen(tk.Toplevel):
         self.btn_y_next.config(state="disable", bg="SystemButtonFace")
 
         self.canvs   = tk.Canvas(fr_side, width=352, height=665)
-        self.scr_bar = ttk.Scrollbar(fr_side, orient="vertical", command=self.canvs.yview)
+        self.scr_bar = tk.Scrollbar(fr_side, orient="vertical", command=self.canvs.yview)
         self.body    = tk.Frame(self.canvs, width=352, height=665)
 
         self.canvs.configure(yscrollcommand=self.scr_bar.set)
@@ -361,17 +364,16 @@ class PlayerAnalysisScreen(tk.Toplevel):
             self.canvs.yview_scroll(int(-1 *(e.delta / 120)), "units")
         #-----------
         def _on_close():
-           self.unbind_all("<MouseWheel>")
-           self._mw_handler = None
            self.destroy()
         #-----------
         def _on_conf(event=None):
-            self.canvs.configure(scrollregion=self.canvs.bbox("all"))
-            self.canvs.itemconfigure(self.window, width=self.canvs.winfo_width())
+            self.canvs.config(scrollregion=self.canvs.bbox("all"))
+            self.canvs.itemconfig(self.window, width=self.canvs.winfo_width())
         #-----------
         self.body.bind( "<Configure>", _on_conf)
         self.canvs.bind("<Configure>", _on_conf)
-        self.canvs.bind_all("<MouseWheel>", _mw)
+        self.canvs.bind("<Enter>", lambda e:self.canvs.bind_all("<MouseWheel>", _mw))
+        self.canvs.bind("<Leave>", lambda e:self.canvs.unbind_all("<MouseWheel>"))
         self.protocol("WM_DELETE_WINDOW", _on_close)
 
         self._update_radio_btn_state( 0, "9M")
@@ -393,8 +395,8 @@ class PlayerAnalysisScreen(tk.Toplevel):
             if k == key: b.state(["pressed"])
             else:        b.state(["!pressed"])
         for k, lbl in self.season.items():
-            if k == key: lbl.config(bg=HL_COL, relief=GR, bd=1)
-            else:        lbl.config(bg=HDR_COL,  relief=RA, bd=1)
+            if k == key: lbl.config(bg=HL_COL,  bd=1, relief=GR)
+            else:        lbl.config(bg=HDR_COL, bd=1, relief=RA)
     # --------------------------------------------
     def _on_switch(self, key:str ,idx:int):
 
@@ -443,16 +445,18 @@ class PlayerAnalysisScreen(tk.Toplevel):
                 (opt, param) = self.filter_dict[key]
                 opts[opt]    = param
 
-        self.query = Query( self.date_from.isoformat(), self.date_to.isoformat(),
-                                query1= True,
-                                query2= True,
-                             player_id= self.player_id,
-                                 grade= self.grade_key,
-                        exclude_rookie= [False,True],  
-                                                                            **opts )
+        self.query = Query( self.date_from.isoformat(),
+                            self.date_to.isoformat(),
+                                    query1= True,
+                                    query2= True,
+                                 player_id= self.player_id,
+                                     grade= self.grade_key,
+                            exclude_rookie= [False,True],
+                                    **opts                  )
         self.data_rows  = self.query._pack(for_distribute=True)
 
         self._render_distribute_table()
+
     # ---------------------------------------------------------------
     def _apply_period(self, key:str|tuple):
 
@@ -489,6 +493,7 @@ class PlayerAnalysisScreen(tk.Toplevel):
 
     #---------------------- 選手ﾌﾟﾛﾌｨｰﾙ 取得・更新 -------------------
     def _load_player_basic(self, player_id:int):
+
         # ----------
         def _date_to_career(regip:int):
             path_months   = (regip - 1) * 6
@@ -505,9 +510,10 @@ class PlayerAnalysisScreen(tk.Toplevel):
         if not row: return
 
         pid, name, regip, reg, age, birth = row
-        diff   = _date_to_career(regip)
-        career = f"{diff.years} 年  {diff.months} ヶ月"
-        self.regist_period = regip
+        diff                              = _date_to_career(regip)
+        career                            = f"{diff.years} 年  {diff.months} ヶ月"
+        self.regist_period                = regip
+        self.regions                      = reg
 
         self.basic_vars["name"         ].set(name.split() or "")
         self.basic_vars["player_id"    ].set(str(pid))
@@ -589,6 +595,7 @@ class PlayerAnalysisScreen(tk.Toplevel):
 
     #------------------------ 折れ線グラフ描画 -----------------------
     def _refresh_trend_graph(self):
+
         # ----------
         def _fixed(v:float) -> int:
             vv = 0.0 if v is None else max(0.0, min(0.5, float(v)))
@@ -920,10 +927,15 @@ class PlayerAnalysisScreen(tk.Toplevel):
         return y_s
     # ----------------------------------
     def _same_period(self):
-        PlayerSamePeriodScreen(self, self.regist_period)
+
+        PlayerClassificationScreen(self, regist_period=self.regist_period)
+    # ----------------------------------
+    def _same_region(self):
+
+        PlayerClassificationScreen(self, region=self.regions)
 
     # 外部から選手切替--------------------------------------
-    def set_player(self, player_id:int, venue_id:int= None):
+    def set_player(self, player_id:int, venue_id:int=None):
 
         self.player_id = player_id
         self.venue_id  = venue_id

@@ -11,7 +11,7 @@ from collections            import deque
 import Dal as dal
 from Screens                import( DBOpsScreen, DBSchemScreen, DBQueryScreen, RaceSelectScreen,
                                     PlayerAnalysisScreen, VenuesAnalysisScreen,
-                                     PlayerSamePeriodScreen, MotorAnalysisScreen )
+                                    MotorAnalysisScreen )
 from Helpers.build_rows     import query_program, make_rows, make_sub_rows
 from Helpers.queries        import Query
 from Helpers.series_idx     import update_series_idx, build_day_lbl

@@ -35,7 +35,7 @@ UI,Screens,Analysis_player,C:\boatrace\UI\Screens\Analysis_player.py,1
 UI,Screens,Analysis_venue,C:\boatrace\UI\Screens\Analysis_venue.py,0
 UI,Screens,Analysis_motor,C:\boatrace\UI\Screens\Analysis_motor.py,0
 UI,Screens,Race_select_screen,C:\boatrace\UI\Screens\Race_select_screen.py,1
-UI,Screens,same_period_player,C:\boatrace\UI\Screens\same_period_player.py,0
+UI,Screens,classification,C:\boatrace\UI\Screens\classification.py,0
 UI,Screens,__init__,C:\boatrace\UI\Screens\__init__.py,0
 UI,Helpers,build_rows,C:\boatrace\UI\Helpers\build_rows.py,1
 UI,Helpers,series_idx,C:\boatrace\UI\Helpers\series_idx.py,1
