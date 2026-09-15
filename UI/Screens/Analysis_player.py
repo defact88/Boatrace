@@ -177,13 +177,14 @@ class PlayerAnalysisScreen(tk.Toplevel):
         fr_imag  = cFr(fr_plyr, W= 140, H=198)
         fr_prof  = cFr(fr_plyr, W= 218, H=205, Bd=(1,SD))
 
-        self.bar = cFr(fr_grph, W= 320, H=253)
-        fr_Gbtn  = cFr(fr_grph, W= 320, H= 35)
-        fr_trnd  = cFr(fr_grph, W= 480, H=260)
-        fr_Tbtn  = cFr(fr_grph, W= 480, H= 35)
+        self.bar = cFr(fr_grph, W= 320, H=253)   # 棒グラフ
+        fr_Gbtn  = cFr(fr_grph, W= 320, H= 35)   # グレードボタン
+        fr_trnd  = cFr(fr_grph, W= 480, H=260)   # 折れ線グラフ
+        fr_Tbtn  = cFr(fr_grph, W= 480, H= 35)   # 単値/累積値切り替えボタン
 
         fr_info  = cFr(self.bar,W= 320, H= 25)
         self.win = cFr(fr_botm, W= 910, H=250)
+        self.achievement = cFr(fr_botm, W=271 , H=250)
 
         fr_root._grid( R=0, C=0, px=10,     py=( 0,10))  ; fr_root.Pgate()
         fr_main._grid( R=0, C=0                       )  ; fr_main.Pgate()
@@ -206,6 +207,8 @@ class PlayerAnalysisScreen(tk.Toplevel):
         fr_Tbtn._grid( R=1, C=1                       )  ; fr_Tbtn.Pgate()
         self.win._grid(R=0, C=0)                         ; self.win.Pgate()
         self.bar._grid(R=0, C=0)
+        self.achievement._grid(R=0, C=1)                 ; self.achievement.Pgate()
+
         # グラフ -------------
         self.cv_trend_graph  = tk.Canvas(fr_trnd, width=480, height=260)
         self.cv_trend_graph.place( x=0, y=0)
