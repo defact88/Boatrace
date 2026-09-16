@@ -104,6 +104,7 @@ class Query():
                    r.series_title,
                    r.grade,
                    r.is_final,
+                   r.is_prefinal,
                    e.frame_no,
                    e.course,
                    e.slit_adj,
@@ -127,6 +128,32 @@ class Query():
         sql    += " ORDER BY e.date ASC, e.race_no ASC"
         params += add_param
         rows    = dal.fetch_all(sql, tuple(params)) or []
+
+        return rows
+
+    # ------------------------------------------------------
+    def _query_victory(self, player_id:int):
+
+        sql = """
+            SELECT e.date,
+                   r.venue_id,
+                   r.grade,
+                   r.series_title
+
+              FROM Race_entries e
+              JOIN Races r
+                ON e.race_id  = r.race_id
+             WHERE e.player_id   = ?
+               AND e.finish_rank = 1
+               AND r.grade      IN (2, 3, 4, 5)
+               AND r.is_final    = 1
+               AND r.status      = 'held'
+               AND e.date BETWEEN ? AND ?
+          ORDER BY e.date DESC
+              """
+
+        params = (player_id, self.date_from, self.date_to)
+        rows   = dal.fetch_all(sql, params) or []
 
         return rows
 
@@ -228,7 +255,7 @@ class Query():
         cnt = { g:{ "sc_sum":0, "st_sum":0,
                     "sc_cnt":0, "st_cnt":0, "series":set() } for g in ["ALL","SG","G1","G2","G0"] }
 
-        for _, s_title, grade, is_final, _, _, s_adj, rank, fcode, flevel in rows:
+        for _, s_title, grade, is_final, _, _, _, s_adj, rank, fcode, flevel in rows:
 
             if   grade ==    5 : targets = ["ALL", "SG"]
             elif grade in (4,3): targets = ["ALL", "G1"]
@@ -277,7 +304,7 @@ class Query():
 
         sc_sum, sc_cnt = 0, 0
 
-        for _, s_title, grade, is_final, _, course, s_adj, rank, f_code, f_level in rows:
+        for _, s_title, grade, is_final, _, _, course, s_adj, rank, f_code, f_level in rows:
 
             if f_level != 0 and rank != 0:
                 p = self._point_for(grade, is_final, rank, s_title)
@@ -310,7 +337,7 @@ class Query():
     def _packing_by_series(self, rows):
 
         out = {}
-        for _date, s_title, grade, is_final, frno, cour, s_adj, rank, fcode, flevel in rows:
+        for _date, s_title, grade, is_final, prefnl, frno, cour, s_adj, rank, fcode, flevel in rows:
 
             year = dt.fromisoformat(_date).year
 
@@ -328,6 +355,7 @@ class Query():
 
             out[year][s_title]["d_pack"][_date].append({ "date":_date,
                                                        "is_fnl":is_final,
+                                                       "prefnl":prefnl,
                                                        "fr_no" :frno,
                                                        "cour"  :cour if cour  else "",
                                                        "s_adj" :float(abs(s_adj)) if s_adj else "",
@@ -345,11 +373,11 @@ class Query():
                     for items in year[seri]["d_pack"][day]:
                         year[seri]['slots'].append(items)
                         if len(year[seri]["d_pack"][day]) == 1:
-                            year[seri]["slots"].append( { "date":"", "is_fnl":0, "fr_no":0,
+                            year[seri]["slots"].append( { "date":"", "is_fnl":0, "prefnl":0, "fr_no":0,
                                                           "cour":"", "s_adj":"", "finish":"" } )
 
                 while len(year[seri]["slots"]) < 14:
-                    year[seri]["slots"].append( { "date":"", "is_fnl":0, "fr_no":0,
+                    year[seri]["slots"].append( { "date":"", "is_fnl":0, "prefnl":0, "fr_no":0,
                                                   "cour":"", "s_adj":"", "finish":"" } )
  
                 year[seri].pop("d_pack", None)

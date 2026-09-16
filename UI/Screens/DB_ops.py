@@ -41,8 +41,7 @@ class DBOpsScreen(ttk.Frame):
         style.configure("TLabelframe", background=BG_COLOR, font=(GUI,9,BD))
         style.configure( "r.Treeview", background="#222222", 
                                        foreground="white", 
-                                  fieldbackground="black"  )
-
+                                  fieldbackground="#202020"  )
         # ================= UI 構成 =================
         main_frame = cFr(self, bg=BG_COLOR)
         main_frame.pack(fill=tk.BOTH, expand=True)
@@ -169,18 +168,26 @@ class DBOpsScreen(ttk.Frame):
         ops_Sel = cFr(ops, bg=BG_COLOR)
         ops_Sel.grid(row=1, column=0, columnspan=2, sticky="w", pady=(15,0))
 
-        cLbl(ops_Sel, text="SELECT", **fnt).grid(row=0, column=0, rowspan=2, sticky="w", padx=4)
+        cLbl(ops_Sel, text="SELECT", **fnt).grid(row=0, column=0, rowspan=3, sticky="w", padx=4)
 
+        self.cbo_sel_mods = []
         self.cbo_sel_tbls = []
         self.cbo_sel_cols = []
+        
+        mod_values = ["", "DISTINCT", "MAX", "MIN", "COUNT", "AVG", "SUM", "COUNT(DISTINCT)"]
+
         for i in range(10):
+            c_mod = ttk.Combobox(ops_Sel, values=mod_values, width=14, state="readonly", justify='center', font=(GUI,10))
+            c_mod.grid(row=0, column=1+i, padx=4, pady=2)
+            self.cbo_sel_mods.append(c_mod)
+
             c_tbl = ttk.Combobox(ops_Sel, values=[], width=14, state="readonly", justify='center', font=(GUI,10))
-            c_tbl.grid(row=0, column=1+i, padx=4, pady=2)
+            c_tbl.grid(row=1, column=1+i, padx=4, pady=2)
             c_tbl.bind("<<ComboboxSelected>>", self._on_sel_tbl_changed)
             self.cbo_sel_tbls.append(c_tbl)
 
             c_col = ttk.Combobox(ops_Sel, values=[], width=14, state="disabled", justify='center', font=(GUI,10))
-            c_col.grid(row=1, column=1+i, padx=4, pady=2)
+            c_col.grid(row=2, column=1+i, padx=4, pady=2)
             self.cbo_sel_cols.append(c_col)
 
         # ================= Treeview エリア =================
@@ -201,7 +208,7 @@ class DBOpsScreen(ttk.Frame):
 
         # ================= ログエリア =================
         logf         = ttk.LabelFrame(main_frame, text="CMDｺﾝｿｰﾙ ｴｺｰ出力")
-        self.txt_log = tk.Text(logf, height=6, bg="black", fg="white", font=("Consolas",10))
+        self.txt_log = tk.Text(logf, height=6, bg="#202020", fg="white", font=("Consolas",10))
         log_vsb      = ttk.Scrollbar(logf, orient="vertical", command=self.txt_log.yview)
 
         self.txt_log.configure(yscrollcommand=log_vsb.set)
@@ -410,10 +417,19 @@ class DBOpsScreen(ttk.Frame):
         # ---------------- SELECT 構築 ----------------
         sel_cols = []
         for i in range(10):
+            m = self.cbo_sel_mods[i].get().strip().upper()
             t = self.cbo_sel_tbls[i].get().strip()
             c = self.cbo_sel_cols[i].get().strip()
+            
             if t and c:
-                sel_cols.append(f"{t}.{c} AS '{t}.{c}'")
+                if not m:
+                    sel_cols.append(f"{t}.{c} AS '{t}.{c}'")
+                elif m == "DISTINCT":
+                    sel_cols.append(f"DISTINCT {t}.{c} AS 'DISTINCT_{c}'")
+                elif m == "COUNT(DISTINCT)":
+                    sel_cols.append(f"COUNT(DISTINCT {t}.{c}) AS 'CT_DIST_{c}'")
+                else:
+                    sel_cols.append(f"{m}({t}.{c}) AS '{m}_{c}'")
 
         if not sel_cols:
             sel_cols.append(f"{T1}.*")

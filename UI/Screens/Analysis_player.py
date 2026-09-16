@@ -10,6 +10,7 @@ from collections            import defaultdict
 from datetime               import datetime as dt, date, time, timedelta
 import os, tkinter as tk, Dal as dal
 
+from Helpers.convert        import convert_rank
 from Helpers.Custum_func    import cFr, cLbl, cBtn
 from Helpers.queries        import Query
 from Widgets.widgets        import set_player_image, framing_graph
@@ -21,6 +22,10 @@ BD             = "bold"
 GR, SD, RA, RD = "groove", "solid", "raised", "ridge"
 ALL, CT        = "nsew", "center"
 
+VENUES    = [ " 桐生 "," 戸田 ","江戸川","平和島","多摩川","浜名湖"," 蒲郡 "," 常滑 ","　津　",
+              " 三国 ","びわこ","住之江"," 尼崎 "," 鳴門 "," 丸亀 "," 児島 "," 宮島 "," 徳山 ",
+              " 下関 "," 若松 "," 芦屋 "," 福岡 "," 唐津 "," 大村 ",                           ]
+GRADE     = ["一般", " G3 ", " G2 ", " G1 ", "PG1", " SG "]
 COL_KEYS  = ["全", "SG", "G1", "G2", "一 般"]
 
 ROW_KEYS  = [ ("starts",      "出走 数"),
@@ -152,6 +157,7 @@ class PlayerAnalysisScreen(tk.Toplevel):
         self._refresh_bar_graph()
         self._refresh_trend_graph()
         self._refresh_series_panel()
+        self._refresh_achievement_panel()
 
     # ====================== UI ============================
     def _build_ui(self):
@@ -183,8 +189,8 @@ class PlayerAnalysisScreen(tk.Toplevel):
         fr_Tbtn  = cFr(fr_grph, W= 480, H= 35)   # 単値/累積値切り替えボタン
 
         fr_info  = cFr(self.bar,W= 320, H= 25)
-        self.win = cFr(fr_botm, W= 910, H=250)
-        self.achievement = cFr(fr_botm, W=271 , H=250)
+        self.win = cFr(fr_botm, W= 860, H=250)
+        self.achievement = cFr(fr_botm, W=321, H=250)
 
         fr_root._grid( R=0, C=0, px=10,     py=( 0,10))  ; fr_root.Pgate()
         fr_main._grid( R=0, C=0                       )  ; fr_main.Pgate()
@@ -208,6 +214,37 @@ class PlayerAnalysisScreen(tk.Toplevel):
         self.win._grid(R=0, C=0)                         ; self.win.Pgate()
         self.bar._grid(R=0, C=0)
         self.achievement._grid(R=0, C=1)                 ; self.achievement.Pgate()
+
+        # 優勝実績 (G2以上) --------------------
+        lbl_ach_hdr = cLbl( self.achievement, text="タイトル 実績",
+                            bg=HDR_COL, font=(MUI,9), Anc=CT      )
+        lbl_ach_hdr._grid(R=0, C=0, py=(0,3), Stk=ALL)
+
+        fr_ach_body = cFr(self.achievement, W=321, H=222)
+        fr_ach_body._grid(R=1, C=0) ; fr_ach_body.Pgate()
+
+        self.ach_canvs = tk.Canvas(fr_ach_body, width=302, height=222, highlightthickness=0)
+        self.ach_sbar  = tk.Scrollbar(fr_ach_body, orient="vertical", command=self.ach_canvs.yview)
+        self.ach_list  = tk.Frame(self.ach_canvs, width=302, height=222)
+
+        self.ach_canvs.configure(yscrollcommand=self.ach_sbar.set)
+
+        self.ach_canvs.grid( row=0, column=0, sticky=ALL)  ; self.ach_canvs.grid_propagate(False)
+        self.ach_sbar.grid(  row=0, column=1, sticky="ns") ; self.ach_sbar.grid_propagate(False)
+
+        self.ach_window = self.ach_canvs.create_window((0, 0), window=self.ach_list, anchor="nw")
+        #-----------
+        def _ach_mw(e):
+            self.ach_canvs.yview_scroll(int(-1 *(e.delta / 120)), "units")
+        #-----------
+        def _ach_on_conf(event=None):
+            self.ach_canvs.config(scrollregion=self.ach_canvs.bbox("all"))
+            self.ach_canvs.itemconfig(self.ach_window, width=self.ach_canvs.winfo_width())
+        #-----------
+        self.ach_list.bind( "<Configure>", _ach_on_conf)
+        self.ach_canvs.bind("<Configure>", _ach_on_conf)
+        self.ach_canvs.bind("<Enter>", lambda e:self.ach_canvs.bind_all("<MouseWheel>", _ach_mw))
+        self.ach_canvs.bind("<Leave>", lambda e:self.ach_canvs.unbind_all("<MouseWheel>"))
 
         # グラフ -------------
         self.cv_trend_graph  = tk.Canvas(fr_trnd, width=480, height=260)
@@ -700,7 +737,8 @@ class PlayerAnalysisScreen(tk.Toplevel):
         self._apply_series_year_state()
 
         for year in self.series_rows.keys():
-            if year == active_year: row = self.series_rows[year]
+            if year == active_year:
+                row = self.series_rows[year]
 
         for r, seri in enumerate(reversed(row.values())):
             d_min, d_max, title, grade, _, slots = seri.values()
@@ -731,7 +769,7 @@ class PlayerAnalysisScreen(tk.Toplevel):
                 frn   = item["fr_no"]
                 cour  = item["cour"]
                 slit  = f"{item['s_adj']:.2f}"[1:] if item['s_adj'] else ""
-                rank  = item["finish"] if not item["is_fnl"] else FINAL_RNK[item["finish"]]
+                rank  = convert_rank(item["finish"], item["is_fnl"], item["prefnl"])
                 fcolr = ("red" if rank in ("F","L","S","K","(F)","(L)","(S)","(K)") else "black")
                 bg    = HL_COL if cour == self.course else "white"
                 opt   = { 0: dict(text=cour, **FRM_COLOR[frn],     font=(GUI, 9,BD) ),
@@ -739,6 +777,7 @@ class PlayerAnalysisScreen(tk.Toplevel):
                           2: dict(text=rank, fg=fcolr, bg=bg,      font=(GUI,10,BD) ), }
 
                 if item["is_fnl"]: opt[2]["font"] = (GUI,11,BD)
+                #if item["prefnl"]: opt[2]["font"] = (GUI,11)
 
                 for row in range(3):
                     fr_cell = cFr(fr_grid, bg=bg if row == 2 else "white", W=25, H=28, Bd=(1,GR))
@@ -749,13 +788,49 @@ class PlayerAnalysisScreen(tk.Toplevel):
 
         self.canvs.configure(scrollregion= self.canvs.bbox("all"))
 
+    # --------------- 優勝実績 (G2以上) 更新 ------------------
+    def _refresh_achievement_panel(self):
+
+        for w in self.ach_list.winfo_children(): w.destroy()
+
+        q    = Query(date(2005, 1, 1).isoformat(), date.today().isoformat())
+        rows = q._query_victory(self.player_id)
+        grade_color  = ["black", "black", "black", "blue", "blue", "red"]
+        for r, row in enumerate(rows):
+
+            d_disp = self._to_date(row["date"]).strftime("%y/%m/%d")
+            v_name = VENUES[int(row["venue_id"]) -1]
+            grade  = GRADE[int(row["grade"])]
+            title  = row["series_title"]
+            bg     = "white" if r %2 == 0 else "#EFEFEF"
+            fg     = grade_color[int(row["grade"])]
+            #for word in ("Ｇ２", "ＧＩ", "Ｇ１", "ＰＧ１", "ＳＧ"):
+                #title = title.replace(word, "")
+            #title  = title.strip()
+
+            fr_row = cFr(self.ach_list, W=302, H=24, bg=bg)
+            fr_row._grid(R=r, C=0, Stk=ALL) ; fr_row.Pgate()
+
+            fr_row.Cconf(3, W=1)
+
+            cLbl(fr_row, text=d_disp, bg=bg, font=(MUI,8   ), Anc="w"
+                 )._grid(R=0, C=0, px=(2,0), Stk=ALL)
+            cLbl(fr_row, text=v_name, bg=bg, font=(MUI,7,  ), Anc="w", W=4
+                 )._grid(R=0, C=1, px=(0,0), Stk=ALL)
+            cLbl(fr_row, text=grade,  bg=bg, font=(GUI,8,BD), Anc="w", fg=fg
+                 )._grid(R=0, C=2, px=(0,2), Stk=ALL)
+            cLbl(fr_row, text=title,  bg=bg, font=(GUI,8   ), Anc="w"
+                 )._grid(R=0, C=3, px=(0,0), Stk=ALL)
+
+        self.ach_canvs.configure(scrollregion=self.ach_canvs.bbox("all"))
+
     #------------------------- 分布図 描画 ---------------------------
     def _build_distribute_ui(self):
 
         for w in self.win.winfo_children(): w.destroy()
 
         fr_left  = cFr(self.win, W=530, H=250)
-        fr_right = cFr(self.win, W=380, H=250)
+        fr_right = cFr(self.win, W=330, H=250)
 
         fr_left._grid( R=0, C=0, py=(20,0))  ;fr_left.Pgate()
         fr_right._grid(R=0, C=1, py=(22,0)) ;fr_right.Pgate()
@@ -942,5 +1017,3 @@ class PlayerAnalysisScreen(tk.Toplevel):
 
         self.player_id = player_id
         self.venue_id  = venue_id
-
-

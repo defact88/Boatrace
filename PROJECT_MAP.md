@@ -18,7 +18,8 @@ boatrace/
   UI/
     boatrace_gui.py                 # エントリ/ルータ/共通設定
     summarize_today.py              # 本体起動時に実行するｻﾌﾞﾌﾟﾛｾｽ(当日情報取得各pyの実行管理)
-    odds_window.pyw                 # RaceWindow起動時に別ﾌﾟﾛｾｽで実行されるｵｯｽﾞ表示画面
+    odds_window.py                  # RaceWindowと並列でｻﾌﾞﾌﾟﾛｾｽ実行されるｵｯｽﾞ表示画面
+    results_window.py               # RaceWindowと並列でｻﾌﾞﾌﾟﾛｾｽ実行されるﾚｰｽ結果表示画面
 
     Subprocess/
       import_Display_run.py         # 展示航走ﾃﾞｰﾀの取得,抽出,挿入

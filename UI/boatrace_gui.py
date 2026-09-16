@@ -72,8 +72,6 @@ DB_PATH       = r"C:\boatrace\boatrace.db"
 DAILY_INSERT  = r"C:\boatrace\Import\daily_insert.py"
 IMPORT_B      = r"C:\boatrace\Import\import_B_txt.py"
 SUMMARIZ      = r"C:\boatrace\UI\summarize_today.py"
-CTL_PATH      = r"C:\boatrace\tmp\json\ctl.json"
-ODDS_CTL_PATH = r"C:\boatrace\tmp\json\odds_ctl.json"
 ODDS_WINDOW   = r"C:\boatrace\UI\odds_window.py"
 
 # ===========  共通ヘルパー  ===========
@@ -693,7 +691,7 @@ class RaceWindow(tk.Toplevel):
                                                "race":self.race_no   })
                 else: self._start_odds_proc()
             else:
-                pass   # result_window は後で実装
+                pass   # results_window は後で実装
 
         else:
             # ------ 表示 OFF ------
@@ -704,7 +702,7 @@ class RaceWindow(tk.Toplevel):
                 if self._odds_proc and self._odds_proc.poll() is None:
                     self._send_odds_command({"state": "withdraw"})
             else:
-                pass   # result_window は後で実装
+                pass   # results_window は後で実装
 
     # --------------- odds subprocess 起動 -----------------
     def _start_odds_proc(self):
@@ -750,12 +748,12 @@ class RaceWindow(tk.Toplevel):
             self.bt_toggle_sub.config(text=" Ｒesults ")
             if self.sub_window[0]:
                 self._minimize_odds_proc()
-                # result_window は後で実装
+                # results_window は後で実装
         else:
             self.sub_window[1] = 0
             self.bt_toggle_sub.config(text=" ОＤＤＳ ")
             if self.sub_window[0]:
-                # result_window を終了して odds を起動
+                # results_window を終了して odds を起動
                 self._start_odds_proc()
 
     # ==================== 表示/更新 エントリー ======================
