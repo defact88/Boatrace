@@ -10,7 +10,7 @@ from collections            import deque
 
 import Dal as dal
 from Screens                import( DBOpsScreen, DBSchemScreen, DBQueryScreen, RaceSelectScreen,
-                                    PlayerAnalysisScreen, VenuesAnalysisScreen,
+                                    PlayerAnalysisScreen, VenueAnalysisScreen,
                                     MotorAnalysisScreen )
 from Helpers.build_rows     import query_program, make_rows, make_sub_rows
 from Helpers.queries        import Query
@@ -204,7 +204,7 @@ class App(tk.Tk):
     def open_v_analys(self, venue_id):
 
         try:
-            win = VenuesAnalysisScreen(self, venue_id)
+            win = VenueAnalysisScreen(self, venue_id)
             win.grab_set()
         except Exception as e:
             messagebox.showerror("ウィンドウ生成エラー", f"{e}\n\n{traceback.format_exc()}")
@@ -319,7 +319,7 @@ class App(tk.Tk):
                 cleaned = line.rstrip("\r\n")
                 self._log_buf.append(cleaned)
                 if self._ext_visible:
-                    self.after(0, lambda l=cleaned: self._append_ext_log(l))
+                    self.after(0, lambda line=cleaned:self._append_ext_log(line))
         except Exception:
             pass
 
@@ -331,7 +331,7 @@ class App(tk.Tk):
                 pass
 
     # --------------------------------------------
-    def _append_ext_log(self, line: str):
+    def _append_ext_log(self, line:str):
 
         if self._ext_text is not None and self._ext_visible:
             try:
@@ -581,13 +581,14 @@ class RaceWindow(tk.Toplevel):
         if sub_window: self._start_odds_proc()
 
         #==================== Header =======================
-        hdr1   = cFr(root,  W=1130, H=30, px=10) ;hdr1._grid(R=0, C=0, Stk="w")   ;hdr1.Pgate()
-        hdr2   = cFr(root,  W=1130, H=30, px=10) ;hdr2._grid(R=1, C=0, Stk="w")   ;hdr2.Pgate()
-        btns   = cFr(root,  W= 70,  H=60)        ;btns._grid(R=0, C=1, Rspan=2, Stk="e") ;btns.Pgate()
-        hdr1L  = cFr(hdr1,  W=400,  H=30)        ;hdr1L._grid(R=0, C=0)  ;hdr1L.Pgate()
-        hdr1R  = cFr(hdr1,  W=810,  H=30)        ;hdr1R._grid(R=0, C=1)  ;hdr1R.Pgate()
-        hdr2L  = cFr(hdr2,  W=400,  H=30)        ;hdr2L._grid(R=0, C=0)  ;hdr2L.Pgate()
-        hdr2R  = cFr(hdr2,  W=810,  H=30)        ;hdr2R._grid(R=0, C=1)  ;hdr2R.Pgate()
+        hdr1   = cFr(root,  W=1130, H=30, px=10) ;hdr1._grid(  R=0, C=0,          Stk="w") ;hdr1.Pgate()
+        hdr2   = cFr(root,  W=1130, H=30, px=10) ;hdr2._grid(  R=1, C=0,          Stk="w") ;hdr2.Pgate()
+        btns   = cFr(root,  W= 70,  H=60)        ;btns._grid(  R=0, C=1, Rspan=2, Stk="e") ;btns.Pgate()
+
+        hdr1L  = cFr(hdr1,  W=400,  H=30)        ;hdr1L._grid( R=0, C=0)  ;hdr1L.Pgate()
+        hdr1R  = cFr(hdr1,  W=810,  H=30)        ;hdr1R._grid (R=0, C=1)  ;hdr1R.Pgate()
+        hdr2L  = cFr(hdr2,  W=400,  H=30)        ;hdr2L._grid( R=0, C=0)  ;hdr2L.Pgate()
+        hdr2R  = cFr(hdr2,  W=810,  H=30)        ;hdr2R._grid( R=0, C=1)  ;hdr2R.Pgate()
         hdr1LA = cFr(hdr1L, W=45,   H=30)        ;hdr1LA._grid(R=0, C=0) ;hdr1LA.Pgate()
         hdr1LB = cFr(hdr1L, W=300,  H=30)        ;hdr1LB._grid(R=0, C=1) ;hdr1LB.Pgate()
         hdr1LC = cFr(hdr1L, W=55,   H=30)        ;hdr1LC._grid(R=0, C=2) ;hdr1LC.Pgate()
@@ -610,12 +611,12 @@ class RaceWindow(tk.Toplevel):
         self._mk_race_buttons(hdr2R)
 
         bg  = "#F1EE62" if self.sub_window[0] else "#ececec"
-        rel = GR if self.sub_window[0] else RA
+        rel = GR        if self.sub_window[0] else RA
 
-        self.bt_change_sub = cBtn( btns, text=" SUB 切替 ", font=(MUI,8), Rel=RA, bg="#e9f1f2", px=2,
-                             Com=lambda d=date, v=venue_id, r=1: self._change_sub_window(d, v, r))
+        self.bt_change_sub = cBtn( btns, text=" SUB 切替 ", font=(MUI,8), Rel=RA,  bg=bg, px=2,
+                                   Com=lambda:self._change_sub_window(date, venue_id, 1)       )
         self.bt_toggle_sub = cBtn( btns, text=" ОＤＤＳ ", font=(MUI,8), Rel=rel, bg=bg, px=5,
-                             Com=lambda d=date, v=venue_id, r=1: self._toggle_sub_window(d, v, r))
+                                   Com=lambda:self._toggle_sub_window(date, venue_id, 1)       )
 
         self.bt_change_sub._grid(R=0, C=0, py=(0,3), Stk="e")
         self.bt_toggle_sub._grid(R=1, C=0, py=(2,0), Stk="e")
@@ -637,10 +638,9 @@ class RaceWindow(tk.Toplevel):
 
         # 初期表示更新 ********
         self._reload_for(self.date, self.venue_id, self.race_no)
-
         self.app.bind_all("<Button-4>", self._assaign_button)
 
-    #================== 日程 ボタン ========================
+    #================== 日程切替 ボタン ====================
     def _mk_day_buttons(self, parent:tk.Frame):
 
         for child in parent.winfo_children(): child.destroy()
@@ -663,7 +663,7 @@ class RaceWindow(tk.Toplevel):
 
         self._highright_D_btn(d)
 
-    # ================== レースボタン ======================
+    # ================ レース切替ボタン ====================
     def _mk_race_buttons(self, parent:ttk.Frame):
 
         self._race_btns = []

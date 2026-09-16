@@ -32,7 +32,7 @@ class DBOpsScreen(ttk.Frame):
         self.cols1          = []
         self.cols2          = []
 
-        self.app.option_add("*TCombobox*Listbox*Font", (MUI,9)) 
+        self.app.option_add("*TCombobox*Listbox*Font", (MUI,9)) #??
 
         fnt   = dict(font=(GUI,10), bg=BG_COLOR)
 
@@ -517,6 +517,8 @@ class DBOpsScreen(ttk.Frame):
 
         self.txt_log.insert("end", msg + "\n")
         self.txt_log.see("end")
+    # --------------------------------------------
+
 
 COLUMNS = { "player_id":75, "name":140, "name_kana":95, "sex":50, "age":50,
             "regist_period":105, "regions":60, "height_cm":80, "weight_kg":70, "class_now":85, 

@@ -55,7 +55,7 @@ def _to_date(x) -> date:
     raise ValueError("date conv error")
 
 # ======== Venues Analysis (per venue) =======================================
-class VenuesAnalysisScreen(tk.Toplevel):
+class VenueAnalysisScreen(tk.Toplevel):
     def __init__(self, master, venue_id):
         super().__init__(master)
 
