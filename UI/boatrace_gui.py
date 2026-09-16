@@ -691,7 +691,7 @@ class RaceWindow(tk.Toplevel):
                                                "race":self.race_no   })
                 else: self._start_odds_proc()
             else:
-                pass   # results_window は後で実装
+                pass   # ResultsWindow は後で実装
 
         else:
             # ------ 表示 OFF ------
@@ -702,7 +702,7 @@ class RaceWindow(tk.Toplevel):
                 if self._odds_proc and self._odds_proc.poll() is None:
                     self._send_odds_command({"state": "withdraw"})
             else:
-                pass   # results_window は後で実装
+                pass   # ResultsWindow は後で実装
 
     # --------------- odds subprocess 起動 -----------------
     def _start_odds_proc(self):
@@ -748,12 +748,12 @@ class RaceWindow(tk.Toplevel):
             self.bt_toggle_sub.config(text=" Ｒesults ")
             if self.sub_window[0]:
                 self._minimize_odds_proc()
-                # results_window は後で実装
+                # ResultsWindow は後で実装
         else:
             self.sub_window[1] = 0
             self.bt_toggle_sub.config(text=" ОＤＤＳ ")
             if self.sub_window[0]:
-                # results_window を終了して odds を起動
+                # ResultsWindow を終了して OddsWindow を起動
                 self._start_odds_proc()
 
     # ==================== 表示/更新 エントリー ======================
