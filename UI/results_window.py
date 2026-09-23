@@ -19,18 +19,19 @@ VENUES = [ "", "桐生", "戸田", "江戸川", "平和島", "多摩川", "浜�
 FRM_BG = {1:"#FFFFFF", 2:"#333333", 3:"#D40000", 4:"#0066CC", 5:"#FFD400", 6:"#008A2E"}
 FRM_FG = {1:"#000000", 2:"#FFFFFF", 3:"#FFFFFF", 4:"#FFFFFF", 5:"#000000", 6:"#FFFFFF"}
 
+MAIN_BG    = "#F0F4FA"
 FAULT_FG   = "#D40000"
 ABSENT_BG  = "#CCCCCC"
 NAME_BG    = "#FFFFFF"
 PANEL_BG   = "#F0F4FA"
 HDR_BG     = "#2B4A7A"
 HDR_FG     = "#FFFFFF"
-TBL_HDR_BG = "#2B4A7A"
+TBL_HDR_BG = "#2F75B5"
 TBL_HDR_FG = "#FFFFFF"
-BAR_COLOR  = "#4472C4"
+BAR_COLOR  = "#0069D5"
 BAR_TRACK  = "#f7f9ff" #"#ebeef5""#E4E9F5"
 
-RESERVED_TOP_H = 300
+RESERVED_TOP_H = 330
 
 LBL_W  = 50     # レース番号ラベル 列幅
 BOAT_W = 160    # 艇番+選手名 セル幅
@@ -40,7 +41,7 @@ ROW_H  = 50     # レース行 高さ
 SUM_LBL_W   = 70    # コース別分布表 左端ラベル列幅
 SUM_COL_W   = 170   # コース別分布表 データ列幅
 SUM_ROW_H   = 50    # コース別分布表 行高さ
-BAR_TRACK_W = 160   # 棒グラフ トラック幅
+BAR_TRACK_W = 165   # 棒グラフ トラック幅
 BAR_H       = 12    # 棒グラフ 高さ
 
 #===============================================================================
@@ -122,11 +123,11 @@ class ResultsWindow(tk.Tk):
         # ヘッダー
         hdr = cFr(self, bg=HDR_BG, H=36) ;hdr._pack(fill="x", side="top")
 
-        # 将来のボタン等追加用の余白(上部)
+        # 将来の追加用の余白(上部)
         cFr(self, bg=PANEL_BG, H=RESERVED_TOP_H)._pack(fill="x", side="top")
 
         self.lbl_title = cLbl(hdr, text="", bg=HDR_BG, fg=HDR_FG, font=(MUI,9,BD))
-        self.lbl_title._pack(side="left", px=10, py=6)
+        self.lbl_title._pack(side="left", px=10, py=5)
 
         cBtn( hdr, text=" 更   新 ", Com=self._on_refresh, bg="#4A7ACC", fg="white",
                   font=(GUI,9,BD), Rel=RA, px=8 )._pack(side="right", px=10, py=4)
@@ -134,7 +135,7 @@ class ResultsWindow(tk.Tk):
         body = cFr(self, bg=PANEL_BG) ;body._pack(fill="both", expand=True)
 
         self.top_frame    = cFr(body, bg=PANEL_BG)
-        self.top_frame._pack(fill="x", side="top", py=(20,20))
+        self.top_frame._pack(fill="x", side="top", py=(10,10))
 
         self.bottom_frame = cFr(body, bg=PANEL_BG)
         self.bottom_frame._pack(fill="both", Exp=True, side="top", py=(10,10))
@@ -256,26 +257,27 @@ class ResultsWindow(tk.Tk):
     # ---------------- 下部: コース別着順分布 ----------------
     def _render_course_summary(self, parent):
 
-        grid_fr = cFr(parent, bg=PANEL_BG) ;grid_fr._pack(side="top")
+        grid_fr = cFr(parent, bg=PANEL_BG, Bd=(1,SD)) ;grid_fr._pack(side="top")
 
-        grid_fr.grid_columnconfigure(0, minsize=SUM_LBL_W)
+        grid_fr.Cconf(0, Min=SUM_LBL_W)
+
         for c in range(1, 7):
-            grid_fr.grid_columnconfigure(c, minsize=SUM_COL_W)
+            grid_fr.Cconf(c, Min=SUM_COL_W)
 
-        grid_fr.grid_rowconfigure(0, minsize=30)
+        grid_fr.Rconf(0, Min=30)
 
-        cLbl(grid_fr, text="")._grid(R=0, C=0, Stk=ALL)
+        cLbl(grid_fr, text="", bg=TBL_HDR_BG, Bd=(1,RA))._grid(R=0, C=0, Stk=ALL)
         for course in range(1, 7):
             cLbl( grid_fr, text=f"{course} コース", bg=TBL_HDR_BG, fg=TBL_HDR_FG,
-                       font=(MUI,9,BD), Anc=CT, Bd=(1,SD) )._grid(R=0, C=course, Stk=ALL)
+                       font=(MUI,9,BD), Anc=CT, Bd=(1,RD) )._grid(R=0, C=course, Stk=ALL)
 
         n_races = self.finished_races
 
         for rank in range(1, 7):
-            grid_fr.grid_rowconfigure(rank, minsize=SUM_ROW_H)
+            grid_fr.Rconf(rank, Min=SUM_ROW_H)
 
             cLbl( grid_fr, text=f"{rank} 着", bg=TBL_HDR_BG, fg=TBL_HDR_FG, font=(MUI,9),
-                            Anc=CT, Bd=(1,SD) )._grid(R=rank, C=0, Stk=ALL)
+                            Anc=CT, Bd=(1,RD) )._grid(R=rank, C=0, Stk=ALL)
 
             for course in range(1, 7):
                 cnt = self.course_rank_cnt.get((course, rank), 0)
@@ -285,7 +287,7 @@ class ResultsWindow(tk.Tk):
     # ---------------------------------
     def _render_pct_cell(self, parent, grid_row, grid_col, pct):
 
-        cell = cFr(parent, bg="#FFFFFF", Bd=(1,SD))
+        cell = cFr(parent, bg="#FFFFFF", Bd=(1,GR))
         cell._grid(R=grid_row, C=grid_col, Stk=ALL)
 
         bar_track = cFr(cell, bg=BAR_TRACK, W=BAR_TRACK_W, H=BAR_H)
@@ -296,8 +298,8 @@ class ResultsWindow(tk.Tk):
         if bar_w > 0:
             cFr(bar_track, bg=BAR_COLOR, W=bar_w, H=BAR_H)._pack(side="left", fill="y")
 
-        cLbl(cell, text=f"{pct:.0f} %", bg="#FFFFFF", font=(MUI,9))._pack(py=(0,6))
-
+        txt = f"{pct:.0f} %" if pct else "" 
+        cLbl(cell, text=txt , bg="#FFFFFF", font=(MUI,9))._pack(py=(0,6))
 
 #=================== エントリポイント ======================
 def main():

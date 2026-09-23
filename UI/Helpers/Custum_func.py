@@ -9,16 +9,18 @@ MAIN_BG  = "#F0F4FA"
 # カスタム短縮表記フレーム(tk) -----------------------------
 class cFr(tk.Frame):
     def __init__( self, master=None, *, Rel=None, W=None, H=None, Bd=None, bg=None,
-                                                         px=None, py=None, **kwargs ):
+                                   hlbg=None, hlth=None, px=None, py=None, **kwargs ):
 
-        if W   is not None: kwargs['width']      = W
-        if H   is not None: kwargs['height']     = H
-        if Rel is not None: kwargs['relief']     = Rel
-        if Bd  is not None: kwargs['bd']         = Bd[0]; kwargs['relief'] = Bd[1]
-        if bg  is not None: kwargs['background'] = bg
-        else:               kwargs['background'] = MAIN_BG
-        if px  is not None: kwargs['padx']       = px
-        if py  is not None: kwargs['pady']       = py
+        if W    is not None: kwargs['width']               = W
+        if H    is not None: kwargs['height']              = H
+        if Rel  is not None: kwargs['relief']              = Rel
+        if Bd   is not None: kwargs['bd']                  = Bd[0];kwargs['relief'] = Bd[1]
+        if bg   is not None: kwargs['background']          = bg
+        else:                kwargs['background']          = MAIN_BG
+        if hlbg is not None: kwargs['highlightbackground'] = hlbg
+        if hlth is not None: kwargs['highlightthickness']  = hlth
+        if px   is not None: kwargs['padx']                = px
+        if py   is not None: kwargs['pady']                = py
 
         super().__init__(master, **kwargs)
 
@@ -28,16 +30,18 @@ class cFr(tk.Frame):
         self.grid_propagate(False)
 
     # ------------------------
-    def Cconf(self, col, W=None, **kwargs):
+    def Cconf(self, col, W=None, Min=None, **kwargs):
        
-        if W is not None: kwargs['weight'] =W
+        if W   is not None: kwargs['weight']  = W
+        if min is not None: kwargs['minsize'] = Min
 
         self.grid_columnconfigure(col, **kwargs)
 
     # ------------------------
-    def Rconf(self, row, W=None, **kwargs):
+    def Rconf(self, row, W=None, Min=None, **kwargs):
        
-        if W is not None: kwargs['weight'] =W
+        if W   is not None: kwargs['weight']  = W
+        if min is not None: kwargs['minsize'] = Min
 
         self.grid_rowconfigure(row, **kwargs)
 
@@ -67,17 +71,19 @@ class cFr(tk.Frame):
 # カスタム短縮表記ラベル -----------------------------------
 class cLbl(tk.Label):
     def __init__( self, master=None, *, Anc=None, W=None, H=None, Bd=None, Rel=None,
-                                                 px=None, py=None, bg=None, **kwargs ):
+                            hlbg=None, hlth=None, px=None, py=None, bg=None, **kwargs ):
 
-        if W   is not None: kwargs['width']      = W
-        if H   is not None: kwargs['height']     = H
-        if Anc is not None: kwargs['anchor']     = Anc
-        if Bd  is not None: kwargs['bd']         = Bd[0]; kwargs['relief'] = Bd[1]
-        if Rel is not None: kwargs['relief']     = Rel
-        if bg  is not None: kwargs['background'] = bg
-        else:               kwargs['background'] = MAIN_BG
-        if px  is not None: kwargs['padx']       = px
-        if py  is not None: kwargs['pady']       = py
+        if W    is not None: kwargs['width']               = W
+        if H    is not None: kwargs['height']              = H
+        if Anc  is not None: kwargs['anchor']              = Anc
+        if Bd   is not None: kwargs['bd']                  = Bd[0];kwargs['relief'] = Bd[1]
+        if Rel  is not None: kwargs['relief']              = Rel
+        if bg   is not None: kwargs['background']          = bg
+        else:                kwargs['background']          = MAIN_BG
+        if hlbg is not None: kwargs['highlightbackground'] = hlbg
+        if hlth is not None: kwargs['highlightthickness']  = hlth
+        if px   is not None: kwargs['padx']                = px
+        if py   is not None: kwargs['pady']                = py
 
         super().__init__(master, **kwargs)
 
@@ -87,16 +93,18 @@ class cLbl(tk.Label):
         self.grid_propagate(False)
 
     # ------------------------
-    def Cconf(self, col, W=None, **kwargs):
+    def Cconf(self, col, W=None, Min=None, **kwargs):
        
-        if W is not None: kwargs['weight'] =W
+        if W   is not None: kwargs['weight']  = W
+        if min is not None: kwargs['minsize'] = Min
 
         self.grid_columnconfigure(col, **kwargs)
 
     # ------------------------
-    def Rconf(self, row, W=None, **kwargs):
+    def Rconf(self, row, W=None, Min=None, **kwargs):
        
-        if W is not None: kwargs['weight'] =W
+        if W   is not None: kwargs['weight']  = W
+        if min is not None: kwargs['minsize'] = Min
 
         self.grid_rowconfigure(row, **kwargs)
 
