@@ -52,18 +52,23 @@ HDR_COLOR  = "#d0e3ff"
 BG_COLOR   = "#e9f1f2"
 
 # ------------------
-def jst_today() -> date:
+def date_today() -> date:
+
     JST = timezone(timedelta(hours=9))
+
     return dt.now(JST).date()
 # ------------------
-def today_iso() -> str:
-    return jst_today().strftime("%Y-%m-%d")
+def _str(d:date) -> str:
+
+    return d.strftime("%Y-%m-%d")
 # ------------------
 def wid_txt(s:str) -> str:
+
     hair = "\u200A"
     return hair.join(list(s))
+
 # --------------------------------------------------------------------
-def build_day_lbl(on_day:str, venue_id:int):
+def build_day_lbl(on_day:date, venue_id:int):
 
     row = dal.fetch_one(
         """
@@ -73,13 +78,12 @@ def build_day_lbl(on_day:str, venue_id:int):
            AND venue_id = ?
          LIMIT 1
         """,
-        (on_day, venue_id))
+        (_str(on_day), venue_id))
 
     series_title = row[0]
-    max_d = (date.fromisoformat(on_day) - timedelta(days=10)).strftime("%Y-%m-%d")
+    max_d        = on_day -timedelta(days=10)
 
-    dates = dal.fetch_all(
-        """
+    dates = dal.fetch_all("""
         SELECT DISTINCT date
           FROM Race_programs
          WHERE venue_id     = ?
@@ -87,14 +91,14 @@ def build_day_lbl(on_day:str, venue_id:int):
            AND date BETWEEN ? AND ?
       ORDER BY date ASC
         """,
-        (venue_id, series_title, max_d, on_day))
+        (venue_id, series_title, _str(max_d), _str(on_day)))
 
     candidates = [r[0] for r in dates]
     if not candidates: return [], []
 
     placeholders = ",".join("?" * len(candidates))
-    held_rows = dal.fetch_all(
-        f"""
+
+    held_rows = dal.fetch_all(f"""
         SELECT date, COUNT(1) AS cnt
           FROM Races
          WHERE venue_id = ?
@@ -104,27 +108,26 @@ def build_day_lbl(on_day:str, venue_id:int):
         """,
         (venue_id, *candidates))
 
-    held_dates = {r[0]: int(r[1]) for r in held_rows}
+    held_dates = {r[0]:int(r[1]) for r in held_rows}
     meta       = []
 
     for d in candidates:
         held_race  = held_dates.get(d, 0)
         digested   = (held_race >= 6)
-        visible    = True if d == on_day else (held_race > 0)
-        meta.append( {
-            "date"      : d,
-            "held_race" : held_race,
-            "digested"  : digested,
-            "visible"   : visible,
-            "final_day" : False,           } )
+        visible    = True if d == _str(on_day) else (held_race > 0)
+        meta.append( {      "date":d,
+                       "held_race":held_race,
+                        "digested":digested,
+                         "visible":visible,
+                       "final_day":False,     } )
 
     label_no      = 0
     prev_digested = False
 
     for i, item in enumerate(meta):
-        if i == 0: label_no = 1
-        else:
-            if prev_digested: label_no += 1
+        if i == 0:           label_no  = 1
+        elif prev_digested:  label_no += 1
+
         item["label_no"] = label_no
         prev_digested    = item["digested"]
 
@@ -132,8 +135,7 @@ def build_day_lbl(on_day:str, venue_id:int):
         last      = meta[-1]
         last_date = last["date"]
 
-        rows = dal.fetch_all(
-            """
+        rows = dal.fetch_all("""
             SELECT DISTINCT race_title
               FROM Race_programs
              WHERE date     = ?
@@ -220,7 +222,7 @@ def get_results(_date:str, base_day:str, race_no:int, venue_id:int, player_id:in
     return left, right
 
 # ==========================================================
-def get_other_race(date_: date, venue_id: int, player_id: int, race_no: int):
+def get_other_race(_date:date, venue_id:int, player_id:int, race_no:int):
 
     rows = dal.fetch_all(
         """
@@ -231,7 +233,7 @@ def get_other_race(date_: date, venue_id: int, player_id: int, race_no: int):
            AND player_id = ?
       ORDER BY Race_programs.race_no ASC
         """,
-        (date_, venue_id, player_id)) or []
+        (_date, venue_id, player_id)) or []
 
     cand = [0, 0]
     if len(rows) < 2: return cand
@@ -242,13 +244,13 @@ def get_other_race(date_: date, venue_id: int, player_id: int, race_no: int):
     return cand
 
 # ================ Right: 日程ヘッダ表示/更新 ==============
-def update_series_idx(self, date: str, v_id: int, r_no: int):
+def update_series_idx(self, _date:date, v_id:int, r_no:int):
 
-    self.date     = date
+    self.date     = _str(_date)
     self.venue_id = v_id
     self.race_no  = r_no
     self.lineup   = get_lineup(self.entry_rows)
-    _, self.slots = build_day_lbl(self.date, self.venue_id)
+    _, self.slots = build_day_lbl(_date, self.venue_id)
     today_idx     = sum(1 for n in range(7) if self.slots[n]) -1
 
     for lane in range(1, 7):
@@ -279,7 +281,7 @@ def _assign_series_idx(self):
     dates  = []
 
     for lane in range(1, 7):
-        f_no = self.frame_order[lane - 1]
+        f_no = self.frame_order[lane -1]
         pid  = lineup.get(f_no)
         if pid is not None: pids.append(pid)
 
@@ -294,8 +296,7 @@ def _assign_series_idx(self):
     p_ph = ",".join("?" * len(pids))
     d_ph = ",".join("?" * len(dates))
 
-    rows = dal.fetch_all(
-        f"""
+    rows = dal.fetch_all(f"""
         SELECT r.date,
                e.player_id,
                r.race_no,
@@ -314,7 +315,8 @@ def _assign_series_idx(self):
         """,
         (*pids, *dates, self.venue_id))
 
-    result_map: dict[tuple, list] = defaultdict(list)
+    result_map:dict[tuple, list] = defaultdict(list)
+
     for row in rows:
         key = (row["player_id"], row["date"])
         result_map[key].append(row)
@@ -329,22 +331,22 @@ def _assign_series_idx(self):
     def _conv_one(row):
 
         if row is None: return ("", "", "", "", None)
-        race_no_ = row["race_no"]
+        race_no  = row["race_no"]
         fn       = row["frame_no"]
         course   = row["course"]
         slit_adj = row["slit_ADJ"]
         fin_rank = row["finish_rank"]
         fault    = row["fault_code"]
-        A = race_no_                          if race_no_  is not None else ""
-        B = course                            if course    is not None else ""
-        C = (f"{slit_adj:.2f}").strip('-')    if slit_adj  is not None else ""
-        D = fin_rank                          if fin_rank  is not None else (fault or "")
-        E = fn                                if fn                    else None
+        A        = race_no                        if race_no  is not None else ""
+        B        = course                         if course   is not None else ""
+        C        = (f"{slit_adj:.2f}").strip('-') if slit_adj is not None else ""
+        D        = fin_rank                       if fin_rank is not None else (fault or "")
+        E        = fn                             if fn                   else None
 
         return (A, B, C, D, E)
     # --------------
     for lane in range(1, 7):
-        f_no  = self.frame_order[lane - 1]
+        f_no  = self.frame_order[lane -1]
         pid   = lineup.get(f_no)
         cells = self._widgets_main.get(lane).get("R_bdy")
 
@@ -364,28 +366,23 @@ def _assign_series_idx(self):
             _paint_abcd(self, cells[col_R], R[0], R[1], R[2], R[3], _date, f_no=R[4])
 
 # --------------------------------------
-def _paint_abcd(self, cells:list[tk.Frame], r_no, cour, s_adj, fin, date, f_no:int|None):
+def _paint_abcd(self, cells:list[tk.Frame], r_no, cour, s_adj, fin, _date, f_no:int|None):
 
     if not r_no or "": return
 
     col   = FRAME_COLORS[f_no]
     s_adj = s_adj[1:] if s_adj else ""
+    fg    = "red" if fin in ("F", "L", "S", "K") else "black"
 
-    if fin in ("F", "L", "S", "K"):
-        fg_CD = "red" 
-
-    else: 
-        fg_CD = "black"
-
-    lbl = tk.Label(cells[0], text=f"{r_no}R", bg="white", anchor=CT, font=(MUI,8), cursor="hand2")
-    lbl.bind("<Button-1>", lambda e, d=date: self._reload_for(d, self.venue_id, r_no, R=1))
+    lbl = cLbl(cells[0], text=f"{r_no}R", bg="white", Anc=CT, font=(MUI,8), cursor="hand2")
+    lbl.bind("<Button-1>", lambda e:self._reload_for(_date, self.venue_id, r_no, R=1))
     lbl.pack(expand=True, fill="both")
 
-    cLbl( cells[1], text=cour,           fg=col["fg"], bg=col["bg"], Anc=CT, font=(MUI,8,BD)
+    cLbl( cells[1], text=cour,           **col,             Anc=CT, font=(MUI,8,BD)
          )._pack(expand=True, fill="both", px=1)
-    cLbl( cells[2], text=wid_txt(s_adj), fg=fg_CD, bg="white", Anc=CT, font=(MUI,8)
+    cLbl( cells[2], text=wid_txt(s_adj), fg=fg, bg="white", Anc=CT, font=(MUI,8)
          )._pack(expand=True, fill="both")
-    cLbl( cells[3], text=fin, fg=fg_CD, bg="white", Anc=CT, font=(GUI,10,BD)
+    cLbl( cells[3], text=fin,            fg=fg, bg="white", Anc=CT, font=(GUI,10,BD)
          )._pack(expand=True, fill="both")
 
 # ================= Right: 2走インデックス 表示/更新 ==================
@@ -394,22 +391,20 @@ def _assign_other_run(self):
     lineup = self.lineup
 
     for lane in range(1, 7):
-        target = self.frame_order[lane - 1]
+        target = self.frame_order[lane -1]
         pid    = lineup.get(target)
         widgt  = self._widgets_main.get(lane)
         cells  = widgt["R_idx"]
         other  = get_other_race(self.date, self.venue_id, pid, self.race_no)
         if other[0] == 0: continue
-        colors = FRAME_COLORS[other[1]]
 
-        tk.Label( cells[0], text=f"{other[0]}R", anchor="center", font=(GUI,10,BD), bg=BG_COLOR,
-                 ).pack(pady=(25, 0))
+        opts = FRAME_COLORS[other[1]] | dict(font=(GUI,10,BD))
 
-        frno_lbl = tk.Label( cells[1], height=2, text=other[1], anchor="center",
-                             bg=colors["bg"], fg=colors["fg"], font=(GUI,10,BD) )
-        frno_lbl.pack(fill="x", pady=(10, 10))
-
+        cLbl(cells[0], text=f"{other[0]}R", Anc=CT, font=(GUI,10,BD), bg=BG_COLOR)._pack(py=(25,0))
+        cLbl(cells[1], H=2, text=other[1],  Anc=CT, **opts)._pack(fill="x", py=(10,10))
+        #-----------
         def _go(date_iso=self.date, venue_id=self.venue_id, race_no=other[0]):
             self._reload_for(date_iso, venue_id, race_no)
+        #-----------
+        ttk.Button(cells[2], text=">", style="Thin.TButton", command=_go).pack(pady=(0,5))
 
-        ttk.Button(cells[2], text=">", style="Thin.TButton", command=_go).pack(pady=(0, 5))

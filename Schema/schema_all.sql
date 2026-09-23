@@ -198,10 +198,9 @@ CREATE TABLE Display_run(
 );
 
 /*-------------------------------------------------------------------------------------*/
-CREATE TABLE Odds_snapshots(
+CREATE TABLE Odds(
 
-  snapshot_id  INTEGER PRIMARY KEY AUTOINCREMENT,
-
+  odds_id      INTEGER PRIMARY KEY AUTOINCREMENT,
   race_id      INTEGER NOT NULL,
   date         DATE    NOT NULL,
   venue_id     INTEGER NOT NULL,
@@ -209,30 +208,29 @@ CREATE TABLE Odds_snapshots(
 
   bet_type     TEXT    NOT NULL,
   boat1        INTEGER NOT NULL,
-  boat2        INTEGER,
-  boat3        INTEGER,
+  boat2        INTEGER NOT NULL DEFAULT 0,
+  boat3        INTEGER NOT NULL DEFAULT 0,
 
   odds         REAL,
   raw_odds     TEXT,
-  is_absent    INTEGER NOT NULL DEFAULT 0,
+
+  hit          INTEGER NOT NULL DEFAULT 0,
 
   captured_at  DATETIME NOT NULL,
-  is_final     INTEGER NOT NULL DEFAULT 0,
+
+  UNIQUE(race_id, bet_type, boat1, boat2, boat3)
 
   CHECK(bet_type IN ('3T','3F','2T','2F','KK','TT','FF')),
   CHECK(boat1 BETWEEN 1 AND 6),
-  CHECK(boat2 IS NULL OR boat2 BETWEEN 1 AND 6),
-  CHECK(boat3 IS NULL OR boat3 BETWEEN 1 AND 6)
+  CHECK(boat2 IS 0 OR boat2 BETWEEN 1 AND 6),
+  CHECK(boat3 IS 0 OR boat3 BETWEEN 1 AND 6)
 );
 
-CREATE UNIQUE INDEX IF NOT EXISTS uq_odds_snapshot
-    ON Odds_snapshots(date, venue_id, race_no, bet_type, boat1, boat2, boat3, captured_at);
+CREATE UNIQUE INDEX IF NOT EXISTS uq_odds
+    ON Odds(date, venue_id, race_no, bet_type, boat1, boat2, boat3);
 
 CREATE INDEX IF NOT EXISTS idx_odds_race
-    ON Odds_snapshots(date, venue_id, race_no, bet_type);
-
-CREATE INDEX IF NOT EXISTS idx_odds_final
-    ON Odds_snapshots(date, venue_id, race_no, bet_type, is_final);
+    ON Odds(date, venue_id, race_no, bet_type);
 
 /*-------------------------------------------------------------------------------------*/
 CREATE TABLE Summary_ETL(

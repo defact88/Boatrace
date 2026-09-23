@@ -5,9 +5,10 @@ import tkinter as tk
 from Helpers.Custum_func import cFr, cLbl, cBtn
 from Widgets.widgets     import framing_graph, framing_figure
 
-GUI, MUI, HNH      = "Yu Gothic UI", "Meiryo UI", "Helvetica Neue Heavy"
-GR, SD, RD, RA, BD = "groove", "solid", "ridge", "raised", "bold"
-ALL, CT            = "nsew", "center"
+GUI, MUI, HNH, CBR     = "Yu Gothic UI", "Meiryo UI", "Helvetica Neue Heavy", "Cambria"
+GR, SD, RD, RA, SK, BD = "groove", "solid", "ridge", "raised", "sunken", "bold"
+ALL, CT                = "nsew", "center"
+
 SCOL               = "#a5e6ff"
 BG_COL             = "#e9f1f2"
 
@@ -152,7 +153,11 @@ def build_main_placeholder(self, parent:tk.Frame):
 # ==================== プレースホルダ(Sub) =======================
 # ----------------------------------------------------------------
 def build_sub_placeholder(self, parent:tk.Frame): #  1188  318
-
+    #---------------
+    def reset_figure():
+        if hasattr(fr_figA, "reset_figure"):
+            fr_figA.reset_figure()
+    #---------------
     self.s_lane = 0
 
     fr_Hedr  = cFr(parent, W=1200, H= 45)
@@ -179,10 +184,25 @@ def build_sub_placeholder(self, parent:tk.Frame): #  1188  318
     fr_para = cFr(fr_hdrR, W= 92, H= 43, bg=BG_COL) ;fr_para._grid(R=0, C=2) ;fr_para.Pgate()
     fr_wdir = cFr(fr_hdrR, W= 51, H= 43, bg=BG_COL) ;fr_wdir._grid(R=0, C=3) ;fr_wdir.Pgate()
 
-    fr_btnA = cFr(fr_pnel, W=383, H= 22, Bd=(1,GR)) ;fr_btnA._grid(R=0, C=0) ;fr_btnA.Pgate()
-    fr_btnB = cFr(fr_pnel, W=383, H= 21, Bd=(1,GR)) ;fr_btnB._grid(R=1, C=0) ;fr_btnB.Pgate()
-    fr_btA1 = cFr(fr_btnA, W= 60, H= 22, Bd=(1,GR)) ;fr_btA1._grid(R=0, C=0) ;fr_btA1.Pgate()
-    self.bt_ctw = cBtn(fr_btA1, W=50, H=19, text="", Bd=(1,RA)) ;self.bt_ctw._grid(R=0, C=0)
+    fr_btnA = cFr(fr_pnel, W=383, H= 22, Bd=(1,SK)) ;fr_btnA._grid(R=0, C=0) ;fr_btnA.Pgate()
+    fr_btnB = cFr(fr_pnel, W=383, H= 21, Bd=(1,SK)) ;fr_btnB._grid(R=1, C=0) ;fr_btnB.Pgate()
+
+    self.bt_ctw = cFr(fr_btnA, W=383, H= 22)
+    self.bt_rst = cBtn( fr_btnB, W=8, H=1, font=(MUI,9), Bd=(1,RA), bg="#e1f2ff",
+                        text="Reset",      Com=reset_figure                       )
+    self.bt_fly = cBtn( fr_btnB, W=8, H=1, font=(MUI,8), Bd=(1,SK), bg="#F1EE62",
+                        text="Flying",     Com=lambda:_switch_flying(self)          )
+    self.bt_nfl = cBtn( fr_btnB, W=8, H=1, font=(MUI,8), Bd=(1,SK), bg="#F1EE62",
+                        text="NotFlying", Com=lambda:_switch_not_flying(self)      )
+    self.bt_exE = cBtn( fr_btnB, W=8, H=1, font=(MUI,8), Bd=(1,SK),
+                        bg="#F1EE62" if self.venue_id != 3 else "#dfdfdf",
+                        text="江戸川除外", Com=lambda:_exclude_edogawa(self)      )
+
+    self.bt_ctw._grid(R=0, C=0)
+    self.bt_rst._grid(R=0, C=0)
+    self.bt_fly._grid(R=0, C=1, px=(5,0))
+    self.bt_nfl._grid(R=0, C=2)
+    self.bt_exE._grid(R=0, C=3)
 
     fr_venA.Rconf(0, W=1) ;fr_venA.Cconf(0, W=1)
     fr_venA.Rconf(1, W=1)
@@ -205,7 +225,7 @@ def build_sub_placeholder(self, parent:tk.Frame): #  1188  318
     lb_deadl = cLbl(fr_clok, font=(MUI, 9   ), bg="white",   Bd=(1,GR))
     lb_now   = cLbl(fr_clok, font=(MUI, 9   ), bg="white",   Bd=(1,GR))
     lb_last  = cLbl(fr_last, font=(GUI,10   ), bg="#f8f8f8"           )
-    lb_vname .bind("<Button-1>",lambda e, v=self.venue_id: self.app.open_v_analys(v))
+    lb_vname.bind("<Button-1>",lambda e:self.app.open_v_analys(self.venue_id))
 
     lb_vname._grid(R=0, C=0, Stk=ALL)
     lb_w_typ._grid(R=1, C=0, Stk=ALL)
@@ -217,16 +237,16 @@ def build_sub_placeholder(self, parent:tk.Frame): #  1188  318
 
     cLbl(fr_venB, text="モーター更新後", font=(MUI,8), bg=BG_COL, Bd=(1,GR))._grid(R=0, C=0, Stk=ALL)
     cLbl(fr_venB, text=" ボート 更新後", font=(MUI,8), bg=BG_COL, Bd=(1,GR))._grid(R=1, C=0, Stk=ALL)
-    cLbl(fr_clok, text="締 切",        font=(MUI,8), bg=BG_COL, Bd=(1,GR))._grid(R=0, C=0, Stk=ALL)
-    cLbl(fr_clok, text="現 在",        font=(MUI,8), bg=BG_COL, Bd=(1,GR))._grid(R=1, C=0, Stk=ALL)
+    cLbl(fr_clok, text="締 切",          font=(MUI,8), bg=BG_COL, Bd=(1,GR))._grid(R=0, C=0, Stk=ALL)
+    cLbl(fr_clok, text="現 在",          font=(MUI,8), bg=BG_COL, Bd=(1,GR))._grid(R=1, C=0, Stk=ALL)
 
     lb_wspd = cLbl(fr_para, font=(MUI,10), bg=BG_COL) ;lb_wspd._grid(R=0, C=0, Stk=ALL)
     lb_wave = cLbl(fr_para, font=(MUI,10), bg=BG_COL) ;lb_wave._grid(R=1, C=0, Stk=ALL)
-    lb_stab = cLbl(fr_info, font=(MUI, 9), Bd=(1,GR))   ;lb_stab._grid(R=0, C=0, Stk=ALL)
-    lb_shlp = cLbl(fr_info, font=(MUI, 9), Bd=(1,GR))   ;lb_shlp._grid(R=1, C=0, Stk=ALL)
+    lb_stab = cLbl(fr_info, font=(MUI, 9), Bd=(1,GR)) ;lb_stab._grid(R=0, C=0, Stk=ALL)
+    lb_shlp = cLbl(fr_info, font=(MUI, 9), Bd=(1,GR)) ;lb_shlp._grid(R=1, C=0, Stk=ALL)
 
-    bt_fig1 = cBtn(fr_btnf, text=f"展 示", font=(MUI,8), Com=lambda :self._update_sub_entries(0))
-    bt_fig2 = cBtn(fr_btnf, text=f"結 果", font=(MUI,8), Com=lambda :self._update_sub_entries(1))
+    bt_fig1 = cBtn(fr_btnf, text=f"展 示", font=(MUI,8), Com=lambda:self._update_sub_entries(0))
+    bt_fig2 = cBtn(fr_btnf, text=f"結 果", font=(MUI,8), Com=lambda:self._update_sub_entries(1))
 
     bt_fig1.place(x=0, y= 1, width=70, height=20)
     bt_fig2.place(x=0, y=22, width=70, height=20)
@@ -301,9 +321,9 @@ def build_sub_placeholder(self, parent:tk.Frame): #  1188  318
         lb_rpr2._grid(R=1, C=0, Stk=ALL)
         lb_rpr3._grid(R=2, C=0, Stk=ALL)
 
-        bt_sbj = cBtn( fr_botn, text= f">", font=(MUI,8,BD), Rel=RA,
+        bt_sbj = cBtn( fr_botn, text= "", font=(MUI,8,BD), Rel=RA, bg="#dfdfdf",
                                   Com=lambda L=ln:_graph(self, fr_grph, L) )
-        bt_sbj.place(x=2, y=(ln -1) *44 +3, width=13, height=33)
+        bt_sbj.place(x=4, y=(ln -1) *44 +5, width=13, height=32)
         # ----------------
         def _press(ev, ln=ln):
             w              = self._widgets_sub[ln]["frno"]
@@ -340,11 +360,12 @@ def build_sub_placeholder(self, parent:tk.Frame): #  1188  318
                              "vname":lb_vname,  "w_typ":lb_w_typ,  "upd_m":lb_upd_m,
                              "upd_b":lb_upd_b,  "deadl":lb_deadl,    "now":lb_now,
                               "last":lb_last, "bt_fig1":bt_fig1, "bt_fig2":bt_fig2,  }
+
 # ----------------------------------------------------------------
 def _graph(self, f, s_lane):
 
     if self.s_lane == s_lane:
-        self._widgets_sub[s_lane]["bt_sbj"].config(bg="#E1E1E1", relief=RA) # 非選択
+        self._widgets_sub[s_lane]["bt_sbj"].config(bg="#dfdfdf", relief=RA) # 非選択
         self.s_lane = 0 
     else: 
         self._widgets_sub[s_lane]["bt_sbj"].config(bg="#F1EE62", relief=RD) # 選択中
@@ -353,3 +374,31 @@ def _graph(self, f, s_lane):
         self.s_lane = s_lane
 
     framing_graph(self, f, self.frame_order, self.data_rows, rows2=self.overall, s_lane=self.s_lane)
+# ----------------------------------------------------------------
+def _switch_flying(self):
+
+    self.flying = not self.flying
+
+    if self.flying: self.bt_fly.config(bg="#F1EE62", relief=SK)
+    else:           self.bt_fly.config(bg="#dfdfdf", relief=RA)
+
+    self._reload_for(self.date, self.venue_id, self.race_no)
+
+# ----------------------------------------------------------------
+def _switch_not_flying(self):
+
+    self.not_flying = not self.not_flying
+
+    if self.not_flying: self.bt_nfl.config(bg="#F1EE62", relief=SK)
+    else:               self.bt_nfl.config(bg="#dfdfdf", relief=RA)
+
+    self._reload_for(self.date, self.venue_id, self.race_no)
+# ----------------------------------------------------------------
+def _exclude_edogawa(self):
+
+    self.exclude_edo = not self.exclude_edo
+
+    if self.exclude_edo: self.bt_exE.config(bg="#F1EE62", relief=SK)
+    else:                self.bt_exE.config(bg="#dfdfdf", relief=RA)
+
+    self._reload_for(self.date, self.venue_id, self.race_no)

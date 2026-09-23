@@ -104,6 +104,9 @@ class PlayerAnalysisScreen(tk.Toplevel):
         self.title("")
         self.geometry("1201x970+750+200")
         self.resizable(False, False)
+        style = ttk.Style()
+        style.configure("r.TButton",    font=(MUI,9), anchor="center")
+        style.configure("dist.TButton", font=(MUI,8), width=7, anchor="center")
 
         self.date_from  = date.today()
         self.date_to    = date.today()
@@ -118,7 +121,7 @@ class PlayerAnalysisScreen(tk.Toplevel):
         self.course      = cou
         self.rank        = 0
         self.dist_refs   = {}
-        self.disp        = 0
+        self.disp        = 1
         self.player_id   = p_id
         self.venue_id    = v_id
         self.period      = 12
@@ -144,7 +147,7 @@ class PlayerAnalysisScreen(tk.Toplevel):
                              "fresh_water":("water_type", "淡水"),
                                    "river":("water_type", "河川"),
                                 "brackish":("brackish",   "汽水"),
-                              "has_flying":("flying", "__DYN_FLYING__"), }
+                              "has_flying":("flying",       True),      }
 
         self._build_ui()
         self._load_player_basic(self.player_id)
@@ -189,8 +192,8 @@ class PlayerAnalysisScreen(tk.Toplevel):
         fr_Tbtn  = cFr(fr_grph, W= 480, H= 35)   # 単値/累積値切り替えボタン
 
         fr_info  = cFr(self.bar,W= 320, H= 25)
-        self.win = cFr(fr_botm, W= 860, H=250)
-        self.achievement = cFr(fr_botm, W=321, H=250)
+        self.win = cFr(fr_botm, W= 800, H=250)
+        self.achievement = cFr(fr_botm, W=380, H=250)
 
         fr_root._grid( R=0, C=0, px=10,     py=( 0,10))  ; fr_root.Pgate()
         fr_main._grid( R=0, C=0                       )  ; fr_main.Pgate()
@@ -220,12 +223,12 @@ class PlayerAnalysisScreen(tk.Toplevel):
                             bg=HDR_COL, font=(MUI,9), Anc=CT      )
         lbl_ach_hdr._grid(R=0, C=0, py=(0,3), Stk=ALL)
 
-        fr_ach_body = cFr(self.achievement, W=321, H=222)
+        fr_ach_body = cFr(self.achievement, W=380, H=222)
         fr_ach_body._grid(R=1, C=0) ; fr_ach_body.Pgate()
 
-        self.ach_canvs = tk.Canvas(fr_ach_body, width=302, height=222, highlightthickness=0)
+        self.ach_canvs = tk.Canvas(fr_ach_body, width=360, height=222, highlightthickness=0)
         self.ach_sbar  = tk.Scrollbar(fr_ach_body, orient="vertical", command=self.ach_canvs.yview)
-        self.ach_list  = tk.Frame(self.ach_canvs, width=302, height=222)
+        self.ach_list  = tk.Frame(self.ach_canvs, width=360, height=222)
 
         self.ach_canvs.configure(yscrollcommand=self.ach_sbar.set)
 
@@ -777,7 +780,6 @@ class PlayerAnalysisScreen(tk.Toplevel):
                           2: dict(text=rank, fg=fcolr, bg=bg,      font=(GUI,10,BD) ), }
 
                 if item["is_fnl"]: opt[2]["font"] = (GUI,11,BD)
-                #if item["prefnl"]: opt[2]["font"] = (GUI,11)
 
                 for row in range(3):
                     fr_cell = cFr(fr_grid, bg=bg if row == 2 else "white", W=25, H=28, Bd=(1,GR))
@@ -793,9 +795,28 @@ class PlayerAnalysisScreen(tk.Toplevel):
 
         for w in self.ach_list.winfo_children(): w.destroy()
 
-        q    = Query(date(2005, 1, 1).isoformat(), date.today().isoformat())
-        rows = q._query_victory(self.player_id)
+        sql = """
+            SELECT e.date,
+                   r.venue_id,
+                   r.grade,
+                   r.series_title
+
+              FROM Race_entries e
+              JOIN Races r
+                ON e.race_id  = r.race_id
+             WHERE e.player_id   = ?
+               AND e.finish_rank = 1
+               AND r.grade      IN (2, 3, 4, 5)
+               AND r.is_final    = 1
+               AND r.status      = 'held'
+               AND e.date BETWEEN ? AND ?
+          ORDER BY e.date DESC
+              """
+        params       = (self.player_id, date(2005, 1, 1).isoformat(), self.date_to)
+        rows         = dal.fetch_all(sql, params) or []
+
         grade_color  = ["black", "black", "black", "blue", "blue", "red"]
+
         for r, row in enumerate(rows):
 
             d_disp = self._to_date(row["date"]).strftime("%y/%m/%d")
@@ -804,11 +825,12 @@ class PlayerAnalysisScreen(tk.Toplevel):
             title  = row["series_title"]
             bg     = "white" if r %2 == 0 else "#EFEFEF"
             fg     = grade_color[int(row["grade"])]
+
             #for word in ("Ｇ２", "ＧＩ", "Ｇ１", "ＰＧ１", "ＳＧ"):
                 #title = title.replace(word, "")
             #title  = title.strip()
 
-            fr_row = cFr(self.ach_list, W=302, H=24, bg=bg)
+            fr_row = cFr(self.ach_list, W=360, H=24, bg=bg)
             fr_row._grid(R=r, C=0, Stk=ALL) ; fr_row.Pgate()
 
             fr_row.Cconf(3, W=1)
@@ -829,11 +851,19 @@ class PlayerAnalysisScreen(tk.Toplevel):
 
         for w in self.win.winfo_children(): w.destroy()
 
-        fr_left  = cFr(self.win, W=530, H=250)
+        fr_left  = cFr(self.win, W=440, H=250)
         fr_right = cFr(self.win, W=330, H=250)
 
+        for r in range(7):
+            fr_left.Rconf(r, minsize=30)
+            fr_right.Rconf(r, minsize=30)
+            for c in range(7):
+                fr_left.Cconf(c, minsize=55)
+                if c <= 5:
+                    fr_right.Cconf(c, minsize=55)
+
         fr_left._grid( R=0, C=0, py=(20,0))  ;fr_left.Pgate()
-        fr_right._grid(R=0, C=1, py=(22,0)) ;fr_right.Pgate()
+        fr_right._grid(R=0, C=1, py=(20,0)) ;fr_right.Pgate()
 
         self.dist_refs = {   "fr_left": fr_left, "fr_right": fr_right,
                             "rank_btn": {}, "cells": {}, "move_cells": {},
@@ -845,24 +875,24 @@ class PlayerAnalysisScreen(tk.Toplevel):
                                           ("抜き",       "抜き"),
                                           ("恵まれ",     "恵まれ"),    ],  }
 
-        self.totl = cLbl(fr_left, text="", width=8, font=(MUI,9,BD), bg="#cce8ff", Bd=(1,GR))
-        self.totl._grid(R=0, C=0, px=1, py=1, Stk=ALL)
-        self.totl.bind("<Button-1>",lambda e:self._change_disp())
+        self.lb_totl = cLbl(fr_left, text="", font=(MUI,8,BD), bg="#cce8ff", Bd=(1,RA))
+        self.lb_totl._grid(R=0, C=0, px=1, py=1, Stk=ALL)
+        self.lb_totl.bind("<Button-1>",lambda e:self._change_disp())
 
         for rk in range(1, 7):
-            rbtn = ttk.Button( fr_left, text=f"{rk} 着", width=9, style="r.TButton",
+            rbtn = ttk.Button( fr_left, text=f"{rk} 着", style="dist.TButton",
                                command=lambda _rk=rk: self._toggle_subject_rank(_rk) )
             rbtn.grid(row=0, column=rk, padx=1, pady=1, sticky=tk.NSEW)
             self.dist_refs["rank_btn"][rk] = rbtn
 
         for c in range(1, 7):
-            cbtn = ttk.Button( fr_left, text=f"{c}コース", width=7, style="r.TButton",
+            cbtn = ttk.Button( fr_left, text=f"{c}コース", style="dist.TButton",
                                command=lambda _c=c:self._on_subject_course_btn(_c)   )
             cbtn.grid(row=c, column=0, padx=(0, 1), pady=0, sticky=tk.NSEW)
             self.dist_refs["course_btn"][c] = cbtn
 
             for rk in range(1, 7):
-                cell = cLbl(fr_left, text="", width=9, Bd=(1,RD), Anc="e", py=6)
+                cell = cLbl(fr_left, text="", Bd=(1,RD), Anc=CT, py=0)
                 cell._grid(R=c, C=rk, Stk=ALL)
                 self.dist_refs["cells"][(c, rk)] = cell
 
@@ -902,58 +932,77 @@ class PlayerAnalysisScreen(tk.Toplevel):
             else:            b.state(["!pressed"])
 
         total = own_cnt[subj_c][subj_r] if subj_r else starts[subj_c]
-        self.totl.configure(text=f"{total}")
+        self.lb_totl.config(text=f"{total}")
 
         for c in range(1, 7):
             vt = 0
             for rk in range(1, 7):
                 cell = self.dist_refs["cells"][(c, rk)]
 
-                if   rk == 1: bg="white"   ;f=(MUI,8,BD)
-                elif rk <= 3: bg="white"   ;f=(MUI,8)
-                else:         bg="#e9e6e6" ;f=(MUI,8)
+                if rk <= 3: bg="white"
+                else:       bg="#e9e6e6"
 
                 if c  == subj_c and ((subj_r == 0) or (subj_r != 0 and rk == subj_r)):
                     bg = "#cce8ff"
                     v  = own_cnt[subj_c][rk]
+                elif subj_r == 0:
+                    v = oth_cnt[subj_c][c][rk]
                 else:
-                    if subj_r == 0: v = oth_cnt[subj_c][c][rk]
-                    else:           v = oth_by[subj_c][subj_r][c][rk]
+                    v = oth_by[subj_c][subj_r][c][rk]
+
+                if self.disp == 1:
+                    if rk == 1: f=(MUI,9,BD)
+                    else:       f=(MUI,9)
+                else:
+                    if rk == 1: f=(MUI,8,BD)
+                    else:       f=(MUI,8)
+
                 vt += v
-                if v: text = f"{v}  " if self.disp else f"{(vt / total *100):.1f} % "
+                if v: text = f"{v}" if self.disp else f"{(vt / total *100):.1f}"
                 else: text = ""
-                cell.configure(text=text, bg=bg, font=f)
+                cell.config(text=text, bg=bg, font=f)
 
         if subj_r in range(1, 7): win_move = self.data_rows["subj_wm"][subj_c][subj_r] or None
         else:                     win_move = mv_all.get(subj_c, None)
 
         if win_move is None: win_move = {c:{} for c in range(1, 7)}
 
-        for c in range(1, 7):
-            wmvs = win_move.get(c, {})
+        for cou in range(1, 7):
+            wmv = win_move.get(cou, {})
             for col, (label, key) in enumerate(self.dist_refs["move_cols"]):
-                if c >= 2 and col == 0: continue
-                lb_wm = self.dist_refs["move_cells"][(c, label)]
-                cnt   = wmvs.get(key, 0)
+                if cou >= 2 and col == 0: continue
+                lb_wm = self.dist_refs["move_cells"][(cou, label)]
+                cnt   = wmv.get(key, 0)
 
-                lb_wm.config(text=cnt if cnt else "", bg="white", **NMFNT)
-                if col >= 4:      lb_wm.config(bg="#e9e6e6"         )
-                if c   == subj_c: lb_wm.config(bg="#cce8ff", **BDFNT)
+                if cou == subj_c: bg="#cce8ff"
+                elif col >= 4:    bg="#e9e6e6"
+                else:             bg="white"
+                lb_wm.config(text=cnt if cnt else "", bg=bg, **NMFNT)
 
     #-----------------------------------
     def _change_disp(self):
-        if self.disp == 1: self.disp = 0
-        else: self.disp = 1
+
+        if self.disp == 1:
+            self.disp = 0
+            self.lb_totl._config(Bd=(1,GR))
+        else:
+            self.disp = 1
+            self.lb_totl._config(Bd=(1,RA))
         self._render_distribute_table()
+
     #-----------------------------------
     def _on_subject_course_btn(self, c:int):
+
         self.course = c
         self._render_distribute_table()
+
     #-----------------------------------
     def _toggle_subject_rank(self, rk: int):
+
         if self.rank == rk: self.rank = 0
         else:               self.rank = rk
         self._render_distribute_table()
+
     #-----------------------------------
     @staticmethod
     def _this_term_start(today:date) -> date:

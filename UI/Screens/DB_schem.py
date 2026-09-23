@@ -21,6 +21,7 @@ class DBSchemScreen(ttk.Frame):
 
         style = ttk.Style()
         style.configure("SelectedRow.TFrame", background="#2F6DB3")
+        style.configure("DBS.TButton",  font=(MUI,9), anchor="center")
 
         self.selected_table_row = None
         self._tbl_edit_index    = None
@@ -43,21 +44,22 @@ class DBSchemScreen(ttk.Frame):
         row1 = ttk.Frame(top) ;row1.pack(anchor="w", pady=(0,10))
         row2 = ttk.Frame(top) ;row2.pack(anchor="w", padx=20)
 
-        ttk.Button( row1, text="MAIN", width=8,
+        ttk.Button( row1, text="MAIN", width=8, style="DBS.TButton",
                     command=lambda: app.show_screen("Main")).pack(side=tk.LEFT, padx=10 )
-        ttk.Button(row1, text="DATA", width=10).pack(side=tk.LEFT)
+        ttk.Button(row1, text="DATA", width=10, style="DBS.TButton",).pack(side=tk.LEFT)
 
         self.cbo_kind = ttk.Combobox( row2, width=10, state="readonly",
-                                       values=["TABLE", "VIEW", "INDEX"] )
+                                       font=(MUI,9), values=["TABLE", "VIEW", "INDEX"]        )
         self.cbo_kind.set("TABLE") ;self.cbo_kind.pack(side=tk.LEFT)
 
         ttk.Frame(row2, width=80).pack(side=tk.LEFT)
-        ttk.Button( row2, text="CREATE", width=10,
-                    command=self._on_create).pack(side=tk.LEFT, padx=5 )
+        ttk.Button( row2, text="CREATE", width=10, style="DBS.TButton", command=self._on_create
+                   ).pack(side=tk.LEFT, padx=5 )
 
-        ttk.Button(row2, text="DELETE", width=10, command=self._on_delete).pack(side=tk.LEFT, padx=5)
-        ttk.Button(row2, text="RENAME", width=10).pack(side=tk.LEFT, padx=5)
-        ttk.Button(row2, text="UPDATE", width=10).pack(side=tk.LEFT, padx=5)
+        ttk.Button( row2, text="DELETE", width=10, style="DBS.TButton", command=self._on_delete
+                   ).pack(side=tk.LEFT, padx=5)
+        ttk.Button(row2, text="RENAME", style="DBS.TButton", width=10).pack(side=tk.LEFT, padx=5)
+        ttk.Button(row2, text="UPDATE", style="DBS.TButton", width=10).pack(side=tk.LEFT, padx=5)
 
         mid.columnconfigure(0, weight=0)
         mid.columnconfigure(1, weight=0)
@@ -751,8 +753,8 @@ class DBSchemScreen(ttk.Frame):
         for k in ["TYPE", "NOT NULL", "UNIQUE", "PRIMARY KEY", "DEFAULT", "(other param)", "REFERENCES", "ON DEL CSCD"]:
             v = pr[k].get().strip()
             if v:
-                if k is "DEFAULT":    v = f"DEFAULT {v}"
-                if k is "REFERENCES": v = f"REFERENCES {v}"
+                if k == "DEFAULT":    v = f"DEFAULT {v}"
+                if k == "REFERENCES": v = f"REFERENCES {v}"
                 parts.append(v)
 
         col_def = ' '.join(parts).strip().rstrip(',')

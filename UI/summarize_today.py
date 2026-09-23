@@ -6,7 +6,7 @@ from dataclasses import dataclass, field
 from datetime    import datetime, timedelta, timezone, date
 from typing      import Dict, List, Optional, Tuple
 from Helpers.scraper_odds import fetch_all_odds
-from Helpers.ev_scanner   import evaluate_ev, persist_odds_snapshot, ProbabilityProvider
+from Helpers.ev_scanner   import evaluate_ev, insert_odds_snapshot, ProbabilityProvider
 
 import sqlite3, subprocess, threading, time, sys, os, signal, argparse, re, json, ctypes
 import Dal as dal
@@ -20,20 +20,20 @@ BASE_DIR       = r"C:\boatrace"
 DB_PATH        = os.path.join(BASE_DIR, "boatrace.db")
 SP_DIR         = os.path.join(BASE_DIR, r"UI\Subprocess")
 SP_INFO        = os.path.join(SP_DIR, "get_today_info.py")
-SP_BEFORE      = os.path.join(SP_DIR, "import_Display_run.py")
+SP_DISPLAY     = os.path.join(SP_DIR, "import_Display_run.py")
 SP_RESULT      = os.path.join(SP_DIR, "import_result_today.py")
 LOCK_PATH      = os.path.join(BASE_DIR, r"tmp\json\summarizer.lock")
-# ルール（定数）
-CHANGE_INTERVAL = 300  # Change: 1R締切から n秒 間隔で巡回
-CANCEL_INTERVAL = 15   # Cancel:            n分 間隔で巡回
+# 定数
+CHANGE_INTERVAL = 300  #   変更: n秒 間隔で巡回
+CANCEL_INTERVAL = 15   #   中止: n分 間隔で巡回
 OFFSET_DISPLAY  = 12   #   展示:   前レース締切から n分後 に実行
 OFFSET_RESULT   = 20   #   結果: 当該レース締切から n分後 に実行
-RETRY_DIS       = 60   #   展示：未反映なら n秒後に再試行
-RETRY_RES       = 180  #   結果：未反映なら n秒後に再試行
+RETRY_DIS       = 60   #   展示: 未反映なら n秒後に再試行
+RETRY_RES       = 180  #   結果: 未反映なら n秒後に再試行
 RETRY_NUM       = 10   #   展示/結果: リトライ回数
-ODDS_SET_SIZE   = 185  # 3T:120 + 3F:20 + 2T:30 + KK:15
-ODDS_SET_COUNT  = 3    # 必要セット数
+ODDS_SET_SIZE   = 212  #   オッズ総数(3T:120 + 3F:20 + 2T:30 + 2F:15 + KK:15 + TT:6 + FF:6)
 JST             = timezone(timedelta(hours=9))
+
 # ---- タスク定義 --------------------------------
 @dataclass
 class Task:
@@ -44,10 +44,10 @@ class Task:
     race_no:     int
     tries:       int                = 0
     last_error:  Optional[str]      = None
-    next_try_at: Optional[datetime] = None   # 次回再試行時刻
-    disabled:    bool               = False  # 10連続失敗で無効化
-    meta: Dict = field(default_factory=dict) # 内部用メモ
-    inflight:    bool               = False  # 起動中
+    next_try_at: Optional[datetime] = None                        # 次回再試行時刻
+    disabled:    bool               = False                       # RETRY_NUM 回連続失敗で無効化
+    inflight:    bool               = False                       # 起動中
+    meta:        Dict               = field(default_factory=dict) # 内部用メモ
 
 # ========================= 本体クラス ===============================
 class SummarizeTodayInfo:
@@ -59,15 +59,13 @@ class SummarizeTodayInfo:
         self.conn.row_factory  = sqlite3.Row
         self._stop             = False
         self._lock             = threading.Lock()
-        self.running           = {"display": 0, "result": 0, "change": 0, "cancel": 0, "odds": 0}
-        self.run_limit         = {"display": 3, "result": 2, "change": 3, "cancel": 1, "odds": 3}
+        self.running           = {"display":0, "result":0, "change":0, "cancel":0, "odds":0}
+        self.run_limit         = {"display":3, "result":3, "change":3, "cancel":1, "odds":3}
         self._threads          = set()
         self._ctl_prev_mute    = None
         self.tasks:      List[Task] = []
         self.late_tasks: List[Task] = []
-        self._last_snapshot:Dict[Tuple, datetime] = {}
-        self._final_snapshot:set[Tuple]           = set()
-        self.prob_provider = ProbabilityProvider()         # 予想ロジック実装後差し替え
+        self.prob_provider = ProbabilityProvider()  # 予想ロジック実装後差し替え
 
         th = threading.Thread(target=self._stdin_watch, daemon=True)
         th.start()
@@ -107,9 +105,10 @@ class SummarizeTodayInfo:
             for rec in lst_sorted:
                 rno      = rec["race_no"]
                 deadline = self._parse_deadline(rec["deadline"])
+                remain   = (deadline -now).total_seconds()
 
+                #-------------
                 if not self._exists_display(d, v_id, rno):
-
                     if now > deadline:
                         late_tasks.append( Task( kind="display", run_at=now, d=d,
                                                  venue_id=v_id, race_no=rno, meta={"prio":0} ) )
@@ -118,24 +117,31 @@ class SummarizeTodayInfo:
                         else:        run_d = prev_deadline +timedelta(minutes=OFFSET_DISPLAY)
                         new_tasks.append( Task( kind="display", run_at=run_d, d=d,
                                                 venue_id=v_id, race_no=rno, meta={"prio":1} ) )
-
+                #-------------
                 if not self._exists_result(d, v_id, rno):
-
-                    if now > deadline +timedelta(minutes=60):
+                    if now > deadline +timedelta(minutes=40):
                         late_tasks.append( Task( kind="result", run_at=now, d=d,
                                                  venue_id=v_id, race_no=rno, meta={"prio":0} ) )
                     else:
                         run_r = deadline +timedelta(minutes=OFFSET_RESULT)
                         new_tasks.append( Task( kind="result", run_at=run_r, d=d,
                                                 venue_id=v_id, race_no=rno, meta={"prio":1} ) )
-
-                odds_task = self._build_odds_task(d, v_id, rno, deadline)
-                if odds_task:
-                    new_tasks.append(odds_task)
+                #-------------
+                if not self._exists_odds(d, v_id, rno):
+                    if remain <= 0:
+                        late_tasks.append( Task( kind="odds", run_at=now, d=d, venue_id=v_id,
+                                                 race_no=rno, meta={"deadline":deadline, "prio":0} ) )
+                    else:
+                        if remain > 1200: run_o = deadline -timedelta(minutes=20)
+                        else:             run_o =      now +timedelta(seconds=10)
+                        new_tasks.append( Task( kind="odds", run_at=run_o, d=d, venue_id=v_id,
+                                                race_no=rno, meta={"deadline":deadline, "prio":1} ) )
+                #-------------
 
                 prev_deadline = deadline
 
             lst_valid = [x for x in lst_sorted if x["deadline"]]
+
             if lst_valid:
                 first_deadline = self._parse_deadline(lst_valid[ 0]["deadline"])
                 last_deadline  = self._parse_deadline(lst_valid[-1]["deadline"])
@@ -158,8 +164,8 @@ class SummarizeTodayInfo:
             kc = sum(1 for t in new_tasks if t.kind == "cancel")
             oc = sum(1 for t in new_tasks if t.kind == "odds")
 
-            print( f" all tasks={len(new_tasks)}:\n"
-                   f" dspl={bc} / rslt={rc} / change={cc} / cancel={kc} / odds={oc}" )
+            print( f" Total tasks={len(new_tasks)}:\n"
+                   f" display={bc} / result={rc} / change={cc} / cancel={kc} / odds={oc}" )
 
     # ------------------------------------------------------
     def _rebuild_schedule_for_venue(self, d:date, v_id:int):
@@ -186,15 +192,16 @@ class SummarizeTodayInfo:
                                            and not t.disabled                                ) ]
 
         lst_sorted            = [ {"race_no":int(r), "deadline":dl} for (r, dl) in rows ]
-        prev_deadline         = None
         new_tasks: List[Task] = []
         late_tasks:List[Task] = []
+        prev_deadline         = None
 
         for rec in lst_sorted:
             rno      = rec["race_no"]
             deadline = self._parse_deadline(rec["deadline"])
-            prio     = 0 if (deadline is None or now < deadline) else 1
+            remain   = (deadline -now).total_seconds()
 
+            #-----------------
             if not self._exists_display(d, v_id, rno) and not self._has_task("display", d, v_id, rno ):
 
                 if now > prev_deadline +timedelta(minutes=OFFSET_DISPLAY):
@@ -205,7 +212,7 @@ class SummarizeTodayInfo:
                     else:        run_d = prev_deadline +timedelta(minutes=OFFSET_DISPLAY)
                     new_tasks.append( Task( kind="display", run_at=run_d, d=d,
                                             venue_id=v_id, race_no=rno, meta={"prio":1} ) )
-
+            #-----------------
             if not self._exists_result(d, v_id, rno) and not self._has_task("result", d, v_id, rno):
 
                 if now > prev_deadline +timedelta(minutes=OFFSET_RESULT):
@@ -215,12 +222,18 @@ class SummarizeTodayInfo:
                     run_r = deadline +timedelta(minutes=OFFSET_RESULT)
                     new_tasks.append( Task( kind="result", run_at=run_r, d=d,
                                             venue_id=v_id, race_no=rno, meta={"prio":1} ) )
+            #-----------------
+            if not self._exists_odds(d, v_id, rno) and not self._has_task("odds", d, v_id, rno):
 
-            if not self._has_task("odds", d, v_id, rno):
-
-                odds_task = self._build_odds_task(d, v_id, rno, deadline)
-                if odds_task:
-                    new_tasks.append(odds_task)
+                if remain <= 0:
+                    late_tasks.append( Task( kind="odds", run_at=now, d=d, venue_id=v_id,
+                                             race_no=rno, meta={"deadline":deadline, "prio":0} ) )
+                else:
+                    if remain > 1200: run_o = deadline -timedelta(minutes=20)
+                    else:             run_o =      now +timedelta(seconds=10)
+                    new_tasks.append( Task( kind="odds", run_at=run_o, d=d, venue_id=v_id,
+                                           race_no=rno, meta={"deadline":deadline, "prio":1} ) )
+            #-----------------
 
             prev_deadline = deadline
 
@@ -297,17 +310,6 @@ class SummarizeTodayInfo:
             self.conn.close()
             if self.monitor: self._log("[SummarizeTodayInfo loop] is stopped")
 
-    # ------- 内部処理 -------
-    def _now(self) -> datetime:
-
-        jst = timezone(timedelta(hours=9), name="JST")
-        if getattr(self, "_sim_date", None) is not None:
-
-            t = datetime.now(jst).time()
-            return datetime.combine(self._sim_date, t).replace(tzinfo=jst)
-
-        return datetime.now(jst)
-
     # ------------------------------------------------------
     def _collect_due(self, now:datetime) -> List[Task]:
 
@@ -317,8 +319,8 @@ class SummarizeTodayInfo:
             for t in self.tasks:
                 if t.disabled: continue
                 if t.inflight: continue
-                if (          t.next_try_at and now >= t.next_try_at
-                    ) or (not t.next_try_at and now >= t.run_at):
+                if      ( t.next_try_at and (now >= t.next_try_at) ) or (
+                      not t.next_try_at and (now >= t.run_at     ) ):
                     due.append(t)
         # ----------
         def _eff_time(x):
@@ -365,7 +367,9 @@ class SummarizeTodayInfo:
 
             ok  = False
             err = None
+
             try:
+                #-------------
                 if t.kind   == "display":
                     if self._is_cancelled(t.d, t.venue_id, t.race_no):
                         t.disabled = True
@@ -376,45 +380,45 @@ class SummarizeTodayInfo:
                     if not ok:
                         t.next_try_at = now + timedelta(seconds=RETRY_DIS)
                         print( f"[    info    ] 【display 】[{VENUES[t.venue_id-1]} {t.race_no:02}R]"
-                               f"  retry at [{t.next_try_at.strftime('%H:%M:%S')}]" )
-
+                               f"  retry at [{t.next_try_at.strftime('%H:%M:%S')}]"                   )
+                #-------------
                 elif t.kind == "result":
                     if self._is_cancelled(t.d, t.venue_id, t.race_no):
                         t.disabled = True
                         self._log( f"[    info    ] 【result】{VENUES[t.venue_id-1]}"
-                                   f" {t.race_no:02}R]  is cancelled (skip)"                 )
+                                   f" {t.race_no:02}R]  is cancelled (skip)"          )
                         return
                     ok = self._exec_result(t)
                     if not ok: 
                         t.next_try_at = now + timedelta(seconds=RETRY_RES)
                         print( f"[    info    ] 【result】[{VENUES[t.venue_id-1]}{t.race_no:02}R]"
-                               f"  retry at [{t.next_try_at.strftime('%H:%M:%S')}]" )
-
-                elif t.kind == "change":
-                    if self._venue_finished(t.d, t.venue_id, now):
-                        t.disabled = True
-                        return
-                    ok            = self._exec_change(t)
-                    t.next_try_at = now +timedelta(seconds=CHANGE_INTERVAL)
-
-                elif t.kind == "cancel":
-                    ok            = self._exec_cancel(t)
-                    interval      = t.meta.get("interval_min", CANCEL_INTERVAL)
-                    t.next_try_at = self._now() +timedelta(minutes=interval)
-
+                               f"  retry at [{t.next_try_at.strftime('%H:%M:%S')}]"                )
+                #-------------
                 elif t.kind == "odds":
                     if self._is_cancelled(t.d, t.venue_id, t.race_no):
                         t.disabled = True
                         print( f"[    info    ] 【  odds  】[{VENUES[t.venue_id-1]}"
                                f" {t.race_no:02}R]  is cancelled (skip)")
                         return
-                    ok       = self._exec_odds(t)
-                    interval = self._calc_odds_interval(t, now)
-                    if interval is None: 
-                        t.disabled = True
-                        self._reset_snapshot_reminder((t.d, t.venue_id, t.race_no))
-                    else:
+                    ok = self._exec_odds(t)
+                    if not ok:
+                        interval = self._calc_odds_interval(t, now)
                         t.next_try_at = now + timedelta(seconds=interval)
+                        print( f"[    info    ] 【  odds  】[{VENUES[t.venue_id-1]}"
+                               f" {t.race_no:02}R] retry at [{t.next_try_at.strftime('%H:%M:%S')}]" )
+                #-------------
+                elif t.kind == "change":
+                    if self._venue_finished(t.d, t.venue_id, now):
+                        t.disabled = True
+                        return
+                    ok            = self._exec_change(t)
+                    t.next_try_at = now +timedelta(seconds=CHANGE_INTERVAL)
+                #-------------
+                elif t.kind == "cancel":
+                    ok            = self._exec_cancel(t)
+                    interval      = t.meta.get("interval_min", CANCEL_INTERVAL)
+                    t.next_try_at = self._now() +timedelta(minutes=interval)
+                #-------------
 
             except Exception as e:
                 ok  = False
@@ -422,13 +426,13 @@ class SummarizeTodayInfo:
                 self._log(f"【{t.kind}】[{VENUES[t.venue_id-1]} {t.race_no:02}R]  内部エラー:{err}")
 
             t.tries += 1
+
             if err: t.last_error = err
-            if ok and t.kind in ("display", "result"):
+            if ok and t.kind in ("display", "result", "odds"):
                 t.disabled = True
-            else:
-                if (not ok) and t.kind in ("display","result") and t.tries >= RETRY_NUM:
-                    t.disabled = True
-                    self._log(f"【{t.kind}】 リトライオーバー (タスク破棄)")
+            elif t.tries >= RETRY_NUM and t.kind in ("display","result"): 
+                t.disabled = True
+                self._log(f"【{t.kind}】 リトライオーバー (タスク破棄)")
 
         finally:
             with self._lock:
@@ -452,36 +456,15 @@ class SummarizeTodayInfo:
         self._log(f"[cancel] {d} {VENUES[t.venue_id-1]} r>={from_rno} disabled={n}")
 
     # ------------------------------------------------------
-    def _build_odds_task(self, d:date, venue_id:int, race_no:int, deadline:datetime) -> Optional[Task]:
+    def _calc_odds_interval(self, t:Task, now:datetime) -> int:
 
-        now    = self._now()
-        remain = (deadline -now).total_seconds()
+        remain = (t.meta["deadline"] -now).total_seconds()
 
-        if remain <= 0: return None
+        if remain <= 0:    return 60   # 締切後      ：1分感覚
+        if remain <= 600:  return 120  # 締切10分前～：2分間隔
+        if remain <= 1200: return 300  # 締切20分前～：5分間隔
 
-        info = self._exists_odds(d, venue_id, race_no)
-        name = f"{VENUES[venue_id-1]} {race_no:02}R"
-
-        if info["anomaly"]:
-            self._log(f"[WARN][odds] {name} 同一captured_at % {ODDS_SET_SIZE} != 0")
-
-        if info["set_count"] >= 1 and info["has_final"]:
-            return None
-
-        #if info["set_count"] < MIN_ODDS_SET_COUNT:
-        #    self._log( f"[WARN][odds] {name} セット数不足"
-        #               f"({info['set_count']} / {MIN_ODDS_SET_COUNT})" )
-
-        if info["set_count"] == 0:
-            if   remain > 1200:  run_at = deadline -timedelta(minutes=20)
-            else:                run_at =      now +timedelta(seconds=10)
-        else:
-            if   remain <= 300:  run_at = now
-            elif remain <  600:  run_at = info["latest_at"] +timedelta(seconds=120)
-            else:                run_at = info["latest_at"] +timedelta(seconds=300)
-
-        return Task( kind="odds", run_at=run_at, d=d, venue_id=venue_id, race_no=race_no,
-                     meta={"deadline":deadline, "prio":1}                                 )
+        return 600
 
     # -------------------- 個別実行 ------------------------
     def _call_py(self, path:str, args:List[str]) -> Tuple[int, str, str]:
@@ -512,9 +495,9 @@ class SummarizeTodayInfo:
         task_name = f"【display 】[{VENUES[t.venue_id-1]} {t.race_no:02}R] "
         self._log(f"{task_name} start")
 
-        rc, out, err = self._call_py( SP_BEFORE, [  "--date", t.d.strftime("%Y-%m-%d"),
-                                                   "--venue", str(t.venue_id),
-                                                    "--race", str(t.race_no),           ] )
+        rc, out, err = self._call_py( SP_DISPLAY, [  "--date", t.d.strftime("%Y-%m-%d"),
+                                                    "--venue", str(t.venue_id),
+                                                     "--race", str(t.race_no),           ] )
 
         if rc != 0:
             self._log(f"{task_name} {err.strip() or out.strip() or f'ExitCode={rc}'}")
@@ -622,47 +605,35 @@ class SummarizeTodayInfo:
     def _exec_odds(self, t:Task) -> bool:
 
         task_name = f"【  odds  】[{VENUES[t.venue_id-1]} {t.race_no:02}R] "
-
         self._log(f"{task_name} called")
 
         try:
             data = fetch_all_odds( t.d.strftime("%Y%m%d"), t.venue_id, t.race_no,
-                                   pages=("3T","3F","2T_2F","KK")                 )
+                                     pages=("3T","3F","2T_2F","KK","TT_FF")       )
         except Exception as e:
-            self._log(f"{task_name} fetch error: {e}")
+            self._log(f"{task_name} fetch_odds error: {e}")
             return False
 
         if data.get("error"):
-            self._log(f"{task_name} partial error: {data['error']}")
+            self._log(f"{task_name} scraper partial error: {data['error']}")
 
-        remain      = (t.meta["deadline"] - self._now()).total_seconds()
-        key         = (t.d, t.venue_id, t.race_no)
-        is_final    = (remain <= 180) and (key not in self._final_snapshot)
-        last        = self._last_snapshot.get(key)
-        do_full     = is_final or (last is None) or ( (self._now() -last).total_seconds() >= 300 )
-        hits        = evaluate_ev(data, t.d, t.venue_id, t.race_no, self.prob_provider)
-
-        persist_odds_snapshot( data, t.d, t.venue_id, t.race_no,
-                               hits=hits, is_final=is_final, do_full=do_full )
-
-        if do_full:
-            self._last_snapshot[key] = self._now()
-            if is_final: self._final_snapshot.add(key)
+        hits = evaluate_ev(data, t.d, t.venue_id, t.race_no, self.prob_provider)
 
         if hits: self._log(f"{task_name} EV hit: {len(hits)} 件")
 
-        return True
+        if data.get("final"):
+            result = insert_odds_snapshot(data, t.d, t.venue_id, t.race_no, hits=hits)
+            if result == 0:
+                self._log(f"{task_name} fetch data error")
+                return False
+            if result == 1:
+                self._log(f"{task_name} Done insert.")
+                return True
+            if result == 2:
+                self._log(f"[WARN]] {task_name} insert but count !== 212")
+            return True
 
-    # ------------------------------------------------------
-    def _calc_odds_interval(self, t:Task, now:datetime) -> int:
-
-        remain = (t.meta["deadline"] - now).total_seconds()
-
-        if remain <= 0:    return None    # 締切後は打ち切り
-        if remain <= 600:  return 120     # 締切10分前～：2分間隔
-        if remain <= 1200: return 300     # 締切20分前～：5分間隔
-
-        return 300
+        else: return False
 
     # -------------------- 反映確認 ------------------------
     def _exists_display(self, d:date, venue_id:int, race_no:int) -> bool:
@@ -720,42 +691,26 @@ class SummarizeTodayInfo:
 
         with self._connect_ro() as conn:
             rows = conn.execute("""
-                SELECT captured_at, is_final,
+                SELECT captured_at,
                        COUNT(*) AS cnt
-                  FROM Odds_snapshots
+                  FROM Odds
                  WHERE date=? AND venue_id=? AND race_no=?
-              GROUP BY captured_at, is_final
+              GROUP BY captured_at
                 """,
                (d_iso, venue_id, race_no)).fetchall()
 
-        has_final = False
         set_count = 0
-        anomaly   = False
-        latest_at = None
+
+        if not rows: return False
 
         for r in rows:
-            ts = datetime.strptime(r["captured_at"], "%Y-%m-%d %H:%M:%S").replace(tzinfo=JST)
+            if r["cnt"] == 212:
+                set_count += 1
 
-            if latest_at is None or ts > latest_at:  latest_at = ts
-            if r["is_final"]:                        has_final = True
-            if r["cnt"] % ODDS_SET_SIZE != 0:          anomaly = True
-            elif r["cnt"] == ODDS_SET_SIZE:         set_count += 1
+        if set_count == 0: return False
+        if set_count != 0: return True
 
-        return { "has_final":has_final, "set_count":set_count,
-                 "latest_at":latest_at, "anomaly":anomaly      }
-
-    # ---- ユーティリティ ----------------------------------
-    def _parse_deadline(self, s:Optional[str]) -> Optional[datetime]:
-
-        if not s: return None
-        try:
-            dt = datetime.strptime(s, "%Y-%m-%d %H:%M")
-            return dt.replace(tzinfo=JST)
-
-        except Exception:
-            return None
-
-    # ------------------------------------------------------
+    # ユーティリティ ---------------------------------------
     def _connect_ro(self) -> sqlite3.Connection:
 
         conn = sqlite3.connect(self.db_path, check_same_thread=False)
@@ -763,6 +718,16 @@ class SummarizeTodayInfo:
 
         return conn
 
+    # ------------------------------------------------------
+    def _parse_deadline(self, s:Optional[str]) -> Optional[datetime]:
+
+        if not s: return None
+        try:
+            d_t = datetime.strptime(s, "%Y-%m-%d %H:%M")
+            return d_t.replace(tzinfo=JST)
+
+        except Exception:
+            return None
     # ------------------------------------------------------
     def _is_cancelled(self, d:date, venue_id:int, race_no:int) -> bool:
 
@@ -797,15 +762,26 @@ class SummarizeTodayInfo:
         return bool(last and now >= last)
 
     # ------------------------------------------------------
-    def _has_task(self, kind:str, d:date, venue_id:int, race_no:int) -> bool:
+    def _has_task(self, kind:str, d:date, vid:int, rno:int) -> bool:
 
         with self._lock:
             for t in self.tasks:
-                if ( t.kind==kind and t.d==d and t.venue_id==venue_id
-                            and t.race_no==race_no and not t.disabled ):
+                if ( t.kind == kind and t.d == d and t.venue_id == vid and
+                                       t.race_no == rno and not t.disabled ):
                     return True
 
         return False
+
+    # ------------------------------------------------------
+    def _now(self) -> datetime:
+
+        jst = timezone(timedelta(hours=9), name="JST")
+
+        if getattr(self, "_sim_date", None) is not None:
+            t = datetime.now(jst).time()
+            return datetime.combine(self._sim_date, t).replace(tzinfo=jst)
+
+        return datetime.now(jst)
 
     # ----------------------- ログ -------------------------
     def _log(self, s:str, mute:bool=False):
@@ -847,36 +823,24 @@ class SummarizeTodayInfo:
 
         self._stop = True
 
-    # ------------------------------------------------------
-    def _reset_snapshot_reminder(self, key:tuple):
-
-        self._last_snapshot.pop(key, None)
-        self._final_snapshot.discard(key)
-
-# ===================== 単体試験用エントリー =========================
+# ====================================================================
 def main():
 
     if not _acquire_singleton_lock():
         print("[INFO] Another instance is already running. Exiting.")
         return
-
     try:
         ap = argparse.ArgumentParser()
-        ap.add_argument("--date", help="YYYY-MM-DD")
+        ap.add_argument("--date", help="YYYY-MM-DD 仮想日付")
         args = ap.parse_args()
 
-        if args.date:
-            try:
-                d = datetime.strptime(args.date, "%Y-%m-%d").date()
-            except ValueError:
-                print("Invalid --date. Use YYYY-MM-DD.")
-                return
-        else:
-            d = jst_today()
-
         app = SummarizeTodayInfo(DB_PATH, monitor=True)
+
         if args.date:
+            d = datetime.strptime(args.date, "%Y-%m-%d").date()
             app._sim_date = d
+        else:
+            d = datetime.now(JST).date()
 
         print(f"[init] schedule date {d}")
 
@@ -889,36 +853,39 @@ def main():
 #-----------------------------------------------------------
 def _acquire_singleton_lock() -> bool:
 
-    if os.path.exists(LOCK_PATH):
-        try:
-            with open(LOCK_PATH, "r") as f:
-                old_pid = int(f.read().strip())
+    while True:
+        if os.path.exists(LOCK_PATH):
+            try:
+                with open(LOCK_PATH, "r") as f:
+                    old_pid = int(f.read().strip())
 
-            PROCESS_QUERY_LIMITED = 0x1000
-            h = ctypes.windll.kernel32.OpenProcess(PROCESS_QUERY_LIMITED, False, old_pid)
-            if h:
-                ctypes.windll.kernel32.CloseHandle(h)
+                h = ctypes.windll.kernel32.OpenProcess(0x1000 | 0x00100000, False, old_pid)
+                if h:
+                    print("[INFO] Another instance is already running. Wait...")
+
+                    res = ctypes.windll.kernel32.WaitForSingleObject(h, 3000) 
+                    ctypes.windll.kernel32.CloseHandle(h)
+                    if res == 0x00000000:
+                        print(f"[info] Success to close old instance")
+                    else:
+                        continue
+
+            except Exception as e:
+                print(f"[error] Reading error: {e}")
                 return False
+        else:
+            os.makedirs(os.path.dirname(LOCK_PATH), exist_ok=True)
 
-        except Exception:
-            pass
+        with open(LOCK_PATH, "w") as f:
+            f.write(str(os.getpid()))
 
-    os.makedirs(os.path.dirname(LOCK_PATH), exist_ok=True)
-    with open(LOCK_PATH, "w") as f:
-        f.write(str(os.getpid()))
-
-    return True
+        return True
 
 # ----------------------------
 def _release_singleton_lock():
 
     try:              os.remove(LOCK_PATH)
     except Exception: pass
-
-#-----------------------------
-def jst_today() -> date:
-
-    return datetime.now(JST).date()
 
 #-----------------------------------------------------------
 def _install_signal_handlers(app:"SummarizeTodayInfo"):

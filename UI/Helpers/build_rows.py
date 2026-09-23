@@ -9,48 +9,60 @@ import Dal as dal
 #================== entry:make_rows ============================
 def make_rows(self):
 
-    lineup        = query_players(self.date, self.venue_id, self.race_no)
-    date_to       = date.fromisoformat(self.date)
-    date_frm      = date_to -timedelta(days=int(self.range_d))
-    date_frm_v    = date_to -timedelta(days=int(self.range_v))
-    entry_rows    = [None] * 7
-    data_rows     = [None] * 7
+    lineup     = query_players(self.date, self.venue_id, self.race_no)
+    date_to    = self.date_to
+    date_frm   = self.date_from
+    date_frm_v = date_to -timedelta(days=int(self.range_v))
+    entry_rows = [None] * 7
+    data_rows  = [None] * 7
 
     for row in lineup:
-        frn    = row["frame_no"]
-        pid    = row["player_id"]
-        query1 = Query(date_frm, date_to, query1=True, query2=True, player_id=pid)
-        ave    = query1._pack(by_course=True)
-        rate   = query1._pack(for_graph=True)
-        RATE   = rate["own"][0]["rate"]
-        dist   = query1._pack(for_distribute=True)
-        query2 = Query(date_frm_v, date_to, query1=True, player_id=pid, venue_id=self.venue_id)
-        v_ave  = query2._pack(by_course=True)
+        frn = row["frame_no"]
+        pid = row["player_id"]
+        query_opt = {}
 
-        entry_rows[frn] = { "frno": row["frame_no"],
-                             "pid": row["player_id"],
-                            "name": row["name"],
-                            "rgns": row["regions"],
-                             "age": f"{row['age']} 歳",
-                            "clss": row["class_now"],
-                            "regp": f"{row['regist_period']} 期",
-                            "flyg": row['flying_st'],
-                            "late": row['late_st'],
-                            "heig": f"{row['heig']}cm",
-                             "wkg": f"{row['weight_tdy']}kg",
-                           "mo_no": row["motor_no"],
-                           "bo_no": row["boat_no"],
-                           "mo_av": f"{row["motor_ave"]:.1f}",
-                           "bo_av": f"{row["boat_ave"]:.1f}",
-                            "scav": ave[0]["sc_ave"],
-                            "stav": ave[0]["st_ave"],
-                             "cnt": {c:ave[c]["cnt"] for c in range(1,7)},
-                           "v_ave": v_ave[0]["sc_ave"],
-                           "v_cnt": v_ave[0]["cnt"],
-                            "absn": row["absn"], 
-                           "rate1": RATE[1],
-                           "rate2": RATE[1]+RATE[2],
-                           "rate3": RATE[1]+RATE[2]+RATE[3],                }
+        if row['flying_st'] or row['late_st']:
+            if self.flying:
+                query_opt = dict(flying=True)
+                date_frm  = date_to -timedelta(days=730)  
+        elif self.not_flying:
+            query_opt = dict(not_flying=True)
+        if self.exclude_edo:
+            query_opt |= dict(exclude_venue=3)
+
+        query1 = Query(date_frm, date_to, query1=True, query2=True, player_id=pid, **query_opt)
+
+        ave      = query1._pack(by_course=True)
+        rate     = query1._pack(for_graph=True)
+        own_rate = rate["own"][0]["rate"]
+        dist     = query1._pack(for_distribute=True)
+        query2   = Query(date_frm_v, date_to, query1=True, player_id=pid, venue_id=self.venue_id)
+        v_ave    = query2._pack(by_course=True)
+
+        entry_rows[frn] = { "frno":row["frame_no"],
+                             "pid":row["player_id"],
+                            "name":row["name"],
+                            "rgns":row["regions"],
+                             "age":f"{row['age']} 歳",
+                            "clss":row["class_now"],
+                            "regp":f"{row['regist_period']} 期",
+                            "flyg":row['flying_st'],
+                            "late":row['late_st'],
+                            "heig":f"{row['heig']}cm",
+                             "wkg":f"{row['weight_tdy']}kg",
+                           "mo_no":row["motor_no"],
+                           "bo_no":row["boat_no"],
+                           "mo_av":f"{row["motor_ave"]:.1f}",
+                           "bo_av":f"{row["boat_ave"]:.1f}",
+                            "scav":ave[0]["sc_ave"],
+                            "stav":ave[0]["st_ave"],
+                             "cnt":{c:ave[c]["cnt"] for c in range(1,7)},
+                           "v_ave":v_ave[0]["sc_ave"],
+                           "v_cnt":v_ave[0]["cnt"],
+                            "absn":row["absn"], 
+                           "rate1":own_rate[1],
+                           "rate2":own_rate[1]+own_rate[2],
+                           "rate3":own_rate[1]+own_rate[2]+own_rate[3],   }
 
         data_rows[frn] = {   "own":rate["own"],
                              "oth":rate["oth"],
@@ -79,7 +91,7 @@ def make_sub_rows(self):
         parts = ([s.strip() for s in rpr.split(",") if s] + [""] * 9)[:9]
         d_cou = 6 if disp.get("absn", None) and not disp.get("cour", frn) else disp.get("cour", frn) or frn
         tilt  = disp.get('tilt') if disp.get('tilt') != 0 else "0"
-        exhi  = f"{ disp.get('exhi'):.2f}" if disp.get('exhi') else ""
+        exhi  = f"{disp.get('exhi'):.2f}" if disp.get('exhi') else ""
         adj_d = disp.get('s_adj', None)
         adj_r = rslt.get('s_adj', None)
         r_cou = 6 if rslt.get("f_code", "") == "K" else rslt.get("cour", frn)
@@ -87,14 +99,14 @@ def make_sub_rows(self):
             fin = rslt.get("f_code", None) if rslt.get("f_code", None) else ""
         else: fin = rslt.get("f_rank")
 
-        rows["dspl"][frn] = { "cour":d_cou,
-                              "exhi":exhi,
-                             "s_adj":adj_d,
-                              "tilt":tilt if tilt else "" ,
-                              "rpr1":"  ".join(parts[2:5]),
-                              "rpr2":"  ".join(parts[0:2]),
-                              "rpr3":"  ".join(parts[5:9]),
-                              "absn":disp.get("absn", None) }
+        rows["dspl"][frn] = {   "cour":d_cou,
+                                "exhi":exhi,
+                               "s_adj":adj_d,
+                                "tilt":tilt if tilt else "" ,
+                                "rpr1":"  ".join(parts[2:5]),
+                                "rpr2":"  ".join(parts[0:2]),
+                                "rpr3":"  ".join(parts[5:9]),
+                                "absn":disp.get("absn", None) }
 
         rows["rslt"][frn] = {   "cour":r_cou,
                               "finish":fin,

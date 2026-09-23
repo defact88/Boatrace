@@ -34,9 +34,10 @@ class Query():
                      fault_level:Optional[int]  = None,
                         slit_ADJ:Optional[int]  = None,
                       water_type:Optional[int]  = None,
-                          flying:Optional[str]  = None,
-
-                  exclude_rookie:list= [False, False]                   ):
+                   exclude_venue:Optional[int]  = None,
+                          flying:Optional[bool] = False,
+                      not_flying:Optional[bool] = False,
+                  exclude_rookie:Optional[list]= [False, False]                   ):
 
         super().__init__()
 
@@ -63,8 +64,7 @@ class Query():
                         "fault_code":(" AND e.fault_code  = ?", lambda s:[fault_code]),
                        "fault_level":(" AND e.fault_level = ?", lambda s:[fault_level]),
                           "slit_ADJ":(" AND e.slit_ADJ    = ?", lambda s:[slit_ADJ]),
-
-                            "flying":("__DYN_FLYING__"        , None),                            }
+                     "exclude_venue":(" AND r.venue_id   != ?", lambda s:[exclude_venue]),                   }
 
         if query1: self.rows1 = self._query_results()
         if query2: self.rows2 = self._query_self_others()
@@ -128,32 +128,6 @@ class Query():
         sql    += " ORDER BY e.date ASC, e.race_no ASC"
         params += add_param
         rows    = dal.fetch_all(sql, tuple(params)) or []
-
-        return rows
-
-    # ------------------------------------------------------
-    def _query_victory(self, player_id:int):
-
-        sql = """
-            SELECT e.date,
-                   r.venue_id,
-                   r.grade,
-                   r.series_title
-
-              FROM Race_entries e
-              JOIN Races r
-                ON e.race_id  = r.race_id
-             WHERE e.player_id   = ?
-               AND e.finish_rank = 1
-               AND r.grade      IN (2, 3, 4, 5)
-               AND r.is_final    = 1
-               AND r.status      = 'held'
-               AND e.date BETWEEN ? AND ?
-          ORDER BY e.date DESC
-              """
-
-        params = (player_id, self.date_from, self.date_to)
-        rows   = dal.fetch_all(sql, params) or []
 
         return rows
 
@@ -558,13 +532,18 @@ class Query():
 
         sql, params = [], []
 
+        if self.option["flying"]:
+            parts, param = self._build_flying_clause()
+            if parts:
+                sql.append(parts)
+                params.extend(param)
+        if self.option["not_flying"]:
+            parts, param = self._build_flying_clause(not_f=True)
+            if parts:
+                sql.append(parts)
+                params.extend(param)
+
         for key in self.option.keys():
-            if key == "flying":
-                parts, param = self._build_flying_clause()
-                if parts:
-                    sql.append(parts)
-                    params.extend(param)
-                continue
 
             tpl = self.parts.get(key)
             if not tpl: continue
@@ -583,7 +562,7 @@ class Query():
         return "".join(sql), params
 
     # ----------------- ﾌﾗｲﾝｸﾞﾌｨﾙﾀSQL作成 ------------------
-    def _build_flying_clause(self):
+    def _build_flying_clause(self, not_f:Optional[bool]=False):
 
         rows = dal.fetch_all(
             """
@@ -596,6 +575,7 @@ class Query():
             (self.player_id, self.date_from, self.date_to) ) or []
 
         wins = []
+
         for (d_str,) in rows:
             f_date           = self._to_date(d_str)
             _start, term_end = self._calc_term_bounds_for_date(f_date)
@@ -603,31 +583,43 @@ class Query():
             end              = min(term_end, self._to_date(self.date_to  ))
             if start <= end: wins.append((start, end))
 
-        if not wins: return " AND 1=0", []
-        wins.sort(key=lambda x: x[0])
+        if not wins: 
+            if not_f: return         "", []
+            else:     return " AND 1=0", []
 
+        wins.sort(key=lambda x:x[0])
         merged = []
+
         for start, end in wins:
             if not merged or start > merged[-1][1]: merged.append([start, end])
             else:                                   merged[-1][1] = max(merged[-1][1], end)
 
-        frag   = " AND (" +" OR ".join(["(r.date BETWEEN ? AND ?)"] *len(merged)) +")"
+        if not_f:
+            frag = " AND NOT (" +" OR ".join(["(r.date BETWEEN ? AND ?)"] *len(merged)) +")"
+        else:
+            frag = " AND (" +" OR ".join(["(r.date BETWEEN ? AND ?)"] *len(merged)) +")"
+            
         params = []
-        for start, end in merged: params.extend([start.isoformat(), end.isoformat()])
+
+        for start, end in merged:
+            params.extend([start.isoformat(), end.isoformat()])
 
         return frag, params
+
     # --------------------------------------------
     def _build_exclude_rookie_clause(self):
 
         frag = """
-            AND e.player_id IN
-            ( SELECT p.player_id
-                FROM Players p
-               WHERE julianday(?) - julianday(
-                         date('1957-11-01', '+' || ((p.regist_period - 1) * 6) || ' months')
-                              ) >= 365 )
+            AND e.player_id IN ( SELECT p.player_id
+                                   FROM Players p
+                                  WHERE julianday(?) -julianday(date('1957-11-01',
+                                                                        '+'
+                                                                     || ((p.regist_period -1) *6)
+                                                                     || ' months'
+                                                                    ) ) >= 365 )
                """
         return frag, [self.date_to]
+
     # --------------------------------------------
     def _calc_term_bounds_for_date(self, d:date):
 

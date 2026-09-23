@@ -3,7 +3,9 @@
 
 import tkinter  as tk
 import datetime as dt
-import sqlite3, subprocess, sys
+import Dal      as dal
+import subprocess, sys
+
 from tkinter             import ttk, messagebox
 from typing              import Dict, Optional
 from datetime            import datetime as dt, date, timedelta, timezone
@@ -12,7 +14,7 @@ from Helpers.Custum_func import cFr, cLbl, cBtn
 from Helpers.series_idx  import build_day_lbl
 from Widgets.widgets     import framing_held_type_icon  
 
-VENUES = [ "桐生","戸田",  "江戸川","平和島","多摩川","浜名湖","蒲郡","常滑", "津",
+VENUES = [ "桐生", "戸田", "江戸川","平和島","多摩川","浜名湖","蒲郡","常滑", "津",
            "三国","びわこ","住之江","尼崎",  "鳴門",  "丸亀",  "児島","宮島", "徳山",
            "下関","若松",  "芦屋",  "福岡",  "唐津",  "大村",                         ]
 VENUE_ID = { name:i+1 for i, name in enumerate(VENUES) }
@@ -32,15 +34,17 @@ GRADE_OPT    = [ {"font":(MUI, 10    ), "bg":"white", "fg":"black" },
                  {"font":(MUI, 10, BD), "bg":"#d2ffd1", "fg":"#ff3939" },
                  {"font":(MUI, 10, BD), "bg":"#d2ffd1", "fg":"#ff3939" },
                  {"font":(MUI, 10, BD), "bg":"#d2ffd1", "fg":"#ff3939" },
-                 {"font":(MUI, 10, BD), "bg":"#72c5ff", "fg":"#ff3939" }         ]
+                 {"font":(MUI, 10, BD), "bg":"#72c5ff", "fg":"#ff3939" }  ]
 
-# --------
-def jst_today() -> date:
+# ------------------
+def date_today() -> date:
+
     JST = timezone(timedelta(hours=9))
     return dt.now(JST).date()
-# --------
-def today_iso() -> str:
-    return jst_today().strftime("%Y-%m-%d")
+# ------------------
+def _str(d:date) -> str:
+
+    return d.strftime("%Y-%m-%d")
 
 # ======================== レース選択画面 ============================
 # --------------------------------------------------------------------
@@ -49,9 +53,13 @@ class RaceSelectScreen(tk.Frame):
     def __init__(self, parent, app, db_path):
         super().__init__(parent)
 
+        style = ttk.Style()
+        style.configure("RSS.TButton", font=(MUI,9), anchor="center")
+        style.configure("RSS.TEntry", padding=(0, 3, 3, 3))
+
         self.app       = app
         self.db_path   = db_path
-        self.date      = today_iso()
+        self.date      = date_today()
         self.range_var = tk.StringVar(value="270")
         self.ow        = False
         self._cells:dict[int, dict[str, tk.Widget]] = {}
@@ -84,23 +92,25 @@ class RaceSelectScreen(tk.Frame):
         fr_ctrl.Cconf(2, W=1)
         fr_ctrl.Cconf(3, W=1)
 
-        btn_main = ttk.Button( fr_hedr, text="メイン 画面", width=10, style="r.TButton",
-                                               command=lambda: self.app.show_screen("Main") )
+        btn_main = ttk.Button( fr_hedr, text="メイン 画面", width=10, style="RSS.TButton",
+                                              command=lambda: self.app.show_screen("Main") )
         btn_main.grid(row=0, column=0, ipady=5, sticky="w")
 
-        cLbl( fr_hedr, W=33, anc=CT, text="出走表 表示レース  選 択", font=(GUI,11,BD)
+        cLbl( fr_hedr, W=33, anc=CT, text="Race Window 表示レース  選 択", font=(GUI,11,BD)
              )._grid(R=0, C=1, Stk="w", padx=(20,0))
 
         # Controls row
         cLbl(fr_rnge, text="データ算出期間", font=(MUI,10), width=10)._grid(R=0, C=0)
         cLbl(fr_rnge, text="日",             font=(MUI,10), width= 1)._grid(R=0, C=2)
 
-        self.ent_range = ttk.Entry(fr_rnge, width=8, textvariable=self.range_var, justify="right")
-        self.btn_prev = ttk.Button(fr_ctrl, text="＜", width=3, command=lambda:self._shift_date(-1))
-        self.btn_next = ttk.Button(fr_ctrl, text="＞", width=3, command=lambda:self._shift_date( 1))
-        self.btn_odds = cBtn( fr_ctrl, text="オッズ OFF", width=10, bg="white", relief="raised",
-                                        font=(MUI,10), command=lambda:self._odds_on() )
-        self.lbl_date = cLbl(fr_ctrl, text=self._date_title(), font=(MUI,10), bg=MAIN_BG)
+        self.ent_range = ttk.Entry( fr_rnge, width=8, textvariable=self.range_var,
+                                    style="RSS.TEntry", justify="right", font=(MUI,10) )
+        self.btn_prev  = ttk.Button(fr_ctrl, text="＜", width=3, command=lambda:self._shift_date(-1))
+        self.btn_next  = ttk.Button(fr_ctrl, text="＞", width=3, command=lambda:self._shift_date( 1))
+        self.btn_odds  = cBtn( fr_ctrl, text="オッズ OFF", width=10, bg="white", relief="raised",
+                                        font=(MUI,10), command=lambda:self._odds_on()             )
+        self.lbl_date = cLbl( fr_ctrl, text=f"{self.date.month} 月 {self.date.day} 日    開催一覧",
+                                                                         font=(MUI,10), bg=MAIN_BG  )
 
         self.ent_range.grid(row=0, column=1)
         self.btn_prev.grid( row=0, column=0, padx=(140,0))
@@ -132,39 +142,38 @@ class RaceSelectScreen(tk.Frame):
 
     # ---------- public hooks ----------
     def on_show(self):
+
         self._render_for_date()
     # ----------------------------------
     def reload_today(self):
-        self.date = today_iso()
+
+        self.date = date_today()
         self._render_for_date()
-    # ------- internal helpers ---------
-    def _date_title(self) -> str:
-        d = dt.strptime(self.date, "%Y-%m-%d").date()
-        return f"{d.month} 月 {d.day} 日     開催一覧"
+
     # ----------------------------------
     def _shift_date(self, diff_days:int):
+
         try:
-            d = dt.strptime(self.date, "%Y-%m-%d").date()
-            d = d + timedelta(days=diff_days)
-            self.date = d.strftime("%Y-%m-%d")
+            self.date = self.date +timedelta(days=diff_days)
         except Exception:
-            self.date = today_iso()
+            self.date = date_today()
+
         self._render_for_date()
+
     # --------------------------------------------
     def _render_for_date(self):
  
-        self.lbl_date.configure(text=self._date_title())
-        dayinfo = self._load_day_info(self.date)
+        self.lbl_date.configure(text=f"{self.date.month} 月 {self.date.day} 日     開催一覧")
+        dayinfo = self._load_day_info(dt.strftime(self.date, "%Y-%m-%d"))
  
-        for idx, vname in enumerate(VENUES):
-            vid = idx + 1
+        for vid, vname in enumerate(VENUES, start=1):
             info = dayinfo.get(vid, None)
-            self._render_cell(idx//6, idx%6, vid, vname, info)
+            self._render_cell((vid-1)//6, (vid-1)%6, vid, vname, info)
 
     # --------------------------------------------
     def _render_cell(self, row:int, col:int, venue_id:int, venue_name:str, info:dict|None):
 
-        v_opt = {"text":venue_name, "font":(GUI,10,BD), "bg":"#d3dee9"}
+        v_opt = dict(text=venue_name, font=(GUI,10,BD), bg="#d3dee9")
         widg  = self._cells.get(venue_id)
 
         if widg is None:
@@ -177,7 +186,7 @@ class RaceSelectScreen(tk.Frame):
             lb_ven = cLbl(self.fr_cel, anc=CT, **v_opt, bd=1, Rel=RD)
             lb_upL = cLbl(self.fr_cel, anc="e", text="", font=(MUI,11), bg=MAIN_BG)
             lb_upR = cLbl(self.fr_cel, anc=CT,  text="")
-            lb_dwn = cLbl(self.fr_cel, anc=CT,  text="")
+            lb_dwn = cLbl(self.fr_cel, anc=CT,  text="", font=(MUI,10))
 
             lb_ven._grid(R=0, C=0, Cspan=2, Stk=ALL)
             lb_upL._grid(R=1, C=0,          Stk="we")
@@ -207,8 +216,9 @@ class RaceSelectScreen(tk.Frame):
             h_type  = info.get("held_type", 0)
 
             widg["upL"].configure(text=f"{grade}", **g_opt)
-            widg["upR"].configure(text=f"", **g_opt)
+            widg["upR"].configure(text=f"",        **g_opt)
             widg["dwn"].configure(text=day_lbl or "ー", bg="white")
+
             framing_held_type_icon(self, widg["upR"], h_type)         
             self._apply_click_binding(widg, venue_id, enabled=True)
 
@@ -238,36 +248,31 @@ class RaceSelectScreen(tk.Frame):
     def _load_day_info(self, d_iso:str):
 
         out:dict[int, dict] = {}
-        conn                = sqlite3.connect(self.db_path, timeout=30)
 
-        try:
-            conn.row_factory = sqlite3.Row
-            cur              = conn.cursor()
-            rows = cur.execute(
-                """
-                SELECT venue_id,
-                       MIN(grade)     AS grade,
-                       MIN(held_type) AS held_type
-                  FROM Race_programs
-                 WHERE date = ?
-              GROUP BY venue_id
-                """,
-                      (d_iso,)).fetchall()
+        rows = dal.fetch_all(
+            """
+            SELECT venue_id,
+                   MIN(grade)     AS grade,
+                   MIN(held_type) AS held_type
+              FROM Race_programs
+             WHERE date = ?
+          GROUP BY venue_id
+            """,
+            (d_iso,))
 
-            for r in rows:
-                vid      = int(r["venue_id"])
-                out[vid] = dict(grade=r["grade"], held_type=r["held_type"])
+        for row in rows:
+            vid      = int(row["venue_id"])
+            out[vid] = dict(grade=row["grade"], held_type=row["held_type"])
 
-            return out
-        finally: conn.close()
+        return out
 
     # --------------------------------------------
-    def _calc_day_label(self, d_iso:str, venue_id:int):
+    def _calc_day_label(self, _date:date, venue_id:int):
 
-        labels, _ = build_day_lbl(d_iso, venue_id)
+        labels, _ = build_day_lbl(_date, venue_id)
 
         for items in labels:
-            if items["date"] == d_iso:
+            if items["date"] == _str(_date):
                 if   items.get("is_final"): return "最終日"
                 day_no = items.get("label_no")
                 if day_no == 1:             return "初日"

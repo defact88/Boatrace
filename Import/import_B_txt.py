@@ -8,6 +8,7 @@ from typing     import Iterable, Iterator, List, Optional, Tuple, Dict
 from curl_cffi  import requests
 from bs4        import BeautifulSoup, FeatureNotFound, XMLParsedAsHTMLWarning
 import argparse, re, sqlite3, shutil, lhafile, warnings, time, random
+import Dal as dal
 
 warnings.filterwarnings("ignore", category=XMLParsedAsHTMLWarning)
 
@@ -147,7 +148,6 @@ def split_venue_blocks(text:str):
     i     = 0
 
     while i < len(lines):
-
         m = re.match(r"^(\d{2})BBGN$", lines[i].strip())
         if not m:
             i += 1
@@ -218,29 +218,22 @@ def parse_block(venue_id:int, block_lines:List[str], file_date:date):
 # ----------------------- DB: INSERT -----------------------
 def insert_programs(rows, overwrite:bool=False):
 
-    conn = sqlite3.connect(str(DB_PATH))
-    conn.execute("PRAGMA journal_mode=WAL;")
-    conn.execute("PRAGMA synchronous=NORMAL;")
-
     try:
-        cur  = conn.cursor()
         verb = "INSERT OR REPLACE" if overwrite else "INSERT OR IGNORE"
         sql  = f"""
             {verb} INTO Race_programs
-                       ( program_id, date,       venue_id,  series_title, day_no,
-                         race_no,    race_title, frame_no,  player_id,
-                         weight_tdy, motor_no,   motor_ave, boat_no, boat_ave,
-                         deadline_vote                                            )
+                       ( program_id, date,       venue_id, series_title, day_no,
+                         race_no,    race_title, frame_no, player_id,    weight_tdy,
+                         motor_no,   motor_ave,  boat_no,  boat_ave,     deadline_vote )
                  VALUES(?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
                 """
 
         count = 0
 
-        for r in rows:
-            ( program_id, venue_id,    day_no,      series_title,
-              race_no,    race_title,  frame_no,    player_id,
-              weight_tdy, motor_no,    motor_ave,   boat_no, boat_ave,
-              deadline_hhmm                                            ) = r
+        for row in rows:
+            ( program_id, venue_id, day_no,    s_title,      race_no,
+              r_title,    frame_no, player_id, weight_tdy,   motor_no,
+              motor_ave,  boat_no,  boat_ave,  deadline_hhmm           ) = row
 
             yymmdd       = str(program_id)[:6]
             yyyy         = 2000 + int(yymmdd[:2])
@@ -249,18 +242,16 @@ def insert_programs(rows, overwrite:bool=False):
             iso_date     = f"{yyyy:04d}-{mm:02d}-{dd:02d}"
             deadline_iso = f"{iso_date} {deadline_hhmm}" if deadline_hhmm else None
 
-            cur.execute(sql, (
-                program_id, iso_date,   venue_id,  series_title, day_no,
-                race_no,    race_title, frame_no,  player_id,    weight_tdy,
-                motor_no,   motor_ave,  boat_no,   boat_ave,     deadline_iso ) )
+            cur = dal.execute( sql, ( program_id, iso_date,  venue_id, s_title,   day_no,
+                                      race_no,    r_title,   frame_no, player_id, weight_tdy,
+                                      motor_no,   motor_ave, boat_no,  boat_ave,  deadline_iso ) )
 
-            count += cur.rowcount
-
-        conn.commit()
+            count += cur
 
         return count
 
-    finally: conn.close()
+    except Exception as e:
+        print(str(e))
 
 # ================ grade / held_type / all_ladies 更新 ==================
 GRADE_CLASS_MAP = { 'is-SGa'  : 'SG',

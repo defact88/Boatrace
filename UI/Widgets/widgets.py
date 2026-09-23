@@ -147,6 +147,107 @@ def framing_figure(self, fig_frame:tk.Frame, frame_order:list, A:dict=None, B:di
         if x == zero_x: continue
         cv.create_line(x, 0, x, H, fill="#00ceff", width=1)       # 0.1秒線
 
+    # ドラッグ/リセット処理の定義
+    cv._drag_data = {"item": None, "x": 0, "lane": None}
+    cv._init_data = {}
+    #---------------------------------------------
+    def on_press(event):
+        item = cv.find_withtag("current")
+        if item:
+            tags = cv.gettags(item[0])
+            for t in tags:
+                if t.startswith("boat_"):
+                    cv._drag_data["item"] = item[0]
+                    cv._drag_data["x"]    = event.x
+                    cv._drag_data["lane"] = int(t.split("_")[1])
+                    break
+    #---------------------------------------------
+    def on_motion(event):
+        item = cv._drag_data.get("item")
+        if item:
+            dx = event.x - cv._drag_data["x"]
+            lane = cv._drag_data["lane"]
+            
+            cv.move(item, dx, 0)
+            cv._drag_data["x"] = event.x
+            
+            coords = cv.coords(item)
+            right_x = coords[0]
+            new_st = (zero_x + 5 - right_x) / px_per_sec
+            
+            # --- 1. ST値の更新表示 ---
+            txt1_item = cv.find_withtag(f"text1_{lane}")
+            if txt1_item:
+                tx = f"{new_st:.2f}"
+                txt = f"{tx[1:]}" if new_st >= 0 else f"{tx[2:]}"
+                t_col = "red" if new_st < 0 else "black"
+                cv.itemconfig(txt1_item[0], text=_wid(list(txt)), fill=t_col)
+
+            # --- 2. 加減値(text2)の更新表示 ---
+            txt2_item = cv.find_withtag(f"text2_{lane}")
+
+            if txt2_item and lane in cv._init_data:
+                init_v   = cv._init_data[lane]["st"]
+                init_st  = float(init_v) if init_v != "" else 0.47
+                diff_st  = new_st - init_st
+                diff_val = int(round(diff_st * 100))
+                
+                if diff_val == 0:
+                    cv.itemconfig(txt2_item[0], text="", fill="black")
+                else:
+                    if diff_val > 0:
+                        diff_txt = f"+{diff_val}"
+                        diff_col = "red"
+                    else:
+                        diff_txt = f"{diff_val}"
+                        diff_col = "blue"
+                        
+                    cv.itemconfig(txt2_item[0], text=_wid(list(diff_txt)), fill=diff_col)
+    #---------------------------------------------
+    def on_release(event):
+        item = cv._drag_data.get("item")
+        if item:
+            lane = cv._drag_data["lane"]
+            coords = cv.coords(item)
+            right_x = coords[0]
+            new_st = (zero_x + 5 - right_x) / px_per_sec
+            
+            frno = frame_order[lane-1]
+            if A and frno in A:
+                A[frno]["st"] = str(round(new_st, 2))
+                
+            cv._drag_data = {"item": None, "x": 0, "lane": None}
+    #---------------------------------------------
+    def reset_slit():
+        if not cv._init_data: return
+        for lane, init in cv._init_data.items():
+            frno = frame_order[lane-1]
+
+            if A and frno in A:
+                A[frno]["st"] = init["st"]
+
+            boat_item = cv.find_withtag(f"boat_{lane}")
+            if boat_item:
+                cy = (lane - 1) * row_h + row_h // 2 + 3
+                cv.coords(boat_item[0], init["right_x"], cy)
+
+            txt1_item = cv.find_withtag(f"text1_{lane}")
+            txt2_item = cv.find_withtag(f"text2_{lane}")
+
+            if txt1_item:
+                cv.itemconfig(txt1_item[0], text=_wid(list(init["txt"])), fill=init["t_col"])
+            if txt2_item:
+                cv.itemconfig(txt2_item[0], text="", fill=init["t_col"])
+
+    fig_frame.reset_figure = reset_slit
+
+    if A:
+        cv.tag_bind("draggable", "<ButtonPress-1>", on_press)
+        cv.tag_bind("draggable", "<B1-Motion>", on_motion)
+        cv.tag_bind("draggable", "<ButtonRelease-1>", on_release)
+        cv.tag_bind("draggable", "<Enter>", lambda e: cv.config(cursor="sb_h_double_arrow"))
+        cv.tag_bind("draggable", "<Leave>", lambda e: cv.config(cursor=""))
+
     for lane in range(1, 7):
 
         frno = frame_order[lane-1]
@@ -160,7 +261,9 @@ def framing_figure(self, fig_frame:tk.Frame, frame_order:list, A:dict=None, B:di
         cy       = (lane - 1) * row_h + row_h // 2 +3
 
         fig_frame._img_refs.append(boat_img) 
-        cv.create_image(right_x, cy, image=boat_img, anchor="e")
+        
+        boat_tags = (f"boat_{lane}", "draggable") if A else (f"boat_{lane}",)
+        cv.create_image(right_x, cy, image=boat_img, anchor="e", tags=boat_tags)
 
         if v == "":
             txt = " ー"
@@ -169,7 +272,14 @@ def framing_figure(self, fig_frame:tk.Frame, frame_order:list, A:dict=None, B:di
             txt = f"{tx[1:]}" if st >= 0 else f"{tx[2:]}"
 
         t_col = "red" if st < 0 else "black"
-        cv.create_text(234+adW, (lane-1)*44+22, text=_wid(list(txt)), fill=t_col, font=(GUI,10,BD))
+        cv.create_text( 242+adW, (lane-1)*44+22, text=_wid(list(txt)), fill=t_col,
+                                          font=(GUI,10,BD), tags=(f"text1_{lane}",) )
+        cv.create_text( 217+adW, (lane-1)*44+23, text="",              fill=t_col,
+                                          font=(GUI, 9,BD), tags=(f"text2_{lane}",) )
+        cv._init_data[lane] = {      "st":v,
+                                "right_x":right_x,
+                                    "txt":txt,
+                                  "t_col":t_col    }
 
         if B and B[frno]["opt"]:
             opt = B[frno]["opt"]

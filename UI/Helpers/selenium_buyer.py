@@ -101,7 +101,7 @@ class SeleniumBuyer:
         opts.add_argument("--no-default-browser-check")
         opts.add_argument("--disable-session-crashed-bubble")
 
-        self._driver = uc.Chrome(options=opts, version_main=150, use_subprocess=True)
+        self._driver = uc.Chrome(options=opts, version_main=153, use_subprocess=True)
         logger.info("Brave 起動完了")
 
     #-----------------------------------------------------------------
@@ -221,21 +221,27 @@ class SeleniumBuyer:
 
     #-----------------------------------------------------------------
     def purchase_all( self, selected:List[Tuple], date_str:str, venue_id:int, race_no:int,
-                                                                      dry_run:bool = True ):
+                                                                         dry_run:bool=True ):
 
-        result = {"success": [], "failed": [], "skipped": []}
+        result = {"targets":None, "success":[],   "total":None,
+                   "failed":[],   "skipped":[], "dry_run":dry_run }
         bets   = []
 
         for item in selected:
-            bt, key, label = item[0], item[1], item[2]
-            alloc_str = item[3] if len(item) > 3 else ""
+            bet_type, key, label = item[0], item[1], item[2]
+            alloc_str            = item[3] if len(item) > 3 else ""
+
             if not alloc_str or not alloc_str.strip():
-                result["skipped"].append(label); continue
+                result["skipped"].append(label)
+                continue
+
             try:
                 lot = int(alloc_str.replace(",", ""))
             except ValueError:
-                result["skipped"].append(label); continue
-            bets.append((bt, key, label, lot))
+                result["skipped"].append(label)
+                continue
+
+            bets.append((bet_type, key, label, lot))
 
         if not bets:
             logger.warning("購入対象 0 件（金額未入力）")
@@ -246,10 +252,12 @@ class SeleniumBuyer:
         except Exception as e:
             logger.warning(f"レース選択失敗（続行）: {e}")
 
+        result["targets"] = len(bets)
         total = 0
-        for (bt, key, label, lot) in bets:
+
+        for (bet_type, key, label, lot) in bets:
             try:
-                self._add_one_bet(bt, key, lot)
+                self._add_one_bet(bet_type, key, lot)
                 result["success"].append(f"{label}   {lot}00円")
                 logger.info(f"ベット登録完了: {label} / {lot}口")
                 total += lot
@@ -261,7 +269,7 @@ class SeleniumBuyer:
             logger.warning("登録成功件数 0 件。購入を中止します。")
             return result
         else:
-            result["success"].append(f"合計   {total}00円")
+            result["total"] = f"合計   {total}00円"
         try:
             self._click_comp_btn()
         except BetError as e:

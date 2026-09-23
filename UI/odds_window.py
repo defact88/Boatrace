@@ -3,7 +3,7 @@
 
 import argparse, threading, time, sys, os, sqlite3, logging, json
 import tkinter as tk
-from tkinter        import ttk, font as tkfont
+from tkinter        import ttk, messagebox, font as tkfont
 from datetime       import timedelta, timezone, date, datetime as dt
 from Custum_func    import cFr, cLbl, cBtn, cEnt, cCvs
 from scraper_odds   import fetch_all_odds
@@ -48,12 +48,15 @@ def parse_odds_min(odds_str:str) -> float:
 
     if not odds_str: return 0.0
 
-    s = odds_str.replace(" ", "")
+    s     = odds_str.replace(" ", "")
     parts = s.split("-")
-    try: return float(parts[0])
+
+    try:    return float(parts[0])
     except: return 0.0
+
 # ─── 合成オッズ計算 ───
 def synthetic_odds(odd_list:list[float]) -> float:
+
     s = sum(1.0/o for o in odd_list if o > 0)
     return round(1.0/s, 2) if s > 0 else 0.0
 
@@ -76,6 +79,7 @@ class OddsWindow(tk.Tk):
         self.fetch_state    = True
         self.var_int        = tk.IntVar(value=1)
         self.odds_data      = {}
+        self.final          = False
         self.selected       = []
         self.cell_refs      = {}
         self.after_id       = None
@@ -115,6 +119,7 @@ class OddsWindow(tk.Tk):
     def _new_formation_state(self):
 
         return {n:{1:False, 2:False, 3:False} for n in range(1,8)}
+
     #-------------------------
     def _new_mustin_state(self):
 
@@ -161,7 +166,7 @@ class OddsWindow(tk.Tk):
             self.venue_id = int(new_venue)
             self._switch_race(int(new_race))
 
-    # ----------- ウィンドウ終了処理 -------------
+    # ---------------- ウィンドウ終了処理 ------------------
     def _on_ow_close(self):
 
         if self.after_id is not None:
@@ -370,14 +375,15 @@ class OddsWindow(tk.Tk):
         self._tbl_inner.bind("<MouseWheel>",  _on_wheel)
         self.tbl_rows = []
 
-    #----------- ボタン動作 ------------
-    #------------ MUST IN --------------
+    #-------------------- ボタン動作 -----------------------
+    #---------------------- MUST IN ------------------------
     def _on_mustin_change(self, boat_no:int, position:int, val:bool):
 
         if boat_no not in self.mustin: self.mustin[boat_no] = {}
         self.mustin[boat_no][position] = bool(val)
         self._refresh_grid_cells()
-    #----------- FORMATION -------------
+
+    #--------------------- FORMATION -----------------------
     def _on_formation_change(self, boat_no:int, position:int, val:bool):
 
         if boat_no == 7:
@@ -394,7 +400,8 @@ class OddsWindow(tk.Tk):
             self._set_check_var(self.formation_vars, (7, position), all_on)
 
         self._refresh_grid_cells()
-    #------------ 一律配分 -------------
+
+    #---------------------- 一律配分 -----------------------
     def _exec_equal_bet(self):
 
         if not self.tbl_rows: return
@@ -408,7 +415,8 @@ class OddsWindow(tk.Tk):
             ret = round(unit * parse_odds_min(odds_str))
             ret_lbl.config(text=f"{ret:,} 円")
         self._update_total_bet()
-    #------------ 均等配分 -------------
+
+    #---------------------- 均等配分 -----------------------
     def _exec_equal_divide(self):
 
         if not self.selected: return
@@ -433,7 +441,8 @@ class OddsWindow(tk.Tk):
             unit  = max(100, int(raw // 100) * 100)
             alloc_var.set(f"{(unit//100):,}")
             ret_lbl.config(text=f"{round(unit * o):,} 円")
-    #-----------------------------------
+
+    #-------------------------------------------------------
     def _clear_alloc(self):
 
         for alloc_var, ret_lbl, bt, key, odds_str in self.tbl_rows:
@@ -442,7 +451,8 @@ class OddsWindow(tk.Tk):
 
         self.selected = [ (s[0], s[1], s[2], "") for s in self.selected ]
         self._update_total_bet()
-    #-----------------------------------
+
+    #-------------------------------------------------------
     def _delete_row(self, bt:str, key:tuple):
 
         existing = [(i,s) for i,s in enumerate(self.selected) if s[0]==bt and s[1]==key]
@@ -453,13 +463,15 @@ class OddsWindow(tk.Tk):
                 cell.config(bg=NORM_BG)
                 labl.config(bg=NORM_BG)
         self._refresh_tree()
-    #-----------------------------------
+
+    #-------------------------------------------------------
     def _clear_all_sel(self):
 
         self.selected.clear()
         self._refresh_grid_cells()
         self._refresh_tree()
-    #-----------------------------------
+
+    #-------------------------------------------------------
     def _clear_all_filters(self):
 
         for b in self.formation:
@@ -471,13 +483,15 @@ class OddsWindow(tk.Tk):
 
         self._sync_filter_widgets()
         self._refresh_grid_cells()
-    #-----------------------------------
+
+    #-------------------------------------------------------
     def _set_check_var(self, var_dict:dict, key:tuple, value:bool):
 
         var = var_dict.get(key)
         if var is not None:
             var.set(bool(value))
-    #-----------------------------------
+
+    #-------------------------------------------------------
     def _sync_filter_widgets(self):
 
         for pos in (1, 2, 3):
@@ -493,12 +507,14 @@ class OddsWindow(tk.Tk):
     def _switch_race(self, race_no:int):
 
         if self.loading: return
+
         self.race_no = race_no
-        # レース切替時はフレームを再生成するため grid_items をクリア
         for w in self.grid_frame.winfo_children(): w.destroy()
+
         self.cell_refs.clear()
         self.grid_items.clear()
-        d  = dt.fromisoformat(self.date).strftime("%Y 年 %#m 月 %#d 日")
+
+        d = dt.fromisoformat(self.date).strftime("%Y 年 %#m 月 %#d 日")
 
         self.lbl_title1.config(text=f" {d}    {VENUES[self.venue_id]}   ")
         self.lbl_title2.config(text=f"{self.race_no} R    ")
@@ -510,14 +526,18 @@ class OddsWindow(tk.Tk):
         self.formation = self._new_formation_state()
         self._sync_filter_widgets()
         self._refresh_tree()
+
         if self.after_id is not None:
-            try: self.after_cancel(self.after_id)
+            try:
+                self.after_cancel(self.after_id)
             except Exception: pass
+
             self.after_id = None
+
         self.fetch_state = True
         self._start_fetch()
 
-    #-----------------------------------
+    #-------------------------------------------------------
     def _update_race_btn_style(self):
 
         for rno, btn in self._race_btns.items():
@@ -537,7 +557,8 @@ class OddsWindow(tk.Tk):
         self.title("取得中...")
 
         threading.Thread(target=self._fetch_worker, daemon=True).start()
-    #-----------------------------------
+
+    #-------------------------------------------------------
     def _fetch_worker(self):
         #-----------
         def on_prog(key):
@@ -551,7 +572,8 @@ class OddsWindow(tk.Tk):
             self.loading = False
             return
         self.after(0, lambda d=data: self._on_fetched(d))
-    #-----------------------------------
+
+    #-------------------------------------------------------
     def _on_fetched(self, data:dict):
 
         self.odds_data = data
@@ -561,12 +583,17 @@ class OddsWindow(tk.Tk):
         self._rebuild_grids()
         self._refresh_tree()
         self._schedule_next()
-    #-----------------------------------
+
+    #---------------------------------------------------------------------------
     def _schedule_next(self): 
 
-        if (dt.fromisoformat(self.deadline) +timedelta(minutes=5)) <= dt.now():
-            self.lbl_next.config(text=f"更新停止")
-            self.fetch_state = False
+        if (dt.fromisoformat(self.deadline) +timedelta(minutes=10)) <= dt.now():
+            if self. final:
+                self.lbl_next.config(text=f"投票締切  確定オッズ", fg="#ff8585")
+                self.fetch_state = False
+            else:
+                self.lbl_next.config(text=f"更新停止")
+                self.fetch_state = False
         if dt.now() +timedelta(minutes=1) >= dt.fromisoformat(self.deadline):
             self.interval = 15
         else:
@@ -578,7 +605,8 @@ class OddsWindow(tk.Tk):
             except Exception: pass
 
         self.after_id = self.after(1000, self._tick)
-    #-----------------------------------
+
+    #-------------------------------------------------------
     def _tick(self):
 
         if self.fetch_state:
@@ -599,7 +627,7 @@ class OddsWindow(tk.Tk):
         else:
             self._refresh_grid_cells()
 
-    #-----------------------------------
+    #-------------------------------------------------------
     def _build_all_grids(self):
 
         d = self.odds_data
@@ -628,16 +656,19 @@ class OddsWindow(tk.Tk):
         self._build_others(blk4, "単勝", "TT", d.get("TT",{}))
         self._build_others(blk4, "複勝", "FF", d.get("FF",{}))
 
+        self.final = d["final"]
+
         self._refresh_grid_cells()
 
-    #------ ブロック共通フレーム -------
+    #---------------- ブロック共通フレーム -----------------
     def _block_header(self, parent, title:str) -> cFr:
 
         hdr = cFr(parent, bg=HDR_BG, py=1) ;hdr._pack(fill="x")
         cLbl(hdr, text=title, bg=HDR_BG, fg=HDR_FG, font=(MUI,8), py=1)._pack(side="top")
 
         return parent
-    #------------- 3連単 ---------------
+
+    #----------------------- 3連単 -------------------------
     def _build_3T(self, parent, data: dict):
 
         self._block_header(parent, "3連単")
@@ -682,7 +713,7 @@ class OddsWindow(tk.Tk):
 
                     row += 1
 
-    #-------------- 3連複 --------------
+    #------------------------ 3連複 ------------------------
     def _build_3F_KK(self, parent, data:dict, kk:dict):
 
         boats_2 = [2, 3, 4, 5]
@@ -756,7 +787,7 @@ class OddsWindow(tk.Tk):
             try: del out[0]
             except: pass
 
-    #------------- 2連単 ---------------
+    #----------------------- 2連単 -------------------------
     def _build_2T(self, parent, data:dict):
 
         self._block_header(parent, "2連単")
@@ -780,7 +811,7 @@ class OddsWindow(tk.Tk):
                 label = f"２連単  {num1} ー {num2} "
                 self._grid_data_cell(fr, "2T", 80, ROW_H, row*5+row2, 2, data, key, label)
 
-    #-------------- 2連複 --------------
+    #------------------------ 2連複 ------------------------
     def _build_2F(self, parent, data:dict):
 
         self._block_header(parent, "2連複")
@@ -811,7 +842,7 @@ class OddsWindow(tk.Tk):
             try: del boats[0]
             except: pass
 
-    #----------- 単勝/複勝 -------------
+    #--------------------- 単勝/複勝 -----------------------
     def _build_others(self, parent, title, bet_type, data):
 
         self._block_header(parent, title)
@@ -826,7 +857,7 @@ class OddsWindow(tk.Tk):
             label = f"{title}        {num1}    "
             self._grid_data_cell(fr, bet_type, 80, ROW_H, row, 1, data,  key, label)
 
-    #-----------------------------------
+    #-------------------------------------------------------
     def _grid_data_cell(self, fr, bet_type, W, H, row, col, data, key, label, span=1):
 
         odds = data.get(key, "").replace("-", " - ")
@@ -846,7 +877,7 @@ class OddsWindow(tk.Tk):
 
         self._register_grid_item(bet_type, key, label, cell, lb)
 
-    #-----------------------------------
+    #-------------------------------------------------------
     def _is_cut(self, combo_key:tuple, bet_type:str) -> bool:
 
             allowed = {}
@@ -987,13 +1018,14 @@ class OddsWindow(tk.Tk):
         else:
             self.lbl_synth.config(text="ーー.ー", fg="white", font=(MUI,10))
 
-    #-----------------------------------
+    #-------------------------------------------------------
     def _type_label(self, bt:str) -> str:
 
         return {  "TT":"単勝",  "FF":"複勝", "KK":"拡連複",
                   "2T":"2連単", "2F":"2連複",
                   "3F":"3連複", "3T":"3連単"                }.get(bt, bt)
-    #-----------------------------------
+
+    #-------------------------------------------------------
     def _update_total_bet(self):
 
         total  = 0
@@ -1027,7 +1059,7 @@ class OddsWindow(tk.Tk):
             self.high_marjin.config(text="", fg=HDR_FG)
             self.low_marjin.config( text="", fg=HDR_FG)
 
-    #==================== 選択トグル =======================
+    #-------------------------------------------------------
     def _refresh_grid_cells(self):
 
         self.cell_refs.clear()
@@ -1058,7 +1090,8 @@ class OddsWindow(tk.Tk):
             lb.config( bg=cell_bg, fg=cell_fg, text=odds_str,
                        cursor=("hand2" if (odds_str and not cut) else "") )
             self._bind_grid_item(bt, key, meta["title"], cell, lb, bool(odds_str and not cut))
-    #-----------------------------------
+
+    #-------------------------------------------------------
     def _bind_grid_item(self, bet_type:str, key:tuple, label:str, cell, lb, active:bool):
 
         ref_key = (bet_type, key)
@@ -1073,7 +1106,8 @@ class OddsWindow(tk.Tk):
             #------------
             cell.bind("<Button-1>", _on_click)
             lb.bind("<Button-1>", _on_click)
-    #-----------------------------------
+
+    #-------------------------------------------------------
     def _toggle_select(self, bet_type:str, key:tuple, label:str):
 
         existing = [ (i, s) for i, s in enumerate(self.selected)
@@ -1087,14 +1121,16 @@ class OddsWindow(tk.Tk):
 
         self._refresh_grid_cells()
         self._refresh_tree()
-    #-----------------------------------
+
+    #-------------------------------------------------------
     def _normalize_key(self, bet_type:str, key:tuple):
 
         if bet_type in ("2F", "3F", "KK"):
             return tuple(sorted(key))
 
         return tuple(key)
-    #-----------------------------------
+
+    #-------------------------------------------------------
     def _current_odds_str(self, bet_type:str, key:tuple) -> str:
 
         key_n = self._normalize_key(bet_type, key)
@@ -1110,7 +1146,8 @@ class OddsWindow(tk.Tk):
         else:                             v = ""
 
         return v if isinstance(v, str) else ""
-    #-----------------------------------
+
+    #-------------------------------------------------------
     def _is_linked_3T_from_3F(self, bet_type:str, key:tuple) -> bool:
 
         if bet_type != "3T" or len(key) != 3:
@@ -1123,7 +1160,8 @@ class OddsWindow(tk.Tk):
                 return True
 
         return False
-    #-----------------------------------
+
+    #-------------------------------------------------------
     def _register_grid_item(self, bet_type:str, key:tuple, label:str, cell, lb):
 
         self.grid_items[(bet_type, key)] = { "cell":cell, "label":lb, "bet_type":bet_type,
@@ -1149,6 +1187,7 @@ class OddsWindow(tk.Tk):
         self.players = {i:p for i, p in rows} if rows else {}
 
         c.close()
+
     # ----------------------------------
     def _fetch_deadline(self, date:str, venue_id:int, race_no:int):
 
@@ -1259,7 +1298,7 @@ class OddsWindow(tk.Tk):
         cBtn( btn_frm, text="キャンセル", width=10, font=(MUI,10),
                     relief="flat", cursor="hand2", Com=dlg.destroy ).pack(side="left", padx=6)
 
-    #-----------------------------------
+    #-------------------------------------------------------
     def _run_purchase( self, kanyu_no:str, ansyo_no:str, auth_pw:str, bet_pw:str,
                                                       dry_run:bool, headless:bool ):
 
@@ -1306,26 +1345,38 @@ class OddsWindow(tk.Tk):
         th = threading.Thread(target=_worker, daemon=True)
         th.start()
 
-    #-----------------------------------
+    #-------------------------------------------------------
     def _show_purchase_result(self, result:dict, prog_dlg=None):
 
         if prog_dlg:
             try:              prog_dlg.destroy()
             except Exception: pass
 
-        s = result["success"]
-        f = result["failed"]
-        k = result["skipped"]
+        tgt  = result["targets"]
+        suc  = result["success"]
+        ttl  = result["total"]
+        fai  = result["failed"]
+        skp  = result["skipped"]
+        dry  = result["dry_run"]
 
         lines = []
-        if s:
-            lines.append(f"購入 成功  {len(s)} 件")
+
+        if tgt:
+            lines.append(f"購入 対象  {tgt} 件")
+        if suc:
+            if dry:
+                lines.append(f"ドライラン実行 成功  {len(suc)} 件(購入なし)")
+            else:
+                lines.append(f"購入 成功  {len(suc)} 件")
+
             lines += [f"   {x}" for x in s]
-        if f:
-            lines.append(f"購入 失敗  {len(f)} 件")
-            lines += [f"   {x}" for x in f]
-        if k:
-            lines.append(f"購入 スキップ  {len(k)} 件（金額未入力）")
+        if ttl:
+            lines.append(ttl)
+        if fai:
+            lines.append(f"購入 失敗  {len(fai)} 件")
+            lines += [f"   {x}" for x in fai]
+        if skp:
+            lines.append(f"購入 スキップ  {len(skp)} 件（金額未入力）")
 
         msg = "\n".join(lines) if lines else "処理対象がありませんでした。"
 

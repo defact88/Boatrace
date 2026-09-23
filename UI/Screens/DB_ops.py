@@ -32,16 +32,16 @@ class DBOpsScreen(ttk.Frame):
         self.cols1          = []
         self.cols2          = []
 
-        self.app.option_add("*TCombobox*Listbox*Font", (MUI,9)) #??
-
         fnt   = dict(font=(GUI,10), bg=BG_COLOR)
 
         style = ttk.Style()
-
-        style.configure("TLabelframe", background=BG_COLOR, font=(GUI,9,BD))
-        style.configure( "r.Treeview", background="#222222", 
+        style.configure("DBO.TButton",  font=(MUI,9), anchor="center")
+        style.configure("TLabelframe",  background=BG_COLOR, font=(GUI,9,BD))
+        style.configure("DBO.Treeview", background="#222222", 
                                        foreground="white", 
                                   fieldbackground="#202020"  )
+        self.app.option_add("*TCombobox*Listbox*Font", (MUI,9))
+
         # ================= UI 構成 =================
         main_frame = cFr(self, bg=BG_COLOR)
         main_frame.pack(fill=tk.BOTH, expand=True)
@@ -55,7 +55,7 @@ class DBOpsScreen(ttk.Frame):
 
         # T1 FROM
         cLbl(ops_L, text="FROM", **fnt).grid(row=0, column=0, sticky="w", padx=4, pady=4)
-        self.cbo_table1 = ttk.Combobox(ops_L, values=[], width=15, state="readonly", justify='center', font=(GUI,10))
+        self.cbo_table1 = ttk.Combobox(ops_L, values=[], width=15, state="readonly", justify='center', font=(MUI,9))
         self.cbo_table1.grid(row=0, column=1, sticky="w", padx=4, pady=4)
         self.cbo_table1.bind("<<ComboboxSelected>>", self._on_t1_changed)
 
@@ -124,11 +124,11 @@ class DBOpsScreen(ttk.Frame):
         btn_fr.pack(anchor="e", fill="x", pady=(0, 15))
         btn_fr.columnconfigure(1, weight=1)
   
-        btn_preview = ttk.Button(btn_fr, text="プレビュー", command=self._preview, style="r.TButton")
+        btn_preview = ttk.Button(btn_fr, text="プレビュー", command=self._preview, style="DBO.TButton")
         btn_preview.grid(row=0, column=0, padx=(0, 20), sticky="ns")
 
-        btn_main   = ttk.Button(btn_fr, text="メイン画面", style="r.TButton", command=lambda: app.show_screen("Main"))
-        btn_update = ttk.Button(btn_fr, text="更新",       style="r.TButton", command=self._refresh_tables)
+        btn_main   = ttk.Button(btn_fr, text="メイン画面", style="DBO.TButton", command=lambda: app.show_screen("Main"))
+        btn_update = ttk.Button(btn_fr, text="更新",       style="DBO.TButton", command=self._refresh_tables)
         btn_main.grid(  row=0, column=1, pady=2, sticky="e")
         btn_update.grid(row=1, column=1, pady=2, sticky="e")
 
@@ -140,8 +140,8 @@ class DBOpsScreen(ttk.Frame):
         cLbl(date_fr, text="DATE ( TO )",   **fnt)._grid(R=0, C=5, Cspan=3, Stk="we", padx=(10,0))
         cLbl(date_fr, text=" ～ ",          **fnt)._grid(R=1, C=4,          Stk="we", padx=5)
 
-        ttk.Button(date_fr, text="本日", style="r.TButton", command=self._today_only,   width=6).grid(row=0, column=0, sticky="e", padx=(0,10))
-        ttk.Button(date_fr, text="単日", style="r.TButton", command=self._from_to_from, width=6).grid(row=1, column=0, sticky="e", padx=(0,10))
+        ttk.Button(date_fr, text="本日", style="DBO.TButton", command=self._today_only,   width=6).grid(row=0, column=0, sticky="e", padx=(0,10))
+        ttk.Button(date_fr, text="単日", style="DBO.TButton", command=self._from_to_from, width=6).grid(row=1, column=0, sticky="e", padx=(0,10))
 
         years  = [""] + [str(y) for y in reversed(range(2000, date.today().year + 1))]
         months = [""] + [f"{m:02d}" for m in range(1, 13)]
@@ -194,7 +194,7 @@ class DBOpsScreen(ttk.Frame):
         result = cFr(main_frame, bg=BG_COLOR)
         result.pack(fill=tk.BOTH, padx=10, pady=(0,6), expand=True)
 
-        self.tree = ttk.Treeview(result, columns=(), style="r.Treeview", show="headings", height=12)
+        self.tree = ttk.Treeview(result, columns=(), style="DBO.Treeview", show="headings", height=12)
         vsb       = ttk.Scrollbar(result, orient="vertical",   command=self.tree.yview)
         hsb       = ttk.Scrollbar(result, orient="horizontal", command=self.tree.xview)
         self.tree.configure(yscrollcommand=vsb.set, xscrollcommand=hsb.set)
