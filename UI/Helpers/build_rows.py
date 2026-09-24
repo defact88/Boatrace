@@ -6,13 +6,28 @@ from Helpers.queries import Query
 from datetime        import datetime as dt, date, timedelta
 import Dal as dal
 
+
+# ------------------
+def to_str(x) -> str:
+
+    if isinstance(x,  str): return x
+    if isinstance(x, date): return x.strftime("%Y-%m-%d")
+
+    raise ValueError("str conv error")
+# ------------------
+def to_date(x) -> date:
+
+    if isinstance(x, date): return x
+    if isinstance(x,  str): return date.fromisoformat(x)
+
+    raise ValueError("date conv error")
 #================== entry:make_rows ============================
 def make_rows(self):
 
+    date_to    = to_date(self.date_to)
+    date_from  = to_date(self.date_from)
     lineup     = query_players(self.date, self.venue_id, self.race_no)
-    date_to    = self.date_to
-    date_frm   = self.date_from
-    date_frm_v = date_to -timedelta(days=int(self.range_v))
+    date_frm_v = self.date -timedelta(days=int(self.range_v))
     entry_rows = [None] * 7
     data_rows  = [None] * 7
 
@@ -24,13 +39,13 @@ def make_rows(self):
         if row['flying_st'] or row['late_st']:
             if self.flying:
                 query_opt = dict(flying=True)
-                date_frm  = date_to -timedelta(days=730)  
+                date_from = date_to -timedelta(days=730)  
         elif self.not_flying:
             query_opt = dict(not_flying=True)
         if self.exclude_edo:
             query_opt |= dict(exclude_venue=3)
 
-        query1 = Query(date_frm, date_to, query1=True, query2=True, player_id=pid, **query_opt)
+        query1 = Query(date_from, date_to, query1=True, query2=True, player_id=pid, **query_opt)
 
         ave      = query1._pack(by_course=True)
         rate     = query1._pack(for_graph=True)
@@ -86,7 +101,7 @@ def make_sub_rows(self):
     for frn in range(1, 7):
 
         disp  = query_display_run(frn, self.date, self.venue_id, self.race_no)
-        rslt  = query_result(frn, self.date, self.venue_id, self.race_no)
+        rslt  = query_result(     frn, self.date, self.venue_id, self.race_no)
         rpr   = disp.get("repr", "") if disp.get('repr') else  ""
         parts = ([s.strip() for s in rpr.split(",") if s] + [""] * 9)[:9]
         d_cou = 6 if disp.get("absn", None) and not disp.get("cour", frn) else disp.get("cour", frn) or frn
@@ -155,14 +170,15 @@ def query_program(self):
            AND rp.venue_id =? 
            AND rp.race_no  =?
          LIMIT 1
-        """,  (self.date, self.venue_id, self.race_no))
+        """,
+       (to_str(self.date), self.venue_id, self.race_no))
 
-    row = { k: (dt.fromisoformat(row[k]) if k == 'deadline' and row[k] else row[k]) 
+    row = { k:(dt.fromisoformat(row[k]) if k == 'deadline' and row[k] else row[k]) 
             for k in row.keys() } if row else {}
 
     return row
 # ======================= 選手基本ﾃﾞｰﾀ取得 ===========================
-def query_players(date:str, venue_id:int, race_no:int):
+def query_players(_date:date, venue_id:int, race_no:int):
 
     sql = """
         SELECT rp.frame_no,
@@ -191,10 +207,10 @@ def query_players(date:str, venue_id:int, race_no:int):
            AND rp.race_no  =?
       ORDER BY rp.frame_no
          """
-    return dal.fetch_all(sql, (date, venue_id, race_no))
+    return dal.fetch_all(sql, (to_str(_date), venue_id, race_no))
 
 # ======================== 展示ﾃﾞｰﾀ取得 ==============================
-def query_display_run(fr_no:int, date:str, venue_id:int, race_no:int):
+def query_display_run(fr_no:int, date:date, venue_id:int, race_no:int):
 
     row = dal.fetch_one(
         """
@@ -220,7 +236,7 @@ def query_display_run(fr_no:int, date:str, venue_id:int, race_no:int):
       ORDER BY frame_no
          LIMIT 1
         """,
-        (date, venue_id, fr_no, race_no) )
+        (to_str(date), venue_id, fr_no, race_no) )
 
     row = {k:row[k] for k in row.keys()} if row else {}
 
@@ -240,7 +256,7 @@ def query_result(fn:int, d:date, v:int, r:int):
            AND venue_id= ?
            AND  race_no= ?
         """,
-        (d, v, r)                    )
+        (to_str(d), v, r)                    )
 
     row2 = dal.fetch_one(
         """
@@ -257,7 +273,7 @@ def query_result(fn:int, d:date, v:int, r:int):
            AND  frame_no= ?
       ORDER BY frame_no
         """,
-        (d, v, r, fn)                    )
+        (to_str(d), v, r, fn)                    )
 
     row1 = {k:row1[k] for k in row1.keys()} if row1 else {}
     row2 = {k:row2[k] for k in row2.keys()} if row2 else {}

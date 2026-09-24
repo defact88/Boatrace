@@ -56,6 +56,7 @@ def _to_date(x) -> date:
 
 # ======== Venues Analysis (per venue) =======================================
 class VenueAnalysisScreen(tk.Toplevel):
+
     def __init__(self, master, venue_id):
         super().__init__(master)
 
@@ -327,7 +328,7 @@ class VenueAnalysisScreen(tk.Toplevel):
         query1 = Query( self.date_from, self.date_to, query1=True, grade=self.grade_key,
                           venue_id=self.venue_id, exclude_rookie=[True,False], **opt_dict )
         query2 = Query( self.date_from, self.date_to, query1=True, grade=self.grade_key,
-                        exclude_rookie=[True,False], **opt_dict )
+                                                  exclude_rookie=[True,False], **opt_dict )
 
         self.rows1 = query1._pack(by_course=True)
         self.rows2 = query2._pack(by_course=True)

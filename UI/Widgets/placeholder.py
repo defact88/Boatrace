@@ -158,7 +158,10 @@ def build_sub_placeholder(self, parent:tk.Frame): #  1188  318
         if hasattr(fr_figA, "reset_figure"):
             fr_figA.reset_figure()
     #---------------
-    self.s_lane = 0
+    self.s_lane      = 0
+    self.flying      = False
+    self.not_flying  = False
+    self.exclude_edo = False if self.venue_id != 3 else True
 
     fr_Hedr  = cFr(parent, W=1200, H= 45)
     fr_body  = cFr(parent, W=1200, H=266)
@@ -184,25 +187,31 @@ def build_sub_placeholder(self, parent:tk.Frame): #  1188  318
     fr_para = cFr(fr_hdrR, W= 92, H= 43, bg=BG_COL) ;fr_para._grid(R=0, C=2) ;fr_para.Pgate()
     fr_wdir = cFr(fr_hdrR, W= 51, H= 43, bg=BG_COL) ;fr_wdir._grid(R=0, C=3) ;fr_wdir.Pgate()
 
-    fr_btnA = cFr(fr_pnel, W=383, H= 22, Bd=(1,SK)) ;fr_btnA._grid(R=0, C=0) ;fr_btnA.Pgate()
-    fr_btnB = cFr(fr_pnel, W=383, H= 21, Bd=(1,SK)) ;fr_btnB._grid(R=1, C=0) ;fr_btnB.Pgate()
+    fr_btnA = cFr(fr_pnel, W=383, H= 22, bg="white");fr_btnA._grid(R=0, C=0) ;fr_btnA.Pgate()
+    fr_btnB = cFr(fr_pnel, W=383, H= 21, bg="white");fr_btnB._grid(R=1, C=0) ;fr_btnB.Pgate()
 
     self.bt_ctw = cFr(fr_btnA, W=383, H= 22)
-    self.bt_rst = cBtn( fr_btnB, W=8, H=1, font=(MUI,9), Bd=(1,RA), bg="#e1f2ff",
-                        text="Reset",      Com=reset_figure                       )
-    self.bt_fly = cBtn( fr_btnB, W=8, H=1, font=(MUI,8), Bd=(1,SK), bg="#F1EE62",
-                        text="Flying",     Com=lambda:_switch_flying(self)          )
-    self.bt_nfl = cBtn( fr_btnB, W=8, H=1, font=(MUI,8), Bd=(1,SK), bg="#F1EE62",
-                        text="NotFlying", Com=lambda:_switch_not_flying(self)      )
-    self.bt_exE = cBtn( fr_btnB, W=8, H=1, font=(MUI,8), Bd=(1,SK),
-                        bg="#F1EE62" if self.venue_id != 3 else "#dfdfdf",
-                        text="江戸川除外", Com=lambda:_exclude_edogawa(self)      )
+
+    self.bt_rst = cBtn( fr_btnB, W=8, font=(MUI,8), text="Reset",
+                        Bd=(1,RA), bg="#e1f2ff", Com=reset_figure )
+
+    self.bt_fly = cBtn(fr_btnB, W=7, font=(MUI,8), text="Flying")
+    self.bt_nfl = cBtn(fr_btnB, W=7, font=(MUI,8), text="NotFlying")
+    self.bt_exE = cBtn(fr_btnB, W=7, font=(MUI,8), text="江戸川除外")
+
+    self.bt_fly.config(command=lambda:_switch_btn(self, self.bt_fly, "flying"))
+    self.bt_nfl.config(command=lambda:_switch_btn(self, self.bt_nfl, "not_flying"))
+    self.bt_exE.config(command=lambda:_switch_btn(self, self.bt_exE, "exclude_edo"))
 
     self.bt_ctw._grid(R=0, C=0)
     self.bt_rst._grid(R=0, C=0)
     self.bt_fly._grid(R=0, C=1, px=(5,0))
     self.bt_nfl._grid(R=0, C=2)
     self.bt_exE._grid(R=0, C=3)
+
+    _config_btn(self, self.bt_fly, self.flying)
+    _config_btn(self, self.bt_nfl, self.not_flying)
+    _config_btn(self, self.bt_exE, self.exclude_edo)
 
     fr_venA.Rconf(0, W=1) ;fr_venA.Cconf(0, W=1)
     fr_venA.Rconf(1, W=1)
@@ -220,11 +229,11 @@ def build_sub_placeholder(self, parent:tk.Frame): #  1188  318
 
     lb_vname = cLbl(fr_venA, font=(MUI, 9,BD), bg="#c3ffcb", cursor= "hand2")
     lb_w_typ = cLbl(fr_venA, font=(MUI, 8   ), bg="#c3ffcb"           )
-    lb_upd_m = cLbl(fr_venB, font=(MUI, 9   ), bg="white",   Bd=(1,GR))
-    lb_upd_b = cLbl(fr_venB, font=(MUI, 9   ), bg="white",   Bd=(1,GR))
-    lb_deadl = cLbl(fr_clok, font=(MUI, 9   ), bg="white",   Bd=(1,GR))
-    lb_now   = cLbl(fr_clok, font=(MUI, 9   ), bg="white",   Bd=(1,GR))
-    lb_last  = cLbl(fr_last, font=(GUI,10   ), bg="#f8f8f8"           )
+    lb_upd_m = cLbl(fr_venB, font=(MUI, 9   ), bg="white",   Bd=(1,SK))
+    lb_upd_b = cLbl(fr_venB, font=(MUI, 9   ), bg="white",   Bd=(1,SK))
+    lb_deadl = cLbl(fr_clok, font=(MUI, 9   ), bg="white",   Bd=(1,SK))
+    lb_now   = cLbl(fr_clok, font=(MUI, 9   ), bg="white",   Bd=(1,SK))
+    lb_last  = cLbl(fr_last, font=(GUI,10   ), bg="#f8f8f8", Bd=(1,RD))
     lb_vname.bind("<Button-1>",lambda e:self.app.open_v_analys(self.venue_id))
 
     lb_vname._grid(R=0, C=0, Stk=ALL)
@@ -235,10 +244,10 @@ def build_sub_placeholder(self, parent:tk.Frame): #  1188  318
     lb_now._grid(  R=1, C=1, Stk=ALL)
     lb_last._grid( R=0, C=0, Stk=ALL)
 
-    cLbl(fr_venB, text="モーター更新後", font=(MUI,8), bg=BG_COL, Bd=(1,GR))._grid(R=0, C=0, Stk=ALL)
-    cLbl(fr_venB, text=" ボート 更新後", font=(MUI,8), bg=BG_COL, Bd=(1,GR))._grid(R=1, C=0, Stk=ALL)
-    cLbl(fr_clok, text="締 切",          font=(MUI,8), bg=BG_COL, Bd=(1,GR))._grid(R=0, C=0, Stk=ALL)
-    cLbl(fr_clok, text="現 在",          font=(MUI,8), bg=BG_COL, Bd=(1,GR))._grid(R=1, C=0, Stk=ALL)
+    cLbl(fr_venB, text="モーター更新後", font=(MUI,8), bg=BG_COL, Bd=(1,RD))._grid(R=0, C=0, Stk=ALL)
+    cLbl(fr_venB, text=" ボート 更新後", font=(MUI,8), bg=BG_COL, Bd=(1,RD))._grid(R=1, C=0, Stk=ALL)
+    cLbl(fr_clok, text="締 切",          font=(MUI,8), bg=BG_COL, Bd=(1,RD))._grid(R=0, C=0, Stk=ALL)
+    cLbl(fr_clok, text="現 在",          font=(MUI,8), bg=BG_COL, Bd=(1,RD))._grid(R=1, C=0, Stk=ALL)
 
     lb_wspd = cLbl(fr_para, font=(MUI,10), bg=BG_COL) ;lb_wspd._grid(R=0, C=0, Stk=ALL)
     lb_wave = cLbl(fr_para, font=(MUI,10), bg=BG_COL) ;lb_wave._grid(R=1, C=0, Stk=ALL)
@@ -374,31 +383,19 @@ def _graph(self, f, s_lane):
         self.s_lane = s_lane
 
     framing_graph(self, f, self.frame_order, self.data_rows, rows2=self.overall, s_lane=self.s_lane)
+
 # ----------------------------------------------------------------
-def _switch_flying(self):
+def _switch_btn(self, btn:tk.Button, flag_name:str):
 
-    self.flying = not self.flying
+    setattr(self, flag_name, not getattr(self, flag_name))
 
-    if self.flying: self.bt_fly.config(bg="#F1EE62", relief=SK)
-    else:           self.bt_fly.config(bg="#dfdfdf", relief=RA)
+    _config_btn(self, btn, getattr(self, flag_name))
 
     self._reload_for(self.date, self.venue_id, self.race_no)
 
 # ----------------------------------------------------------------
-def _switch_not_flying(self):
+def _config_btn(self, btn:tk.Button, flg:bool):
 
-    self.not_flying = not self.not_flying
+     btn.config(bg="#F1EE62", relief=SK) if flg else btn.config(bg="#DFDFDF", relief=RA)
 
-    if self.not_flying: self.bt_nfl.config(bg="#F1EE62", relief=SK)
-    else:               self.bt_nfl.config(bg="#dfdfdf", relief=RA)
-
-    self._reload_for(self.date, self.venue_id, self.race_no)
 # ----------------------------------------------------------------
-def _exclude_edogawa(self):
-
-    self.exclude_edo = not self.exclude_edo
-
-    if self.exclude_edo: self.bt_exE.config(bg="#F1EE62", relief=SK)
-    else:                self.bt_exE.config(bg="#dfdfdf", relief=RA)
-
-    self._reload_for(self.date, self.venue_id, self.race_no)

@@ -33,7 +33,7 @@ class cFr(tk.Frame):
     def Cconf(self, col, W=None, Min=None, **kwargs):
        
         if W   is not None: kwargs['weight']  = W
-        if min is not None: kwargs['minsize'] = Min
+        if Min is not None: kwargs['minsize'] = Min
 
         self.grid_columnconfigure(col, **kwargs)
 
@@ -41,7 +41,7 @@ class cFr(tk.Frame):
     def Rconf(self, row, W=None, Min=None, **kwargs):
        
         if W   is not None: kwargs['weight']  = W
-        if min is not None: kwargs['minsize'] = Min
+        if Min is not None: kwargs['minsize'] = Min
 
         self.grid_rowconfigure(row, **kwargs)
 
@@ -71,7 +71,7 @@ class cFr(tk.Frame):
 # カスタム短縮表記ラベル -----------------------------------
 class cLbl(tk.Label):
     def __init__( self, master=None, *, Anc=None, W=None, H=None, Bd=None, Rel=None,
-                            hlbg=None, hlth=None, px=None, py=None, bg=None, **kwargs ):
+                  Jst=None, hlbg=None, hlth=None, px=None, py=None, bg=None, **kwargs ):
 
         if W    is not None: kwargs['width']               = W
         if H    is not None: kwargs['height']              = H
@@ -80,6 +80,7 @@ class cLbl(tk.Label):
         if Rel  is not None: kwargs['relief']              = Rel
         if bg   is not None: kwargs['background']          = bg
         else:                kwargs['background']          = MAIN_BG
+        if Jst  is not None: kwargs['justify']             = Jst
         if hlbg is not None: kwargs['highlightbackground'] = hlbg
         if hlth is not None: kwargs['highlightthickness']  = hlth
         if px   is not None: kwargs['padx']                = px

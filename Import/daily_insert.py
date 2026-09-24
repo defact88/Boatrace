@@ -4,34 +4,31 @@
 from __future__      import annotations
 from pathlib         import Path
 from datetime        import datetime as dt, date, timedelta
-from update_FLstate  import update_FLstate
-import ETL_import_Display
-import ETL_K_results
-import import_B_txt
+import argparse, subprocess, sys, os
 
-import argparse, sqlite3, subprocess, sys, os
+from update_FLstate  import update_FLstate
+import fetch_past_odds, import_B_txt
+import ETL_import_Display,  ETL_K_results
+import Dal as dal
 
 BASE     = Path(r"C:\boatrace")
-DB_PATH  = BASE / r"boatrace.db"
 LOG_PATH = BASE / r"Archive\logs\daily_insert"
 IMPORT_D = BASE / r"UI\Subprocess\ETL_import_Display.py"
 
 #-----------------------------------------------------------
 def ensure_programs(d_iso:str):
 
-    with sqlite3.connect(str(DB_PATH), timeout=60) as con:
-        (cnt,) = con.execute("""
-                     SELECT COUNT(1)
-                       FROM Race_programs
-                      WHERE date=?
-                     """ ,
-                     (d_iso,)              ).fetchone()
+
+    (cnt,) = dal.fetch_one("""
+                 SELECT COUNT(1)
+                   FROM Race_programs
+                  WHERE date=?
+                 """ ,
+                 (d_iso,)              )
 
     if cnt and cnt > 0:
-        con.close()
         return True
     else:
-        con.close()
         return False
 
 #-----------------------------------------------------------

@@ -41,8 +41,8 @@ class Query():
 
         super().__init__()
 
-        self.date_from      = date_from
-        self.date_to        = date_to
+        self.date_from      = self.to_str(date_from)
+        self.date_to        = self.to_str(date_to)
         self.player_id      = player_id
         self.option         = {k:v for k, v in locals().items() if v is not None} or {}
         self.exclude_rookie = exclude_rookie
@@ -577,10 +577,10 @@ class Query():
         wins = []
 
         for (d_str,) in rows:
-            f_date           = self._to_date(d_str)
+            f_date           = self.to_date(d_str)
             _start, term_end = self._calc_term_bounds_for_date(f_date)
-            start            = max(  f_date, self._to_date(self.date_from))
-            end              = min(term_end, self._to_date(self.date_to  ))
+            start            = max(  f_date, self.to_date(self.date_from))
+            end              = min(term_end, self.to_date(self.date_to  ))
             if start <= end: wins.append((start, end))
 
         if not wins: 
@@ -628,13 +628,23 @@ class Query():
         if      m >= 11: return (date(y,11, 1), date(y+1,4,30))
 
         return (date(y-1,11, 1), date(y, 4,30))
+
     # --------------------------------------------
-    def _to_date(self, x) -> date:
+    def to_date(self, x) -> date:
 
         if isinstance(x, date): return x
         if isinstance(x,  str): return date.fromisoformat(x)
 
         raise ValueError("date conv error")
+
+    # --------------------------------------------
+    def to_str(self, x) -> str:
+
+        if isinstance(x,  str): return x
+        if isinstance(x, date): return x.strftime("%Y-%m-%d")
+
+        raise ValueError("str conv error")
+
     # --------------------------------------------
     def _point_for(self, grade:int|None, final:int|None, rank:int|None, s_name:str):
 

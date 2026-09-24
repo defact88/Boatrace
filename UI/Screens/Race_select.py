@@ -14,6 +14,8 @@ from Helpers.Custum_func import cFr, cLbl, cBtn
 from Helpers.series_idx  import build_day_lbl
 from Widgets.widgets     import framing_held_type_icon  
 
+#===============================================================================
+
 VENUES = [ "桐生", "戸田", "江戸川","平和島","多摩川","浜名湖","蒲郡","常滑", "津",
            "三国","びわこ","住之江","尼崎",  "鳴門",  "丸亀",  "児島","宮島", "徳山",
            "下関","若松",  "芦屋",  "福岡",  "唐津",  "大村",                         ]
@@ -29,17 +31,19 @@ SCOL               = "#a5e6ff"
 MAIN_BG            = "#F0F4FA"
 #MAIN_BG            = "SystemButtonFace"
 
-GRADE_OPT    = [ {"font":(MUI, 10    ), "bg":"white", "fg":"black" },
-                 {"font":(MUI, 10    ), "bg":"white", "fg":"black" },
+GRADE_OPT    = [ {"font":(MUI, 10    ), "bg":"white",   "fg":"black"   },
+                 {"font":(MUI, 10    ), "bg":"white",   "fg":"black"   },
                  {"font":(MUI, 10, BD), "bg":"#d2ffd1", "fg":"#ff3939" },
                  {"font":(MUI, 10, BD), "bg":"#d2ffd1", "fg":"#ff3939" },
                  {"font":(MUI, 10, BD), "bg":"#d2ffd1", "fg":"#ff3939" },
                  {"font":(MUI, 10, BD), "bg":"#72c5ff", "fg":"#ff3939" }  ]
 
-# ------------------
+HDR_OPT = dict(font=(GUI,10,BD), bg="#d3dee9", Bd=(1,RD))
+#===============================================================================
 def date_today() -> date:
 
     JST = timezone(timedelta(hours=9))
+
     return dt.now(JST).date()
 # ------------------
 def _str(d:date) -> str:
@@ -47,7 +51,6 @@ def _str(d:date) -> str:
     return d.strftime("%Y-%m-%d")
 
 # ======================== レース選択画面 ============================
-# --------------------------------------------------------------------
 class RaceSelectScreen(tk.Frame):
 
     def __init__(self, parent, app, db_path):
@@ -93,13 +96,12 @@ class RaceSelectScreen(tk.Frame):
         fr_ctrl.Cconf(3, W=1)
 
         btn_main = ttk.Button( fr_hedr, text="メイン 画面", width=10, style="RSS.TButton",
-                                              command=lambda: self.app.show_screen("Main") )
+                                               command=lambda:self.app.show_screen("Main") )
         btn_main.grid(row=0, column=0, ipady=5, sticky="w")
 
-        cLbl( fr_hedr, W=33, anc=CT, text="Race Window 表示レース  選 択", font=(GUI,11,BD)
+        cLbl( fr_hedr, W=33, Anc=CT, text="Race Window 表示レース  選 択", font=(GUI,11,BD)
              )._grid(R=0, C=1, Stk="w", padx=(20,0))
 
-        # Controls row
         cLbl(fr_rnge, text="データ算出期間", font=(MUI,10), width=10)._grid(R=0, C=0)
         cLbl(fr_rnge, text="日",             font=(MUI,10), width= 1)._grid(R=0, C=2)
 
@@ -109,8 +111,8 @@ class RaceSelectScreen(tk.Frame):
         self.btn_next  = ttk.Button(fr_ctrl, text="＞", width=3, command=lambda:self._shift_date( 1))
         self.btn_odds  = cBtn( fr_ctrl, text="オッズ OFF", width=10, bg="white", relief="raised",
                                         font=(MUI,10), command=lambda:self._odds_on()             )
-        self.lbl_date = cLbl( fr_ctrl, text=f"{self.date.month} 月 {self.date.day} 日    開催一覧",
-                                                                         font=(MUI,10), bg=MAIN_BG  )
+        self.lbl_date  = cLbl( fr_ctrl, text=f"{self.date.month} 月 {self.date.day} 日    開催一覧",
+                                                                          font=(MUI,10), bg=MAIN_BG  )
 
         self.ent_range.grid(row=0, column=1)
         self.btn_prev.grid( row=0, column=0, padx=(140,0))
@@ -118,10 +120,8 @@ class RaceSelectScreen(tk.Frame):
         self.btn_next.grid( row=0, column=2)
         self.btn_odds.grid( row=0, column=3, padx=(100,0))
 
-        # Grid area
-        self.fr_grid = cFr(fr_wrap, W=660, H=440)
-        self.fr_grid._grid(R=0, C=0, Stk=ALL)
-        self.fr_grid.Pgate()
+        self.fr_grid = cFr(fr_wrap, W=660, H=440, Bd=(1,SD))
+        self.fr_grid._grid(R=0, C=0, Stk=ALL) ;self.fr_grid.Pgate()
 
         for r in range(4):
             self.fr_grid.Rconf(r, weight=1)
@@ -133,21 +133,16 @@ class RaceSelectScreen(tk.Frame):
     #---------------------------------------------
     def _odds_on(self):
 
-        if self.ow == True:
-            self.ow = False
+        if self.ow:
             self.btn_odds.config(text="オッズ OFF", bg="white", relief="raised")
         else:
-            self.ow = True
             self.btn_odds.config(text="オッズ ON", bg="#fbffcb", relief="ridge",)
+
+        self.ow = not self.ow
 
     # ---------- public hooks ----------
     def on_show(self):
 
-        self._render_for_date()
-    # ----------------------------------
-    def reload_today(self):
-
-        self.date = date_today()
         self._render_for_date()
 
     # ----------------------------------
@@ -163,63 +158,63 @@ class RaceSelectScreen(tk.Frame):
     # --------------------------------------------
     def _render_for_date(self):
  
-        self.lbl_date.configure(text=f"{self.date.month} 月 {self.date.day} 日     開催一覧")
-        dayinfo = self._load_day_info(dt.strftime(self.date, "%Y-%m-%d"))
+        self.lbl_date.config(text=f"{self.date.month} 月 {self.date.day} 日     開催一覧")
+        dayinfo = self._load_day_info(self.date)
  
         for vid, vname in enumerate(VENUES, start=1):
             info = dayinfo.get(vid, None)
             self._render_cell((vid-1)//6, (vid-1)%6, vid, vname, info)
 
     # --------------------------------------------
-    def _render_cell(self, row:int, col:int, venue_id:int, venue_name:str, info:dict|None):
+    def _render_cell(self, row:int, col:int, venue_id:int, v_name:str, info:dict|None):
 
-        v_opt = dict(text=venue_name, font=(GUI,10,BD), bg="#d3dee9")
         widg  = self._cells.get(venue_id)
 
         if widg is None:
-            self.fr_cel = cFr(self.fr_grid, W=110, H=110, bd=1, Rel=SD, bg=MAIN_BG)
-            self.fr_cel._grid(R=row, C=col, Stk=ALL) ;self.fr_cel.Pgate()
-            self.fr_cel.Rconf(0, W=1) ; self.fr_cel.Cconf(0, W=1)
-            self.fr_cel.Rconf(1, W=1) ; self.fr_cel.Cconf(1, W=1)
-            self.fr_cel.Rconf(2, W=1)
+            fr_cell = cFr(self.fr_grid, W=110, H=110, Bd=(1,GR), bg=MAIN_BG)
+            fr_cell._grid(R=row, C=col, Stk=ALL) ;fr_cell.Pgate()
 
-            lb_ven = cLbl(self.fr_cel, anc=CT, **v_opt, bd=1, Rel=RD)
-            lb_upL = cLbl(self.fr_cel, anc="e", text="", font=(MUI,11), bg=MAIN_BG)
-            lb_upR = cLbl(self.fr_cel, anc=CT,  text="")
-            lb_dwn = cLbl(self.fr_cel, anc=CT,  text="", font=(MUI,10))
+            fr_cell.Rconf(0, Min=30) ;fr_cell.Cconf(0, Min=60)
+            fr_cell.Rconf(1, Min=40) ;fr_cell.Cconf(1, Min=50)
+            fr_cell.Rconf(2, Min=40)
 
-            lb_ven._grid(R=0, C=0, Cspan=2, Stk=ALL)
-            lb_upL._grid(R=1, C=0,          Stk="we")
-            lb_upR._grid(R=1, C=1,          Stk="we")
-            lb_dwn._grid(R=2, C=0, Cspan=2, Stk=ALL)
+            lb_hedr = cLbl(fr_cell, Anc=CT,  text=v_name, **HDR_OPT)
+            lb_topL = cLbl(fr_cell, Anc="e", text="", font=(MUI,11), bg=MAIN_BG)
+            lb_topR = cLbl(fr_cell, Anc=CT,  text="")
+            lb_botm = cLbl(fr_cell, Anc=CT,  text="", font=(MUI,10))
 
-            widg = self._cells[venue_id] = dict( cel=self.fr_cel, ven=lb_ven, upL=lb_upL,
-                                                 upR=lb_upR, dwn=lb_dwn,
-                                                 clicks=( self.fr_cel, lb_ven, lb_upL,
-                                                                  lb_upR, lb_dwn )   )
-        else:
-            (cel, lb_ven, lb_upL, lb_upR, lbl_dwn) = ( widg["cel"], widg["ven"],
-                                                       widg["upL"], widg["upL"], widg["dwn"] )
-            cel._grid(R=row, C=col, Stk=ALL)
+            lb_hedr._grid(R=0, C=0, Cspan=2, Stk=ALL)
+            lb_topL._grid(R=1, C=0,          Stk="we")
+            lb_topR._grid(R=1, C=1,          Stk="we")
+            lb_botm._grid(R=2, C=0, Cspan=2, Stk=ALL)
+
+            widg = self._cells[venue_id] = { "frm":fr_cell, "hedr":lb_hedr, "topL":lb_topL,
+                                                            "topR":lb_topR, "botm":lb_botm,
+                                             "clicks":(lb_topL, lb_topR, lb_botm)           }
 
         if info is None:
-            widg["upL"].configure(text="", bg=MAIN_BG, fg="black")
-            widg["upR"].configure(text="", bg=MAIN_BG, fg="black")
-            widg["dwn"].configure(text="", bg=MAIN_BG, fg="black")
+            widg["frm"].configure(bg=MAIN_BG)
+            widg["topL"].configure(text="", bg=MAIN_BG, fg="black")
+            widg["topR"].configure(text="", bg=MAIN_BG, fg="black")
+            widg["botm"].configure(text="", bg=MAIN_BG, fg="black")
+
+            framing_held_type_icon(self, widg["topR"], 0)
+
             self._apply_click_binding(widg, venue_id, enabled=False)
-            framing_held_type_icon(self, widg["upR"], 0)
+
         else:
-            self.fr_cel.config(bg="white")
             grade   = GRADE_IDX.get(info.get("grade") or 0, "一般")
             day_lbl = self._calc_day_label(self.date, venue_id)
             g_opt   = GRADE_OPT[info.get("grade") or 0]
             h_type  = info.get("held_type", 0)
 
-            widg["upL"].configure(text=f"{grade}", **g_opt)
-            widg["upR"].configure(text=f"",        **g_opt)
-            widg["dwn"].configure(text=day_lbl or "ー", bg="white")
+            widg["frm"].config(bg="white")
+            widg["topL"].configure(text=f"{grade}", **g_opt)
+            widg["topR"].configure(text=f"",        **g_opt)
+            widg["botm"].configure(text=day_lbl, bg="white")
 
-            framing_held_type_icon(self, widg["upR"], h_type)         
+            framing_held_type_icon(self, widg["topR"], h_type)   
+      
             self._apply_click_binding(widg, venue_id, enabled=True)
 
     # --------------------------------------------
@@ -230,22 +225,24 @@ class RaceSelectScreen(tk.Frame):
         if enabled:
             for w in widgets:
                 w.configure(cursor="hand2")
-                w.bind("<Button-1>", lambda e, v=venue_id: self._open_race_window(v, self.ow))
+                w.bind("<Button-1>", lambda e, v=venue_id:self._open_race_window(v, self.ow))
         else:
             for w in widgets:
                 w.configure(cursor="")
                 w.unbind("<Button-1>")
+
     # --------------------------------------------
     def _open_race_window(self, venue_id:int, odds_window:bool):
 
         try:
             range_d = int(self.range_var.get().strip())
         except Exception:
-            range_d = 200
+            range_d = 270
+
         self.app.open_race_window(self.date, venue_id, range_d, odds_window)
 
     # ----------------- DB access -----------------
-    def _load_day_info(self, d_iso:str):
+    def _load_day_info(self, _date:date):
 
         out:dict[int, dict] = {}
 
@@ -258,7 +255,7 @@ class RaceSelectScreen(tk.Frame):
              WHERE date = ?
           GROUP BY venue_id
             """,
-            (d_iso,))
+            (_str(_date),))
 
         for row in rows:
             vid      = int(row["venue_id"])
@@ -273,9 +270,8 @@ class RaceSelectScreen(tk.Frame):
 
         for items in labels:
             if items["date"] == _str(_date):
-                if   items.get("is_final"): return "最終日"
-                day_no = items.get("label_no")
-                if day_no == 1:             return "初日"
-                return f"{day_no}日目"
+                if items.get("is_final"):      return "最終日"
+                if items.get("label_no") == 1: return "初日"
+                else:                          return f"{items["label_no"]}日目"
 
         return "ー"
