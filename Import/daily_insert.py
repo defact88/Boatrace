@@ -7,8 +7,8 @@ from datetime        import datetime as dt, date, timedelta
 import argparse, subprocess, sys, os
 
 from update_FLstate  import update_FLstate
-import fetch_past_odds, import_B_txt
-import ETL_import_Display,  ETL_K_results
+import ETL_odds_data, import_B_txt
+import ETL_Before_info,  ETL_K_results
 import Dal as dal
 
 BASE     = Path(r"C:\boatrace")
@@ -70,7 +70,7 @@ def call_B(date_iso:str, overwrite:bool=False, background:bool=False):
     import_B_txt.main(argv)
 
 #-----------------------------------------------------------
-def run_import_display(date_from:str, date_to:str, background:bool=False):
+def run_get_before_info(date_from:str, date_to:str, background:bool=False):
 
     if background:
         if date_from == date_to:
@@ -106,7 +106,7 @@ def run_import_display(date_from:str, date_to:str, background:bool=False):
                 print(str(e))
 
     else:
-        ETL_import_Display.main(["--date_from", date_from, "--date_to", date_to])
+        ETL_Before_info.main(["--date_from", date_from, "--date_to", date_to])
 
 #===============================================================================
 def parse_args():
@@ -157,7 +157,7 @@ def main():
 
     update_FLstate()
 
-    run_import_display(yesterday(d_f), yesterday(d_t), args.background)
+    run_get_before_info(yesterday(d_f), yesterday(d_t), args.background)
 
     sys.exit(0)
 

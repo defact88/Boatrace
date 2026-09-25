@@ -2,8 +2,8 @@
 
 import time, sys, subprocess, argparse
 from datetime          import datetime as dt, timedelta
-from check_display_run import check_display_data
-import import_Display_run
+from check_Before_info import check_Before_info_data
+import get_Before_info
 
 INTERVAL_SEC  = 5
 
@@ -19,7 +19,7 @@ def ETL_run(date_from:str, date_to:str, overwrite:bool=False):
         print(f"{'='*50}")
 
         if not overwrite:
-            has_missing = check_display_data(date_str, date_str, quiet_mode=True)
+            has_missing = check_Before_info_data(date_str, date_str, quiet_mode=True)
             if not has_missing:
                 print(f"[SKIP] {date_str} のデータは完備されています。")
                 if current_date < date_to:
@@ -31,7 +31,7 @@ def ETL_run(date_from:str, date_to:str, overwrite:bool=False):
         args_list = ["--date", date_str, "--ALL_venue", "--ALL_race"]
         
         try:
-            result_code = import_Display_run.main(args_list)
+            result_code = get_before_info.main(args_list)
 
             if result_code == 0:
                 print(f"\n[SUCCESS] {date_str} の処理が正常に完了しました。")
@@ -54,7 +54,7 @@ def ETL_run(date_from:str, date_to:str, overwrite:bool=False):
 #---------------------------------------
 def parse_args(argv=None):
 
-    p = argparse.ArgumentParser(description="ETL for import_Display_run.py")
+    p = argparse.ArgumentParser(description="ETL for import_Before_info.py")
     p.add_argument("--date",      default=None,         help="対象日(yyyy)")
     p.add_argument("--date_from",                       help="期間開始(YYYY-MM-DD)")
     p.add_argument("--date_to",                         help="期間終了(YYYY-MM-DD)")

@@ -6,7 +6,8 @@ from pathlib import Path
 BASE_DIR = Path(r"C:\boatrace")
 DB_PATH  = BASE_DIR / "boatrace.db"
 
-def check_display_data(date_from, date_to, quiet_mode=False):
+#=====================================================================
+def check_Before_info_data(date_from, date_to, quiet_mode=False):
 
     if not DB_PATH.exists():
         print(f"[ERR] データベースが見つかりません: {DB_PATH}")
@@ -29,7 +30,7 @@ def check_display_data(date_from, date_to, quiet_mode=False):
                              AND r.venue_id = e.venue_id 
                              AND  r.race_no = e.race_no
 
-     LEFT JOIN Display_run d  ON     e.date = d.date 
+     LEFT JOIN Before_info d  ON     e.date = d.date 
                              AND e.venue_id = d.venue_id 
                              AND  e.race_no = d.race_no 
                              AND e.frame_no = d.frame_no
@@ -73,12 +74,12 @@ def check_display_data(date_from, date_to, quiet_mode=False):
         print(f"[SQL ERR] {e}")
     except Exception as e:
         print(f"[ERR] {e}")
-
+#=====================================================================
 if __name__ == "__main__":
 
-    parser = argparse.ArgumentParser(description="Display_run データ検査ツール")
+    parser = argparse.ArgumentParser(description="Before_info データ検査ツール")
     parser.add_argument("--date_from", required=True, help="開始日 (YYYY-MM-DD)")
     parser.add_argument("--date_to",   required=True, help="終了日 (YYYY-MM-DD)")
 
     args = parser.parse_args()
-    check_display_data(args.date_from, args.date_to)
+    check_Before_info_data(args.date_from, args.date_to)

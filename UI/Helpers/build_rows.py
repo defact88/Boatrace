@@ -228,7 +228,7 @@ def query_display_run(fr_no:int, date:date, venue_id:int, race_no:int):
                lap_reduct  AS shlp,
                stabilizer  AS stab
 
-          FROM Display_run
+          FROM Before_info
          WHERE date     =?
            AND venue_id =?
            AND frame_no =?

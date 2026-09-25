@@ -3,6 +3,7 @@
 
 import tkinter as tk
 import sqlite3, os, shutil, re, datetime
+import Dal as dal
 from tkinter             import ttk, messagebox
 from Helpers.Custum_func import cFr, cLbl, cBtn
 
@@ -10,7 +11,9 @@ GUI, MUI, HNH, CBR = "Yu Gothic UI", "Meiryo UI", "Helvetica Neue Heavy", "Cambr
 GR, SD, RD, RA, BD = "groove", "solid", "ridge", "raised", "bold"
 ALL, CT            = "nsew", "center"
 
+#=====================================================================
 class DBSchemScreen(ttk.Frame):
+
     def __init__(self, parent, app, db_path):
         super().__init__(parent)
 
@@ -38,34 +41,37 @@ class DBSchemScreen(ttk.Frame):
         # 上段
         top  = ttk.Frame(self, height=80)
         mid  = ttk.Frame(self, height=600)
-        top.pack(fill=tk.X)                  ;top.pack_propagate(False)
+        top.pack(fill=tk.X                 ) ;top.pack_propagate(False)
         mid.pack(fill=tk.X, padx=10, pady=0) ;mid.pack_propagate(False)
 
         row1 = ttk.Frame(top) ;row1.pack(anchor="w", pady=(0,10))
         row2 = ttk.Frame(top) ;row2.pack(anchor="w", padx=20)
 
         ttk.Button( row1, text="MAIN", width=8, style="DBS.TButton",
-                    command=lambda: app.show_screen("Main")).pack(side=tk.LEFT, padx=10 )
+                    command=lambda: app.show_screen("Main") ).pack(side=tk.LEFT, padx=10 )
         ttk.Button(row1, text="DATA", width=10, style="DBS.TButton",).pack(side=tk.LEFT)
 
         self.cbo_kind = ttk.Combobox( row2, width=10, state="readonly",
-                                       font=(MUI,9), values=["TABLE", "VIEW", "INDEX"]        )
+                                       font=(MUI,9), values=["TABLE", "VIEW", "INDEX"] )
         self.cbo_kind.set("TABLE") ;self.cbo_kind.pack(side=tk.LEFT)
 
         ttk.Frame(row2, width=80).pack(side=tk.LEFT)
+
         ttk.Button( row2, text="CREATE", width=10, style="DBS.TButton", command=self._on_create
-                   ).pack(side=tk.LEFT, padx=5 )
+                   ).pack(side=tk.LEFT, padx=5)
 
         ttk.Button( row2, text="DELETE", width=10, style="DBS.TButton", command=self._on_delete
                    ).pack(side=tk.LEFT, padx=5)
-        ttk.Button(row2, text="RENAME", style="DBS.TButton", width=10).pack(side=tk.LEFT, padx=5)
+
+        # ▼ command=self._on_rename を追加 ▼
+        ttk.Button(row2, text="RENAME", style="DBS.TButton", width=10, command=self._on_rename).pack(side=tk.LEFT, padx=5)
         ttk.Button(row2, text="UPDATE", style="DBS.TButton", width=10).pack(side=tk.LEFT, padx=5)
 
         mid.columnconfigure(0, weight=0)
         mid.columnconfigure(1, weight=0)
         mid.columnconfigure(2, weight=1)
 
-        # Block A : テーブル一覧
+        # Block A:テーブル一覧
         frm_tables = ttk.Frame(mid, width=190, height=600, relief="solid", borderwidth=1)
         frm_tables.grid(row=0, column=0, sticky=ALL); frm_tables.grid_propagate(False)
 
@@ -87,12 +93,12 @@ class DBSchemScreen(ttk.Frame):
             chk.pack(side=tk.LEFT, padx=0)
             lbl.pack(side=tk.LEFT, fill=tk.X, expand=True)
 
-            r.bind(  "<Button-1>", lambda e, idx=i: self._on_table_click(idx))
-            lbl.bind("<Button-1>", lambda e, idx=i: self._on_table_click(idx))
+            r.bind(  "<Button-1>", lambda e, idx=i:self._on_table_click(idx))
+            lbl.bind("<Button-1>", lambda e, idx=i:self._on_table_click(idx))
 
             self.tbl_rows.append({"row":r, "var":var, "chk":chk, "lbl":lbl})
 
-        # Block B : カラム一覧
+        # Block B:カラム一覧
         frm_cols = ttk.Frame(mid, width=170, height=600, relief="groove", borderwidth=1)
         frm_cols.grid(row=0, column=1, sticky=ALL, padx=(10,0))
         frm_cols.grid_propagate(False)
@@ -108,7 +114,7 @@ class DBSchemScreen(ttk.Frame):
 
             var = tk.BooleanVar()
             chk = ttk.Checkbutton( r,variable=var,
-                                      command=lambda idx=i: self._set_single_cb("col", idx) )
+                                   command=lambda idx=i:self._set_single_cb("col", idx) )
             ent = ttk.Entry(r, font=(MUI,10))
 
             chk.pack(side=tk.LEFT, padx=0)
@@ -116,12 +122,12 @@ class DBSchemScreen(ttk.Frame):
 
             self.col_rows.append({"var": var, "chk": chk, "ent": ent})
 
-        # Block C : パラメータ
+        # Block C:パラメータ
         frm_param = ttk.Frame(mid, width=780, height=600, relief="solid", borderwidth=1)
         frm_param.grid(row=0, column=2, sticky=ALL, padx=(10,0))
         frm_param.grid_propagate(False)
 
-        hdr = ttk.Frame(frm_param, height=20) ;hdr.pack(fill=tk.X) ;hdr.pack_propagate(False)
+        hdr       = ttk.Frame(frm_param, height=20) ;hdr.pack(fill=tk.X) ;hdr.pack_propagate(False)
 
         col_names = [ "TYPE", "NOT NULL", "UNIQUE", "PRIMARY KEY",
                       "DEFAULT", "(other param)", "REFERENCES", "ON DEL CSCD" ]
@@ -207,14 +213,14 @@ class DBSchemScreen(ttk.Frame):
         kind = self.cbo_kind.get().strip().lower()
         if kind not in ("table", "view", "index"): kind = "table"
 
-        sql  = "SELECT name FROM sqlite_master WHERE type=? ORDER BY name"
+        sql  = """
+            SELECT name
+              FROM sqlite_master
+             WHERE type=?
+          ORDER BY name
+            """
 
-        try:
-            with sqlite3.connect(self.db_path, timeout=30) as con:
-                rows = con.execute(sql, (kind,)).fetchall()
-        except Exception as e:
-            print("[ERR] load_tables:", e)
-            rows = []
+        rows = dal.fetch_all(sql, (kind,))
 
         names          = [r[0] for r in rows]
         exclude        = {"sqlite_sequence", "sqlite_stat1", "sqlite_stat4"}
@@ -229,6 +235,7 @@ class DBSchemScreen(ttk.Frame):
         for i, item in enumerate(self.tbl_rows):
             if i < existing_count:
                 item["lbl"].config(text=names[i])
+                item["orig_name"] = names[i]
                 item["chk"].config(state="normal")
                 item["var"].set(False)
             elif self._tbl_new_index is not None and i == self._tbl_new_index:
@@ -266,8 +273,9 @@ class DBSchemScreen(ttk.Frame):
 
         rowinfo = self.tbl_rows[idx]
         lbl     = rowinfo["lbl"]
+
         self._cancel_table_edit()
-        text    = lbl.cget("text")
+        text = lbl.cget("text")
         lbl.pack_forget()
 
         ent = ttk.Entry(rowinfo["row"], font=(MUI, 10))
@@ -276,8 +284,8 @@ class DBSchemScreen(ttk.Frame):
         ent.focus_set()
         ent.select_range(0, tk.END)
 
-        ent.bind("<Return>",   lambda e, i=idx: self._finish_table_edit(i))
-        ent.bind("<FocusOut>", lambda e, i=idx: self._finish_table_edit(i))
+        ent.bind("<Return>",   lambda e, i=idx:self._finish_table_edit(i))
+        ent.bind("<FocusOut>", lambda e, i=idx:self._finish_table_edit(i))
 
         self._tbl_edit_index = idx
         self._tbl_edit_entry = ent
@@ -300,6 +308,7 @@ class DBSchemScreen(ttk.Frame):
 
     # ----------------------------------------------------------------
     def _cancel_table_edit(self):
+
         if self._tbl_edit_entry is not None and self._tbl_edit_index is not None:
             self._finish_table_edit(self._tbl_edit_index)
 
@@ -363,12 +372,7 @@ class DBSchemScreen(ttk.Frame):
             col["chk"].pack(side=tk.LEFT, padx=0)
             col["ent"].pack(fill=tk.X, expand=True)
 
-        try:
-            with sqlite3.connect(self.db_path, timeout=30) as con:
-                rows = con.execute(f"PRAGMA table_info('{table_name}')").fetchall()
-        except Exception as e:
-            print("[ERR] load_columns:", e)
-            rows = []
+        rows = dal.fetch_all(f"PRAGMA table_info('{table_name}')")
 
         sql                 = self._get_create_sql(table_name)
         col_defs, tbl_checks, tbl_uniques, tbl_pkeys = self._parse_create_sql(sql)
@@ -388,6 +392,7 @@ class DBSchemScreen(ttk.Frame):
                 ent.config(state="normal")
                 ent.delete(0, tk.END)
                 ent.insert(0, col_name)
+                col["orig_name"] = col_name
                 chk.config(state="normal")
                 col["var"].set(False)
 
@@ -424,9 +429,9 @@ class DBSchemScreen(ttk.Frame):
         for w in self.uni_rows_frame.winfo_children(): w.destroy()
         for w in self.pk_rows_frame.winfo_children():  w.destroy()
 
-        self.chk_rows.clear();      self.uni_rows.clear();      self.pk_rows.clear()
-        self.chk_cb_vars.clear();   self.uni_cb_vars.clear();   self.pk_cb_vars.clear()
-        self._active_chk_cb = None; self._active_uni_cb = None; self._active_pk_cb = None
+        self.chk_rows.clear()      ;self.uni_rows.clear()      ;self.pk_rows.clear()
+        self.chk_cb_vars.clear()   ;self.uni_cb_vars.clear()   ;self.pk_cb_vars.clear()
+        self._active_chk_cb = None ;self._active_uni_cb = None ;self._active_pk_cb = None
 
         chk_vals = list(getattr(self, "_tbl_checks",  []))
         uni_vals = list(getattr(self, "_tbl_uniques", []))
@@ -434,13 +439,13 @@ class DBSchemScreen(ttk.Frame):
 
         self._build_row_block("chk",self.chk_rows_frame,self.chk_rows,self.chk_cb_vars,chk_vals)
         self._build_row_block("uni",self.uni_rows_frame,self.uni_rows,self.uni_cb_vars,uni_vals)
-        self._build_row_block("pk", self.pk_rows_frame, self.pk_rows, self.pk_cb_vars, pk_vals)
+        self._build_row_block("pk", self.pk_rows_frame, self.pk_rows, self.pk_cb_vars, pk_vals )
 
     # ----------------------------------------------------------------
     def _build_row_block(self, block, parent_frame, rows_list, vars_list, values: list):
 
         if getattr(self, "_new_table_mode", False): total = getattr(self, "_bottom_max_rows", 8)
-        else: total = len(values) + 1
+        else:                                       total = len(values) + 1
 
         row_h = 24
 
@@ -466,64 +471,90 @@ class DBSchemScreen(ttk.Frame):
                 ent.insert(0, values[i])
 
             rows_list.append({"frm": row, "cb": cb, "var": var, "ent": ent})
-            #vars_list.append(var)
-            if var is not None: vars_list.append(var)
+            if var is not None:
+                vars_list.append(var)
 
     # ----------------------------------------------------------------
     def _get_create_sql(self, table_name):
 
-        sql = None
-        try:
-            with sqlite3.connect(self.db_path, timeout=30) as con:
-                row = con.execute(
-                    "SELECT sql FROM sqlite_master WHERE type='table' AND name=?",
-                    (table_name,)  ).fetchone()
-            if row:  sql = row[0]
+        row = dal.fetch_one("""
+                  SELECT sql
+                    FROM sqlite_master
+                   WHERE type='table'
+                     AND name=?
+                  """,
+                  (table_name,) )
 
-        except Exception as e: print("[ERR] get_create_sql:", e)
-
-        return sql
+        return row[0] if row else None
 
     # ----------------------------------------------------------------
     def _parse_create_sql(self, sql):
 
         col_defs, tbl_checks, tbl_uniques, tbl_pkeys = [], [], [], []
-        if not sql: return col_defs, tbl_checks, tbl_uniques, tbl_pkeys
- 
-        s = sql.strip()
-        try:
-            l = s.index('('); r = s.rindex(')')
-            inner = s[l+1:r]
-        except ValueError:
+
+        if not sql:
             return col_defs, tbl_checks, tbl_uniques, tbl_pkeys
 
+        s = sql.strip()
+
+        try:
+            l     = s.index('(')
+            r     = s.rindex(')')
+            inner = s[l+1:r]
+
+        except ValueError:
+            return col_defs, tbl_checks, tbl_uniques, tbl_pkeys
         #-----------
-        def split_top(body: str): # トップレベルのカンマでだけ分割
-            items, buf = [], []
-            depth = 0; in_s = False; in_d = False; esc = False
+        def split_top(body: str):
+
+            items, buf      = [], []
+            in_s, in_d, esc = False, False, False
+            depth           = 0
+
             for ch in body:
-                if esc: buf.append(ch); esc = False; continue
-                if ch == '\\': buf.append(ch); esc = True; continue
-                if not in_d and ch == "'": in_s = not in_s; buf.append(ch); continue
-                if not in_s and ch == '"': in_d = not in_d; buf.append(ch); continue
+                if esc:
+                    buf.append(ch)
+                    esc = False; continue
+                if ch == '\\':
+                    buf.append(ch)
+                    esc = True
+                    continue
+                if not in_d and ch == "'":
+                    in_s = not in_s
+                    buf.append(ch)
+                    continue
+                if not in_s and ch == '"':
+                    in_d = not in_d
+                    buf.append(ch)
+                    continue
                 if not in_s and not in_d:
-                    if ch == '(': depth += 1; buf.append(ch); continue
-                    if ch == ')': depth -= 1; buf.append(ch); continue
+                    if ch == '(':
+                        depth += 1
+                        buf.append(ch)
+                        continue
+                    if ch == ')':
+                        depth -= 1
+                        buf.append(ch)
+                        continue
                     if ch == ',' and depth == 0:
                         t = ''.join(buf).strip()
                         if t: items.append(t)
                         buf = []
                         continue
+
                 buf.append(ch)
+
             tail = ''.join(buf).strip()
             if tail: items.append(tail)
+
             return items
         #-----------
-        def strip_col_checks(col_def: str): # 列定義から列内CHECK を抜いて下段へ
+        def strip_col_checks(col_def: str):
             s          = col_def.strip()
             out_checks = []
             cleaned    = []
-            i = 0; L = len(s)
+            i          = 0
+            L          = len(s)
             #-----------
             def match_word(src, pos, word):
                 w = len(word)
@@ -532,13 +563,18 @@ class DBSchemScreen(ttk.Frame):
             while i < L:
                 if match_word(s, i, "CHECK"):
                     j = i + 5
-                    while j < L and j < L and s[j].isspace(): j += 1
+                    while j < L and j < L and s[j].isspace():
+                        j += 1
                     if j >= L or s[j] != '(':
-                        cleaned.append(s[i]); i += 1; continue
-                    depth = 0; k = j
+                        cleaned.append(s[i])
+                        i += 1
+                        continue
+                    depth = 0
+                    k     = j
                     while k < L:
                         ch = s[k]
-                        if ch == '(': depth += 1
+                        if ch == '(':
+                            depth += 1
                         elif ch == ')':
                             depth -= 1
                             if depth == 0:
@@ -549,14 +585,17 @@ class DBSchemScreen(ttk.Frame):
                     out_checks.append("CHECK " + expr)
                     i = k
                 else:
-                    cleaned.append(s[i]); i += 1
+                    cleaned.append(s[i])
+                    i += 1
 
             cleaned_s = ' '.join(''.join(cleaned).strip().split()).rstrip(',')
+
             return cleaned_s, out_checks
         #-----------
         for part in split_top(inner):
             t = part.strip().rstrip(',')
             if not t: continue
+
             up = t.upper()
 
             if up.startswith("UNIQUE"):      tbl_uniques.append(t); continue
@@ -564,6 +603,7 @@ class DBSchemScreen(ttk.Frame):
             if up.startswith("PRIMARY KEY"): tbl_pkeys.append(t);   continue
 
             cleaned, checks = strip_col_checks(t)
+
             if cleaned: col_defs.append(cleaned)
             if checks:  tbl_checks.extend(checks)
 
@@ -585,24 +625,26 @@ class DBSchemScreen(ttk.Frame):
             u        = s.upper()
             #------------
             def put(key, val):
-                w = row[key]
+                w    = row[key]
                 prev = w.cget("state")
                 if prev == "disabled":  w.config(state="normal")
+
                 w.delete(0, tk.END)
-                if val: w.insert(0, val)
-                if prev == "disabled": w.config(state="disabled")
+                if val:                 w.insert(0, val)
+                if prev == "disabled":  w.config(state="disabled")
             #------------
             m        = re.match(r'^\s*\S+\s+([^\s,]+)', s)
             type_val = m.group(1) if m else ""
             put("TYPE", type_val)
 
-            row["NOT NULL"].insert(0, "NOT NULL" if " NOT NULL" in u or u.startswith("NOT NULL") else "")
-            row["UNIQUE"].insert(0, "UNIQUE" if re.search(r'\bUNIQUE\b(?!\s*\()', u) else "")
+            row["NOT NULL"   ].insert(0, "NOT NULL"    if " NOT NULL" in u or u.startswith("NOT NULL") else "")
+            row["UNIQUE"     ].insert(0, "UNIQUE"      if re.search(r'\bUNIQUE\b(?!\s*\()', u) else "")
             row["PRIMARY KEY"].insert(0, "PRIMARY KEY" if "PRIMARY KEY" in u else "")
 
             def_val = ""
-            m = re.search(r'\bDEFAULT\b\s+(.*?)\s*(?=' + STOP + r')', s,flags=re.IGNORECASE)
+            m       = re.search(r'\bDEFAULT\b\s+(.*?)\s*(?=' + STOP + r')', s,flags=re.IGNORECASE)
             if m: def_val = m.group(1).strip().rstrip(',')
+
             row["DEFAULT"].insert(0, def_val)
 
             ref_val = ""
@@ -616,14 +658,14 @@ class DBSchemScreen(ttk.Frame):
             row["ON DEL CSCD"].insert(0, "TRUE" if "ON DELETE CASCADE" in u else "")
 
             other_on = ""
-            m = re.search(r'\bON\s+UPDATE\b\s+(.*?)\s*(?=' + STOP + r')', s, flags=re.IGNORECASE)
+            m        = re.search(r'\bON\s+UPDATE\b\s+(.*?)\s*(?=' + STOP + r')', s, flags=re.IGNORECASE)
             if m: other_on = m.group(1).strip().rstrip(',')
 
             row["(other param)"].insert(0, other_on)
 
     # CREATE TABLE 実行コア-------------------------------------------
     def _exec_create_table( self, table_name, col_defs,
-                           check_lines=None, unique_lines=None, pkey_lines=None ):
+                            check_lines=None, unique_lines=None, pkey_lines=None ):
 
         check_lines  = check_lines  or []
         unique_lines = unique_lines or []
@@ -654,19 +696,20 @@ class DBSchemScreen(ttk.Frame):
         if not messagebox.askokcancel("CREATE 確認", msg): return
 
         try:
-            with sqlite3.connect(self.db_path, timeout=30) as con:
-                con.execute(f"DROP TABLE IF EXISTS {table_name}__tmp__create_guard")
-                con.execute(ddl)
+            dal.execute(f"DROP TABLE IF EXISTS {table_name}__tmp__create_guard")
+            dal.execute(ddl)
             self._load_tables() 
             messagebox.showinfo("成功", f"CREATE TABLE 完了：{table_name}")
+
         except Exception as e:
             messagebox.showerror("エラー", f"CREATE TABLE 失敗：{e}")
 
-    # CREATEボタン処理）----------------------------------------------
+    # CREATEボタン処理------------------------------------------------
     def _on_create(self):
 
         self._cancel_table_edit()
         block, idx = self._get_active_cb()
+
         if block is None:
             messagebox.showwarning("エラー", "CREATE 対象が選択されていません。")
             return
@@ -675,10 +718,9 @@ class DBSchemScreen(ttk.Frame):
             self._create_new_table_from_inputs()
             return
 
-        if (block == "col"
-                and self._col_new_index is not None
-                and idx == self._col_new_index
-                and not self._new_table_mode):
+        if (block == "col" and self._col_new_index is not None
+                           and idx == self._col_new_index
+                           and not self._new_table_mode):
 
             tbl_info   = self.tbl_rows[self.selected_table_row]
             table_name = tbl_info["lbl"].cget("text").strip()
@@ -697,21 +739,25 @@ class DBSchemScreen(ttk.Frame):
 
         tbl_info   = self.tbl_rows[self._tbl_new_index]
         table_name = tbl_info["lbl"].cget("text").strip()
+
         if not table_name:
             messagebox.showwarning("エラー", "テーブル名が空です。")
             return
 
         col_names = []
+
         for row in self.col_rows:
             name = row["ent"].get().strip()
             if name: col_names.append(name)
 
         col_defs = []
+
         for i, pr in enumerate(self.param_rows):
             name = self.col_rows[i]["ent"].get().strip()
             if not name: continue
 
             parts = [name]
+
             for k in ["TYPE", "NOT NULL", "UNIQUE", "PRIMARY KEY", "DEFAULT", "(other param)", "REFERENCES", "ON DEL CSCD"]:
                 v = pr[k].get().strip()
                 if v: parts.append(v)
@@ -764,10 +810,10 @@ class DBSchemScreen(ttk.Frame):
         if not messagebox.askokcancel("CREATE 確認", msg): return
 
         try:
-            with sqlite3.connect(self.db_path, timeout=30) as con:
-                con.execute(ddl)
+            dal.execute(ddl)
             self._load_columns(table_name) 
             messagebox.showinfo("成功", f"ADD COLUMN 完了：{name}")
+
         except Exception as e:
             messagebox.showerror("エラー", f"ADD COLUMN 失敗：{e}")
 
@@ -805,13 +851,11 @@ class DBSchemScreen(ttk.Frame):
         if not messagebox.askokcancel("DELETE 確認", msg): return
 
         try:
-            con = sqlite3.connect(self.db_path, timeout=30)
-            with con:
-                con.execute(sql)
-                con.execute("PRAGMA optimize;")
+            dal.execute(sql)
+            dal.execute("PRAGMA optimize;")
+
         except Exception as e:
-            messagebox.showerror("DELETE 失敗",
-                                 f"DROP TABLE 実行に失敗 \n\n{e}")
+            messagebox.showerror( "DELETE 失敗", f"DROP TABLE 実行に失敗 \n\n{e}")
             return
 
         self._load_tables()
@@ -826,31 +870,220 @@ class DBSchemScreen(ttk.Frame):
 
         tbl_info   = self.tbl_rows[self.selected_table_row]
         table_name = tbl_info["lbl"].cget("text").strip()
+
         if not table_name:
             messagebox.showwarning("エラー", "テーブル名を取得できません。")
             return
 
         colname = self.col_rows[idx]["ent"].get().strip()
+
         if not colname:
             messagebox.showwarning("エラー", "カラム名を取得できません。")
             return
 
         sql = f"ALTER TABLE {table_name} DROP COLUMN {colname};"
         msg = f"以下の SQL を実行します。\n\n{sql}"
+
         if not messagebox.askokcancel("DELETE 確認", msg):
             return
 
         try:
-            con = sqlite3.connect(self.db_path, timeout=30)
-            with con:
-                con.execute(sql)
-                con.execute("PRAGMA optimize;")
+            dal.execute(sql)
+            dal.execute("PRAGMA optimize;")
+
         except Exception as e:
             messagebox.showerror("DELETE 失敗", f"DROP COLUMN 実行に失敗しました。\n\n{e}")
             return
 
         self._load_columns(table_name)
+
         messagebox.showinfo("完了", f"TABLE: {table_name} からCOLUMN: {colname} を削除")
+
+    # RENAME ボタン処理 ------------------------------------------------
+    def _on_rename(self):
+        self._cancel_table_edit()
+        block, idx = self._get_active_cb()
+
+        if block is None:
+            messagebox.showwarning("エラー", "RENAME 対象が選択されていません。")
+            return
+
+        self._backup_before_change()
+
+        if block == "tbl":
+            self._rename_table(idx)
+        elif block == "col":
+            self._rename_column(idx)
+        else:
+            messagebox.showwarning("エラー", "RENAME 対象はテーブル行またはカラム行のみです。")
+
+    # テーブル名変更 ---------------------------------------------------
+    def _rename_table(self, idx):
+        tbl_info = self.tbl_rows[idx]
+        new_name = tbl_info["lbl"].cget("text").strip()
+        old_name = tbl_info.get("orig_name", "").strip()
+
+        if not old_name:
+            messagebox.showwarning("エラー", "元のテーブル名が取得できません。")
+            return
+        if not new_name:
+            messagebox.showwarning("エラー", "新しいテーブル名が空です。")
+            return
+        if old_name == new_name:
+            messagebox.showinfo("確認", "テーブル名が変更されていません。")
+            return
+
+        self._execute_rebuild_for_rename(old_name, new_name, is_table_rename=True, rename_col_map=None)
+
+    # カラム名変更 -----------------------------------------------------
+    def _rename_column(self, idx):
+        if self.selected_table_row is None:
+            messagebox.showwarning("エラー", "テーブルが選択されていません。")
+            return
+
+        tbl_info   = self.tbl_rows[self.selected_table_row]
+        table_name = tbl_info.get("orig_name", tbl_info["lbl"].cget("text").strip())
+
+        col_info     = self.col_rows[idx]
+        new_col_name = col_info["ent"].get().strip()
+        old_col_name = col_info.get("orig_name", "").strip()
+
+        # orig_name が未定義の場合はキャッシュからフォールバック
+        if not old_col_name and hasattr(self, '_colinfo_cache') and idx < len(self._colinfo_cache):
+            old_col_name = self._colinfo_cache[idx][1]
+
+        if not old_col_name:
+            messagebox.showwarning("エラー", "元のカラム名が取得できません。")
+            return
+        if not new_col_name:
+            messagebox.showwarning("エラー", "新しいカラム名が空です。")
+            return
+        if old_col_name == new_col_name:
+            messagebox.showinfo("確認", "カラム名は変更されていません。")
+            return
+
+        rename_map = {old_col_name: new_col_name}
+        self._execute_rebuild_for_rename(table_name, table_name, is_table_rename=False, rename_col_map=rename_map)
+
+    # 再構築・データ移行実行コア ---------------------------------------
+    def _execute_rebuild_for_rename(self, old_tbl, new_tbl, is_table_rename, rename_col_map):
+        rename_col_map = rename_col_map or {}
+
+        # 1. UIの入力内容から新しいスキーマ定義を構築
+        col_names           = []
+        col_defs            = []
+        old_cols_for_select = []
+        new_cols_for_insert = []
+
+        existing_cols = [r[1] for r in getattr(self, '_colinfo_cache', [])]
+
+        for i, pr in enumerate(self.param_rows):
+            new_col = self.col_rows[i]["ent"].get().strip()
+            if not new_col: continue
+
+            col_names.append(new_col)
+            old_col = existing_cols[i] if i < len(existing_cols) else None
+            
+            # データ移行対象のカラムをマッピング
+            if old_col:
+                old_cols_for_select.append(old_col)
+                new_cols_for_insert.append(new_col)
+
+            parts = [new_col]
+            for k in ["TYPE", "NOT NULL", "UNIQUE", "PRIMARY KEY", "DEFAULT", "(other param)", "REFERENCES", "ON DEL CSCD"]:
+                v = pr[k].get().strip()
+                if v:
+                    # UIの略称や不足しているプレフィックスを補完
+                    if k == "DEFAULT"    and not re.match(r'^DEFAULT\b', v, re.I): v = f"DEFAULT {v}"
+                    if k == "REFERENCES" and not re.match(r'^REFERENCES\b', v, re.I): v = f"REFERENCES {v}"
+                    if k == "ON DEL CSCD":
+                        if v.upper() == "TRUE": v = "ON DELETE CASCADE"
+                        
+                    parts.append(v)
+            
+            col_def = ' '.join(parts).strip().rstrip(',')
+            col_defs.append(col_def)
+
+        def _collect(rows):
+            return [r["ent"].get().strip() for r in rows if r["ent"].get().strip()]
+
+        checks  = _collect(self.chk_rows)
+        uniques = _collect(self.uni_rows)
+        pkeys   = _collect(self.pk_rows)
+
+        all_defs = col_defs + checks + uniques + pkeys
+        inner    = ", ".join(all_defs)
+        
+        tmp_tbl        = f"{new_tbl}__tmp_rename"
+        ddl_create_tmp = f"CREATE TABLE {tmp_tbl} ({inner});"
+
+        msg = "以下の手順で再構築・データ移行を行います。\n\n"
+        msg += f"1. 一時テーブル '{tmp_tbl}' を作成\n"
+        msg += f"2. '{old_tbl}' からデータを移行\n"
+        msg += f"3. '{old_tbl}' を削除\n"
+        msg += f"4. '{tmp_tbl}' を '{new_tbl}' にリネーム\n\n"
+        msg += "※ 関連するインデックスや制約も再定義されます。\n実行しますか？"
+
+        if not messagebox.askokcancel("RENAME (再構築) 確認", msg): return
+
+        indexes = self._list_indexes(old_tbl)
+
+        try:
+            # SQLiteのPRAGMA foreign_keysはトランザクション外で切り替える必要があるため、
+            # dal.transaction() ではなく dal.connection() を用いて手動制御します。
+            with dal.connection() as c:
+                c.execute("PRAGMA foreign_keys = OFF;")
+                c.execute("BEGIN IMMEDIATE;")
+                try:
+                    # ① 一時テーブル作成
+                    c.execute(f"DROP TABLE IF EXISTS {tmp_tbl};")
+                    c.execute(ddl_create_tmp)
+                    
+                    # ② データ移行
+                    if old_cols_for_select:
+                        sel_cols = ", ".join(old_cols_for_select)
+                        ins_cols = ", ".join(new_cols_for_insert)
+                        c.execute(f"INSERT INTO {tmp_tbl} ({ins_cols}) SELECT {sel_cols} FROM {old_tbl};")
+
+                    # ③ 旧テーブル削除
+                    c.execute(f"DROP TABLE {old_tbl};")
+
+                    # ④ 一時テーブルを新テーブルにリネーム
+                    c.execute(f"ALTER TABLE {tmp_tbl} RENAME TO {new_tbl};")
+
+                    # ⑤ 依存オブジェクト（INDEX等）の再定義
+                    for idx_info in indexes:
+                        sql = idx_info["sql"]
+                        if sql:
+                            # INDEXの対象テーブル名を置換 (ON old_tbl -> ON new_tbl)
+                            sql = re.sub(rf'\bON\s+{re.escape(old_tbl)}\b', f"ON {new_tbl}", sql, flags=re.IGNORECASE)
+                            # カラム名を置換
+                            for o_col, n_col in rename_col_map.items():
+                                sql = re.sub(rf'\b{re.escape(o_col)}\b', n_col, sql, flags=re.IGNORECASE)
+                            c.execute(sql)
+
+                    # 外部キー制約の整合性チェック
+                    bad_fks = c.execute("PRAGMA foreign_key_check;").fetchall()
+                    if bad_fks:
+                        raise ValueError(f"外部キー制約違反が発生しました: {bad_fks}")
+                        
+                    c.execute("COMMIT;")
+                except Exception as inner_e:
+                    c.execute("ROLLBACK;")
+                    raise inner_e
+                finally:
+                    c.execute("PRAGMA foreign_keys = ON;")
+                
+            # 完了後のUIリロード
+            self._load_tables()
+            if is_table_rename:
+                messagebox.showinfo("成功", f"テーブル名を {old_tbl} から {new_tbl} に変更しました。")
+            else:
+                self._load_columns(new_tbl)
+                messagebox.showinfo("成功", f"カラム名を変更しました。")
+
+        except Exception as e:
+            messagebox.showerror("エラー", f"RENAME (再構築) 処理に失敗しました:\n{e}")
 
     # バックアップ ----------------------------------------------------
     def _backup_before_change(self):
@@ -870,10 +1103,11 @@ class DBSchemScreen(ttk.Frame):
         shutil.copy2(self.db_path, dst)
 
         files = sorted( [os.path.join(base, f) for f in os.listdir(base)],
-                         key=lambda p: os.path.getmtime(p)                 )
+                         key=lambda p:os.path.getmtime(p)                  )
+
         if len(files) > 30:
             for old in files[:-30]:
-                try: os.remove(old)
+                try:    os.remove(old)
                 except: pass
 
     # 現在 TRUE の C/B を探す-----------------------------------------
@@ -896,14 +1130,14 @@ class DBSchemScreen(ttk.Frame):
 
         return None, None
 
-    # C/B=TRUE(0or1) + 再ｸﾘｯｸでﾄｸﾞﾙ ----------------------------------
+    # C/B=True/False ﾄｸﾞﾙ --------------------------------------------
     def _set_single_cb(self, block, idx):
 
         if block == "tbl":
-            if not (0 <= idx < len(self.tbl_rows)): return
+            if not (0 <= idx < len(self.tbl_rows)   ): return
             active = self._active_tbl_cb
         elif block == "col":
-            if not (0 <= idx < len(self.col_rows)): return
+            if not (0 <= idx < len(self.col_rows)   ): return
             active = self._active_col_cb
         elif block == "chk":
             if not (0 <= idx < len(self.chk_cb_vars)): return
@@ -912,7 +1146,7 @@ class DBSchemScreen(ttk.Frame):
             if not (0 <= idx < len(self.uni_cb_vars)): return
             active = self._active_uni_cb
         elif block == "pk":
-            if not (0 <= idx < len(self.pk_cb_vars)): return
+            if not (0 <= idx < len(self.pk_cb_vars) ): return
             active = self._active_pk_cb
         else: return
 
@@ -957,33 +1191,36 @@ class DBSchemScreen(ttk.Frame):
 
         out = []
         if not table_name: return out
+
         try:
-            with sqlite3.connect(self.db_path, timeout=30) as con:
-                cur = con.cursor()
-                cur.execute(f"PRAGMA index_list({table_name})")
-                for seq, idx_name, unique, origin, partial in cur.fetchall():
+            cur = dal.fetch_all(f"PRAGMA index_list({table_name})")
 
-                    cur.execute(f"PRAGMA index_info({idx_name})")
-                    cols = [r[2] for r in cur.fetchall()]
-                    cur.execute(
-                        "SELECT sql FROM sqlite_master WHERE type='index' AND name=?",
-                        (idx_name,)                                                   )
+            for seq, idx_name, unique, origin, partial in cur:
+                cur  = dal.fetch_all(f"PRAGMA index_info({idx_name})")
+                cols = [r[2] for r in cur]
 
-                    row = cur.fetchone()
-                    sql = row[0] if row and row[0] else ""
-                    out.append( {     "name": idx_name,
-                                    "unique": bool(unique),
-                                    "origin": origin,
-                                   "partial": bool(partial),
-                                   "columns": cols,
-                                       "sql": sql,           })
+                row = dal.fetch_one("""
+                          SELECT sql
+                            FROM sqlite_master
+                           WHERE type ='index'
+                             AND name =?
+                      """,
+                      (idx_name,) )
+
+                sql = row[0] if (row and row[0]) else ""
+                out.append( {     "name":idx_name,
+                                "unique":bool(unique),
+                                "origin":origin,
+                               "partial":bool(partial),
+                               "columns":cols,
+                                   "sql":sql,           })
 
         except Exception: pass
 
         return out
 
     # 依存オブジェクト取得 -------------------------------------------
-    def _list_views_referencing(self, table_name:str, column_name:str = None):
+    def _list_views_referencing(self, table_name:str, column_name:str=None):
 
         out = []
         if not table_name: return out
@@ -992,14 +1229,20 @@ class DBSchemScreen(ttk.Frame):
         col_pat = re.compile(rf'\b{re.escape(column_name)}\b', re.IGNORECASE) if column_name else None
 
         try:
-            with sqlite3.connect(self.db_path, timeout=30) as con:
-                cur = con.cursor()
-                cur.execute("SELECT name, sql FROM sqlite_master WHERE type='view' AND sql IS NOT NULL")
-                for name, sql in cur.fetchall():
-                    s = sql or ""
-                    if not tbl_pat.search(s): continue
-                    if col_pat and not col_pat.search(s): continue
-                    out.append({"name": name, "sql": s})
+            cur = dal.fetch_all("""
+                      SELECT name, sql
+                        FROM sqlite_master
+                       WHERE type='view'
+                         AND sql IS NOT NULL
+                  """)
+
+            for name, sql in cur:
+                s = sql or ""
+                if not tbl_pat.search(s):             continue
+                if col_pat and not col_pat.search(s): continue
+                out.append({"name": name, "sql": s})
+
         except Exception: pass
 
         return out
+

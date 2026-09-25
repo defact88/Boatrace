@@ -6,7 +6,6 @@ UI,Main_Unit,boatrace_gui.py,           C:\boatrace\UI\boatrace_gui.py,1
 UI,Main_Unit,odds_window.py,            C:\boatrace\UI\odds_window.py,1
 UI,Main_Unit,results_window.py,         C:\boatrace\UI\results_window.py,0
 UI,Main_Unit,Management_gui.py,         C:\boatrace\Management\Management_gui.pyw,1
-UI,Main_Unit,API_GUI,                   C:\boatrace\Management\API_GUI\API_GUI.py,0
 UI,Main_Unit,schema,                    C:\boatrace\Schema\schema_all.sql,1
 
 UI,Screens,DBopsScreen,                 C:\boatrace\UI\Screens\db_ops.py,0
@@ -30,14 +29,18 @@ UI,Helpers,ev_scanner.py,               C:\boatrace\UI\Helpers\ev_scanner.py,0
 UI,Helpers,__init__,                    C:\boatrace\UI\Helpers\__init__.py,0
 
 UI,Subprocess,get_today_info.py,        C:\boatrace\UI\Subprocess\get_today_info.py,1
-UI,Subprocess,import_Display_run.py,    C:\boatrace\UI\Subprocess\import_Display_run.py,1
+UI,Subprocess,get_Before_info.py,       C:\boatrace\UI\Subprocess\get_Before_info.py,1
 UI,Subprocess,import_result_today.py,   C:\boatrace\UI\Subprocess\import_result_today.py,1
-UI,Subprocess,ETL_import_Display.py,    C:\boatrace\UI\Subprocess\ETL_import_Display.py,0
+UI,Subprocess,ETL_Before_info.py,       C:\boatrace\UI\Subprocess\ETL_Before_info.py,0
+UI,Subprocess,ETL_odds_data.py,         C:\boatrace\Import\ETL_odds_data.py,0
 
 UI,Widgets,widgets.py,                  C:\boatrace\UI\Widgets\widgets.py,1
 UI,Widgets,center_widgets.py,           C:\boatrace\UI\Widgets\center_widgets.py,0
 UI,Widgets,placeholder.py,              C:\boatrace\UI\Widgets\placeholder.py,1
 UI,Widgets,__init__,                    C:\boatrace\UI\Widgets\__init__.py,0
+
+UI,Tools,word_replacer.py,              C:\boatrace\Tools\word_replacer.py,0
+UI,Tools,API_GUI,                       C:\boatrace\Tools\API_GUI\API_GUI.py,0
 
 Import,Import_B,daily_insert.py,        C:\boatrace\Import\daily_insert.py,0
 Import,Import_B,delete_data.py,         C:\boatrace\Import\delete_data.py,0
@@ -50,7 +53,6 @@ Import,Import_K,ETL_K_results.py,       C:\boatrace\Import\ETL_K_results.py,1
 Import,Import_K,upsert_Grade.py,        C:\boatrace\Import\upsert_Grade.py,1
 Import,Import_K,parse_and_upsert.py,    C:\boatrace\Import\parse_and_upsert.py,1
 Import,Import_K,make_grade_txt.py,      C:\boatrace\Import\make_grade_txt.py,0
-Import,Inport_T,fetch_past_odds.py,     C:\boatrace\Import\fetch_past_odds.py,0
 
 Checker,Player,check_score_ave.py,      C:\boatrace\Checker\Player\check_score_ave.py,0
 Checker,Player,check_score_ave_ALL.py,  C:\boatrace\Checker\Player\check_score_ave_ALL.py,0
@@ -63,5 +65,5 @@ Checker,Data,odds_data_audit.py,        C:\boatrace\Checker\data\odds_data_audit
 Checker,Data,rename_title.py,           C:\boatrace\Checker\data\rename_title.py,0
 Checker,Race,update_is_prefinal.py,     C:\boatrace\Checker\Race\update_is_prefinal.py,0
 Checker,Race,check_series_title.py,     C:\boatrace\Checker\Race\check_series_title.py,0
-Checker,Race,check_display_run.py,      C:\boatrace\Checker\Race\check_display_run.py,0
+Checker,Race,check_Before_info.py,      C:\boatrace\Checker\Race\check_Before_info.py,0
 

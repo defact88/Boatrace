@@ -20,7 +20,7 @@ BASE_DIR       = r"C:\boatrace"
 DB_PATH        = os.path.join(BASE_DIR, "boatrace.db")
 SP_DIR         = os.path.join(BASE_DIR, r"UI\Subprocess")
 SP_INFO        = os.path.join(SP_DIR, "get_today_info.py")
-SP_DISPLAY     = os.path.join(SP_DIR, "import_Display_run.py")
+SP_BEFORE      = os.path.join(SP_DIR, "get_Before_info.py")
 SP_RESULT      = os.path.join(SP_DIR, "import_result_today.py")
 LOCK_PATH      = os.path.join(BASE_DIR, r"tmp\json\summarizer.lock")
 # 定数
@@ -59,8 +59,8 @@ class SummarizeTodayInfo:
         self.conn.row_factory  = sqlite3.Row
         self._stop             = False
         self._lock             = threading.Lock()
-        self.running           = {"display":0, "result":0, "change":0, "cancel":0, "odds":0}
-        self.run_limit         = {"display":3, "result":3, "change":3, "cancel":1, "odds":3}
+        self.running           = {"before":0, "result":0, "change":0, "cancel":0, "odds":0}
+        self.run_limit         = {"before":3, "result":3, "change":3, "cancel":1, "odds":3}
         self._threads          = set()
         self._ctl_prev_mute    = None
         self.tasks:      List[Task] = []
@@ -108,14 +108,14 @@ class SummarizeTodayInfo:
                 remain   = (deadline -now).total_seconds()
 
                 #-------------
-                if not self._exists_display(d, v_id, rno):
+                if not self._exists_before(d, v_id, rno):
                     if now > deadline:
-                        late_tasks.append( Task( kind="display", run_at=now, d=d,
+                        late_tasks.append( Task( kind="before", run_at=now, d=d,
                                                  venue_id=v_id, race_no=rno, meta={"prio":0} ) )
                     else:
                         if rno == 1: run_d =      deadline -timedelta(minutes=15)
                         else:        run_d = prev_deadline +timedelta(minutes=OFFSET_DISPLAY)
-                        new_tasks.append( Task( kind="display", run_at=run_d, d=d,
+                        new_tasks.append( Task( kind="before", run_at=run_d, d=d,
                                                 venue_id=v_id, race_no=rno, meta={"prio":1} ) )
                 #-------------
                 if not self._exists_result(d, v_id, rno):
@@ -158,14 +158,14 @@ class SummarizeTodayInfo:
             self.late_tasks.extend(late_tasks)
 
         if self.monitor:
-            bc = sum(1 for t in new_tasks if t.kind == "display")
+            bc = sum(1 for t in new_tasks if t.kind == "before")
             rc = sum(1 for t in new_tasks if t.kind == "result")
             cc = sum(1 for t in new_tasks if t.kind == "change")
             kc = sum(1 for t in new_tasks if t.kind == "cancel")
             oc = sum(1 for t in new_tasks if t.kind == "odds")
 
             print( f" Total tasks={len(new_tasks)}:\n"
-                   f" display={bc} / result={rc} / change={cc} / cancel={kc} / odds={oc}" )
+                   f" before={bc} / result={rc} / change={cc} / cancel={kc} / odds={oc}" )
 
     # ------------------------------------------------------
     def _rebuild_schedule_for_venue(self, d:date, v_id:int):
@@ -187,7 +187,7 @@ class SummarizeTodayInfo:
         with self._lock:
             self.tasks = [ t for t in self.tasks
                            if not ( t.d==d and     t.venue_id ==  v_id
-                                           and     t.kind     in ("display","result","odds")
+                                           and     t.kind     in ("before","result","odds")
                                            and not t.inflight
                                            and not t.disabled                                ) ]
 
@@ -202,15 +202,15 @@ class SummarizeTodayInfo:
             remain   = (deadline -now).total_seconds()
 
             #-----------------
-            if not self._exists_display(d, v_id, rno) and not self._has_task("display", d, v_id, rno ):
+            if not self._exists_before(d, v_id, rno) and not self._has_task("before", d, v_id, rno ):
 
                 if now > prev_deadline +timedelta(minutes=OFFSET_DISPLAY):
-                    late_tasks.append( Task( kind="display", run_at=now, d=d,
+                    late_tasks.append( Task( kind="before", run_at=now, d=d,
                                              venue_id=v_id, race_no=rno, meta={"prio":0} ) )
                 else:
                     if rno == 1: run_d =      deadline -timedelta(minutes=15)
                     else:        run_d = prev_deadline +timedelta(minutes=OFFSET_DISPLAY)
-                    new_tasks.append( Task( kind="display", run_at=run_d, d=d,
+                    new_tasks.append( Task( kind="before", run_at=run_d, d=d,
                                             venue_id=v_id, race_no=rno, meta={"prio":1} ) )
             #-----------------
             if not self._exists_result(d, v_id, rno) and not self._has_task("result", d, v_id, rno):
@@ -243,10 +243,10 @@ class SummarizeTodayInfo:
             with self._lock: self.late_tasks.extend(late_tasks)
 
             if self.monitor:
-                bc = sum(1 for t in new_tasks if t.kind=="display")
+                bc = sum(1 for t in new_tasks if t.kind=="before")
                 rc = sum(1 for t in new_tasks if t.kind=="result")
                 oc = sum(1 for t in new_tasks if t.kind=="odds")
-                self._log(f"[rebuild] {d} jcd={v_id} display={bc} result={rc} odds={oc}")
+                self._log(f"[rebuild] {d} jcd={v_id} before={bc} result={rc} odds={oc}")
 
     # ------------------------------------------------------
     def run_forever(self, tick_sec:int =10):
@@ -256,7 +256,7 @@ class SummarizeTodayInfo:
             while not self._stop:
                 now     = self._now()
                 due     = self._collect_due(now)
-                started = {"display":0, "result":0, "change":0, "cancel":0, "odds":0}
+                started = {"before":0, "result":0, "change":0, "cancel":0, "odds":0}
 
                 for t in due:
                     k = t.kind
@@ -370,16 +370,16 @@ class SummarizeTodayInfo:
 
             try:
                 #-------------
-                if t.kind   == "display":
+                if t.kind   == "before":
                     if self._is_cancelled(t.d, t.venue_id, t.race_no):
                         t.disabled = True
-                        self._log( f"[    info    ] 【display 】[{VENUES[t.venue_id-1]}"
+                        self._log( f"[    info    ] 【before 】[{VENUES[t.venue_id-1]}"
                                    f" {t.race_no:02}R]  is cancelled (skip)"              )
                         return
-                    ok = self._exec_display(t)
+                    ok = self._exec_before(t)
                     if not ok:
                         t.next_try_at = now + timedelta(seconds=RETRY_DIS)
-                        print( f"[    info    ] 【display 】[{VENUES[t.venue_id-1]} {t.race_no:02}R]"
+                        print( f"[    info    ] 【before 】[{VENUES[t.venue_id-1]} {t.race_no:02}R]"
                                f"  retry at [{t.next_try_at.strftime('%H:%M:%S')}]"                   )
                 #-------------
                 elif t.kind == "result":
@@ -428,9 +428,9 @@ class SummarizeTodayInfo:
             t.tries += 1
 
             if err: t.last_error = err
-            if ok and t.kind in ("display", "result", "odds"):
+            if ok and t.kind in ("before", "result", "odds"):
                 t.disabled = True
-            elif t.tries >= RETRY_NUM and t.kind in ("display","result"): 
+            elif t.tries >= RETRY_NUM and t.kind in ("before","result"): 
                 t.disabled = True
                 self._log(f"【{t.kind}】 リトライオーバー (タスク破棄)")
 
@@ -447,7 +447,7 @@ class SummarizeTodayInfo:
             for t in self.tasks:
                 if t.disabled or t.inflight:                           continue
                 if t.d != d   or t.venue_id != venue_id:               continue
-                if t.kind not in ("display","result","change","odds"): continue
+                if t.kind not in ("before","result","change","odds"): continue
                 if t.race_no is None or t.race_no < from_rno:          continue
 
                 t.disabled = True
@@ -490,12 +490,12 @@ class SummarizeTodayInfo:
             return 1, "", str(e)
 
     # ------------------------------------------------------
-    def _exec_display(self, t:Task) -> bool:
+    def _exec_before(self, t:Task) -> bool:
 
-        task_name = f"【display 】[{VENUES[t.venue_id-1]} {t.race_no:02}R] "
+        task_name = f"【before 】[{VENUES[t.venue_id-1]} {t.race_no:02}R] "
         self._log(f"{task_name} start")
 
-        rc, out, err = self._call_py( SP_DISPLAY, [  "--date", t.d.strftime("%Y-%m-%d"),
+        rc, out, err = self._call_py( SP_BEFORE, [  "--date", t.d.strftime("%Y-%m-%d"),
                                                     "--venue", str(t.venue_id),
                                                      "--race", str(t.race_no),           ] )
 
@@ -503,7 +503,7 @@ class SummarizeTodayInfo:
             self._log(f"{task_name} {err.strip() or out.strip() or f'ExitCode={rc}'}")
             return False
 
-        ok = self._exists_display(t.d, t.venue_id, t.race_no)
+        ok = self._exists_before(t.d, t.venue_id, t.race_no)
         if ok: self._log(f"{task_name} Done update.")
         else:  self._log(f"{task_name} Not updated yet.")
 
@@ -636,7 +636,7 @@ class SummarizeTodayInfo:
         else: return False
 
     # -------------------- 反映確認 ------------------------
-    def _exists_display(self, d:date, venue_id:int, race_no:int) -> bool:
+    def _exists_before(self, d:date, venue_id:int, race_no:int) -> bool:
 
         if self._is_cancelled(d, venue_id, race_no):
             return True
@@ -653,7 +653,7 @@ class SummarizeTodayInfo:
                                  ELSE 1
                             END                                         ) AS ng_count
                   FROM Race_programs rp
-             LEFT JOIN Display_run   dr
+             LEFT JOIN Before_info   dr
                     ON dr.entry_id = rp.program_id
                  WHERE     rp.date= ?
                    AND rp.venue_id= ?

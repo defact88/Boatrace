@@ -1,5 +1,5 @@
 ﻿# -*- coding: utf-8 -*-
-# C:\boatrace\UI\Subprocess\import_Display_run.py
+# C:\boatrace\UI\Subprocess\import_Before_info.py
 
 import Dal as dal
 import argparse, re, sqlite3, sys, warnings, logging, random, time
@@ -246,10 +246,10 @@ def fetch_cancelled(d_iso:str, venue_id:int, race_no:int):
 
     return out
 # ----------------------------------------------------------
-def upsert_Display_run(d_iso:str, v_id:int, r_no:int, per_frame, w):
+def upsert_Before_info(d_iso:str, v_id:int, r_no:int, per_frame, w):
 
     sql = """
-        INSERT INTO Display_run( race_id,  entry_id,  venue_id,   date,       race_no,
+        INSERT INTO Before_info( race_id,  entry_id,  venue_id,   date,       race_no,
                                  weather,  wind_dir,  wind_spd,   wave_hgt,   player_id,
                                  frame_no, is_absent, course,     exhibition, slit_ADJ,
                                  tilt,     rep_parts, lap_reduct, stabilizer             )
@@ -290,10 +290,10 @@ def upsert_Display_run(d_iso:str, v_id:int, r_no:int, per_frame, w):
     dal.executemany(sql, params)
 
 # ----------------------------------------------------------
-def upsert_Display_run_partial(d_iso:str, v_id:int, r_no:int, per_frame, w ):
+def upsert_Before_info_partial(d_iso:str, v_id:int, r_no:int, per_frame, w ):
 
     sql = """
-        INSERT INTO Display_run( race_id,   entry_id,   venue_id,   date,       race_no,
+        INSERT INTO Before_info( race_id,   entry_id,   venue_id,   date,       race_no,
                                  weather,   wind_dir,   wind_spd,   wave_hgt,   player_id,
                                  frame_no,  is_absent,  course,     exhibition, slit_ADJ,
                                  tilt,      rep_parts,  lap_reduct, stabilizer             )
@@ -308,8 +308,8 @@ def upsert_Display_run_partial(d_iso:str, v_id:int, r_no:int, per_frame, w ):
                           is_absent  = COALESCE(excluded.is_absent, is_absent),
                           tilt       = COALESCE(excluded.tilt,      tilt     ),
                           rep_parts  = COALESCE(excluded.rep_parts, rep_parts),
-                          lap_reduct = COALESCE(excluded.lap_reduct, Display_run.lap_reduct),
-                          stabilizer = COALESCE(excluded.stabilizer, Display_run.stabilizer)
+                          lap_reduct = COALESCE(excluded.lap_reduct, Before_info.lap_reduct),
+                          stabilizer = COALESCE(excluded.stabilizer, Before_info.stabilizer)
            """
     params = []
 
@@ -355,7 +355,7 @@ def main(args_list=None):
             for rno in target_r:
                 if fetch_cancelled(args.date, jcd, rno):
                     if not args.ALL_race:
-                        print(f"[OK] {rno}R is cancelled. skip Display_run insert.")
+                        print(f"[OK] {rno}R is cancelled. skip Before_info insert.")
                         return 0
                     print(f"[OK] jcd={jcd}  {rno}R is cancelled")
                     continue
@@ -407,13 +407,13 @@ def main(args_list=None):
                                                                                               ) ]
 
                 if not_ready_frames:
-                    upsert_Display_run_partial(args.date, jcd, rno, per_frame, weather)
+                    upsert_Before_info_partial(args.date, jcd, rno, per_frame, weather)
                     if not args.ALL_race:
                         print("page update yet (Upsert partial)")
                         return 2
                     continue
 
-                upsert_Display_run(args.date, jcd, rno, per_frame, weather)
+                upsert_Before_info(args.date, jcd, rno, per_frame, weather)
                 if args.ALL_race: print(f"[JCD={jcd}  {rno} R] done.")
 
             if args.ALL_race: rno = "1～12"

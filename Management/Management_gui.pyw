@@ -15,8 +15,6 @@ ICON_PATH    = BASE_DIR / r"Icon\GUI.ico"
 TERAPAD_PATH = r"C:\Program Files (x86)\TeraPad\TeraPad.exe"
 BACKUP_ROOT  = Path(r"C:\boatrace\BACKUP")
 UPLOAD_DIR   = Path(r"C:\boatrace\Management\UPLOAD")
-GUI_POS_X    = 1750
-GUI_POS_Y    = 5
 SELCOL       = "#b1dbcc"
 
 GUI, MUI, HNH      = "Yu Gothic UI", "Meiryo UI", "Helvetica Neue Heavy"
@@ -29,7 +27,7 @@ class FileManagementGUI(tk.Tk):
         super().__init__()
 
         self.title("Management GUI [ver.4.6]")
-        self.geometry(f"800x380+{GUI_POS_X}+{GUI_POS_Y}")
+        self.geometry(f"800x380+1750+5")
         self.configure(bg= "#222222")
         self.resizable(False, False)
         try: self.iconbitmap(ICON_PATH)
@@ -411,6 +409,7 @@ class FileManagementGUI(tk.Tk):
         try: subprocess.Popen(" ".join(cmdline), shell= True)
         except Exception as e:
             self.show_msg("Error", f"実行に失敗しました:\n{e}")
+
     #-------------------------------------------------------
     def on_edit(self):
 

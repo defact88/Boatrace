@@ -1,5 +1,5 @@
 ﻿# -*- coding: utf-8 -*-
-# fetch_past_odds.py
+# ETL_odds_data.py
 
 import argparse, time, os
 import Dal as dal

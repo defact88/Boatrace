@@ -169,7 +169,7 @@ CREATE INDEX IF NOT EXISTS idx_programs_date_venue_pid
                         ON Race_programs (date, venue_id, player_id, race_no);
 
 /*-------------------------------------------------------------------------------------*/
-CREATE TABLE Display_run(
+CREATE TABLE Before_info(
 
   race_id     INTEGER,
   entry_id    INTEGER PRIMARY KEY,
@@ -232,6 +232,10 @@ CREATE UNIQUE INDEX IF NOT EXISTS uq_odds
 CREATE INDEX IF NOT EXISTS idx_odds_race
     ON Odds(date, venue_id, race_no, bet_type);
 
+/*-------------------------------------------------------------------------------------*/
+CREATE TABLE Oriten(
+
+  
 /*-------------------------------------------------------------------------------------*/
 CREATE TABLE Summary_ETL(
 

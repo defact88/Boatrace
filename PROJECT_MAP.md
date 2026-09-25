@@ -22,11 +22,12 @@ boatrace/
     results_window.py(ResultsWindow) # RaceWindowと並列でｻﾌﾞﾌﾟﾛｾｽ実行されるﾚｰｽ結果表示 画面
 
     Subprocess/                      # summarize_today.pyから管理/実行
-      import_Display_run.py          # 展示航走ﾃﾞｰﾀの取得/ﾊﾟｰｽ/挿入
+      get_Before_info.py             # 展示航走及び直前情報ﾃﾞｰﾀの取得/ﾊﾟｰｽ/挿入
       import_Result_today.py         # ﾚｰｽ結果ﾃﾞｰﾀの取得/ﾊﾟｰｽ/挿入(翌日の日時更新時に正規ﾃﾞｰﾀでUPDATE)
       get_today_info.py/
           get_change_info            # 当日変更情報(締切時刻変更,欠場艇等)の取得/ﾊﾟｰｽ/挿入
           get_cancel_info            # 当日中止ﾚｰｽの取得/ﾊﾟｰｽ/挿入
+      ETL_odds_data.py               # 指定期間で過去のoddsﾃﾞｰﾀを取得INSERT/UPDATE
 
     Screens/                         # 画面クラス
       DB_ops.py                      # DBOpsScreen・・・DB参照 画面
@@ -78,7 +79,7 @@ boatrace/
 
   Import/
     import_B_txt.py                  # 出走表ﾃﾞｰﾀ取得ｽｸﾘﾌﾟﾄ
-    daily_insert.py                  # 日時更新(全日K,当日Bﾌｧｲﾙのｲﾝﾎﾟｰﾄ)
+    daily_insert.py                  # 日時更新(全日K,当日Bﾌｧｲﾙのｲﾝﾎﾟｰﾄ, 前日「展示ﾃﾞｰﾀ」「oddsﾃﾞｰﾀ」の補填)
     ETL_K_results.py                 # Races/Race_entries の各ﾃﾞｰﾀ取得・挿入ﾌﾟﾛｾｽのﾗｯﾊﾟｰ
     upsert_Race_result.py            # K_TEXT(公式レース結果情報)ﾌｧｲﾙからRace_resultへのﾃﾞｰﾀ抽出・挿入
     upsert_Result_entry.py           # K_TEXTﾌｧｲﾙからResult_entryへのﾃﾞｰﾀ抽出・挿入ﾌﾟﾛｾｽ
@@ -97,7 +98,7 @@ boatrace/
       list_player_in_final.py        # 指定選手 指定期における優勝戦出走回数と詳細を表示
       show_player_term.py            
     Race/
-      check_display_run.py           # 展示航走データ(Display_run)のデータ欠損チェック
+      check_Before_info.py           # 展示航走データ(Before_info)のデータ欠損チェック
       check_finals.py                # Races.is_finalの取得漏れをチェック
       check_series_title.py          # Races.series_titleの表記揺れをチェック
       update_is_prefinal.py          # 準優勝線(Races.is_prefinal)を更新
