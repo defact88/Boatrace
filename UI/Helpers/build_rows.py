@@ -100,7 +100,7 @@ def make_sub_rows(self):
 
     for frn in range(1, 7):
 
-        disp  = query_display_run(frn, self.date, self.venue_id, self.race_no)
+        disp  = query_before_info(frn, self.date, self.venue_id, self.race_no)
         rslt  = query_result(     frn, self.date, self.venue_id, self.race_no)
         rpr   = disp.get("repr", "") if disp.get('repr') else  ""
         parts = ([s.strip() for s in rpr.split(",") if s] + [""] * 9)[:9]
@@ -210,7 +210,7 @@ def query_players(_date:date, venue_id:int, race_no:int):
     return dal.fetch_all(sql, (to_str(_date), venue_id, race_no))
 
 # ======================== 展示ﾃﾞｰﾀ取得 ==============================
-def query_display_run(fr_no:int, date:date, venue_id:int, race_no:int):
+def query_before_info(fr_no:int, date:date, venue_id:int, race_no:int):
 
     row = dal.fetch_one(
         """

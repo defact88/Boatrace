@@ -50,8 +50,8 @@ CLS  = { "A1": dict(text="A1", fg="blue",    bg=PLAYER, font=(GUI,10,BD), Anc=CT
 FINAL = { 1:"①", 2:"②", 3:"③", 4:"④", 5:"⑤", 6:"⑥",
           "F":"(F)", "L":"(L)", "S":"(S)", "K":"(K)"       }
 
-NAME =  dict(font=(GUI,10,BD), bg=PLAYER,  Anc=CT)
-TERM =  dict(font=(GUI,10   ), bg=INFO,    Anc=CT)
+NAME =  dict(font=(MUI, 9,BD), bg=PLAYER,  Anc=CT)
+TERM =  dict(font=(MUI, 9   ), bg=INFO,    Anc=CT)
 FIN  = [dict(font=(MUI, 8,BD), bg="white", Anc=CT),
         dict(font=(MUI, 8,BD), bg=PREFIN,  Anc=CT),
         dict(font=(MUI,11,BD), bg=HL_COL,  Anc=CT), ]
@@ -106,7 +106,7 @@ class MotorAnalysisScreen(tk.Toplevel):
             fr1._grid(R=r, C=0, Stk=ALL) ;fr1.Pgate()
             fr2._grid(R=r, C=1, Stk=ALL) ;fr2.Pgate()
 
-            cLbl(fr1, text=text, bg="#e0e1f4", font=(MUI,10), Bd=(1,GR))._grid(R=0, C=0, Stk=ALL)
+            cLbl(fr1, text=text, bg="#e0e1f4", font=(MUI,9), Bd=(1,RD))._grid(R=0, C=0, Stk=ALL)
             lb = cLbl(fr2, text="-", bg="white", font=(MUI,10), Bd=(1,GR))
             lb._grid(R=0, C=0, Stk=ALL)
             self.stat_labels[r] = lb
@@ -114,11 +114,12 @@ class MotorAnalysisScreen(tk.Toplevel):
         # --- 下部
         fr_cvs = cFr(self.main, W=366, H=680, Bd=(1,SD)) ;fr_cvs._grid(R=0, C=1, Stk=ALL) ;fr_cvs.Pgate()
 
-        fr_hdr = cFr(fr_cvs, W=364, H=30, Bd=(1,GR), bg="#e0e1f4")
+        fr_hdr = cFr(fr_cvs, W=364, H=30, Bd=(1,RD), bg="#e0e1f4")
         fr_hdr._grid(R=0, C=0, Cspan=2, Stk=ALL); fr_hdr.Pgate()
         fr_hdr.Rconf(0, W=1) ;fr_hdr.Cconf(0, W=1)
 
-        cLbl(fr_hdr, text="使用 履歴", font=(MUI,10), bg="#e0e1f4",Anc=CT)._grid(R=0, C=0, Stk=ALL)
+        cLbl(fr_hdr, text="使用 履歴", font=(MUI,10), bg="#e0e1f4", Anc=CT
+             )._grid(R=0, C=0, Stk=ALL)
 
         self.canvas  = tk.Canvas(fr_cvs, width=337, height=648)
         self.scr_bar = ttk.Scrollbar(fr_cvs, orient="vertical", command=self.canvas.yview)
@@ -126,7 +127,7 @@ class MotorAnalysisScreen(tk.Toplevel):
 
         self.canvas.configure(yscrollcommand=self.scr_bar.set)
 
-        self.canvas.grid( row=1, column=0, sticky=ALL) ;self.canvas.grid_propagate(False)
+        self.canvas.grid( row=1, column=0, sticky=ALL)  ;self.canvas.grid_propagate(False)
         self.scr_bar.grid(row=1, column=1, sticky="ns") ;self.scr_bar.grid_propagate(False)
 
         self.window  = self.canvas.create_window((0, 0), window=self.fr_body, anchor="nw")
@@ -156,12 +157,14 @@ class MotorAnalysisScreen(tk.Toplevel):
         rows1 = dal.fetch_one(
             """
             SELECT COUNT(DISTINCT r.series_title) as series_cnt,
-                   COUNT(         e.race_id     ) as race_cnt,
+                   COUNT(          e.race_id    ) as race_cnt,
                      SUM(CASE WHEN e.finish_rank  = 1 THEN 1 ELSE 0 END) as win1,
                      SUM(CASE WHEN e.finish_rank <= 2 THEN 1 ELSE 0 END) as win2,
                      SUM(CASE WHEN e.finish_rank <= 3 THEN 1 ELSE 0 END) as win3,
                      SUM(CASE WHEN r.is_final     = 1 THEN 1 ELSE 0 END) as fin,
-                     SUM(CASE WHEN r.is_final = 1 AND e.finish_rank = 1 THEN 1 ELSE 0 END) as victry
+                     SUM(CASE WHEN r.is_final     = 1
+                               AND e.finish_rank  = 1 THEN 1 ELSE 0 END) as victry
+
               FROM Race_entries e
               JOIN Races r ON e.race_id = r.race_id
              WHERE e.motor_no = ?
@@ -199,11 +202,11 @@ class MotorAnalysisScreen(tk.Toplevel):
                    e.finish_rank  as rank,
                    e.fault_code   as fault,
                    e.fault_level  as f_lvl,
-                   d.rep_parts    as parts
+                   b.rep_parts    as parts
               FROM Race_entries e
               JOIN Races r       ON   e.race_id  = r.race_id
               JOIN Players p     ON e.player_id  = p.player_id
-              JOIN Display_run d ON d.entry_id   = e.entry_id
+              JOIN Before_info b ON  b.entry_id  = e.entry_id
              WHERE e.motor_no = ?
                AND r.venue_id = ?
                AND r.date    >= ?
@@ -226,7 +229,7 @@ class MotorAnalysisScreen(tk.Toplevel):
                     series_groups.append(current_group)
                     current_group = [r]
 
-                last_date = this_date
+                last_date  = this_date
                 last_title = r['title']
 
             if current_group:
@@ -234,6 +237,7 @@ class MotorAnalysisScreen(tk.Toplevel):
 
         propeller = 0
         set_parts = 0
+
         for r, rows in enumerate(series_groups):
 
             fr_block = cFr(self.fr_body, W=337, H=140, Bd=(1,SD))
@@ -311,11 +315,12 @@ class MotorAnalysisScreen(tk.Toplevel):
                     p = self._point_for(row["grade"], row["final"], row["rank"], row["title"])
                     sc_cnt += 1
                     sc_sum += p
+
             sc_m = f"{(sc_sum / sc_cnt):.2f}"
             sc_p = self._query_sc(pid)
 
-            cLbl(fr_sc_p, text=w_txt(sc_p), font=(GUI,10,BD), bg=PLAYER)._grid(R=0, C=0, Stk=ALL)
-            cLbl(fr_sc_m, text=w_txt(sc_m), font=(GUI,10,BD), bg="#fffdbb")._grid(R=0, C=0, Stk=ALL)
+            cLbl(fr_sc_p, text=w_txt(sc_p), font=(MUI,8,BD), bg=PLAYER)._grid(R=0, C=0, Stk=ALL)
+            cLbl(fr_sc_m, text=w_txt(sc_m), font=(MUI,8,BD), bg="#fffdbb")._grid(R=0, C=0, Stk=ALL)
 
             propeller += rep_parts.count("プロペラ")
         self.stat_labels[8].config(text=f"{propeller}")

@@ -10,6 +10,7 @@ import shutil
 import datetime
 import ctypes
 import sys
+import re  # 正規表現モジュールを追加
 
 def minimize_console():
     try:
@@ -50,7 +51,7 @@ class WordReplacerGUI(tk.Tk):
 
         self.protocol("WM_DELETE_WINDOW", self._on_close)
         self.title("")
-        self.geometry("800x750+1750+420")
+        self.geometry("820x750+1750+420")
         self.configure(bg=BG_COLOR)
         self.resizable(True, True)
 
@@ -89,19 +90,45 @@ class WordReplacerGUI(tk.Tk):
         fr_words.pack(fill="x", padx=10, pady=5)
 
         tk.Label(fr_words, text="置換前ワード:", bg=PANEL_BG).grid(row=0, column=0, sticky="e", padx=5, pady=3)
-        self.entry_old = tk.Entry(fr_words, bg=ENTRY_BG, fg=FG_COLOR, insertbackground=FG_COLOR, width=35)
+        self.entry_old = tk.Entry(fr_words, bg=ENTRY_BG, fg=FG_COLOR, insertbackground=FG_COLOR, width=25)
         self.entry_old.grid(row=0, column=1, sticky="w", padx=5, pady=3)
 
         tk.Label(fr_words, text="置換後ワード:", bg=PANEL_BG).grid(row=1, column=0, sticky="e", padx=5, pady=3)
-        self.entry_new = tk.Entry(fr_words, bg=ENTRY_BG, fg=FG_COLOR, insertbackground=FG_COLOR, width=35)
+        self.entry_new = tk.Entry(fr_words, bg=ENTRY_BG, fg=FG_COLOR, insertbackground=FG_COLOR, width=25)
         self.entry_new.grid(row=1, column=1, sticky="w", padx=5, pady=3)
 
+        # 一致条件トグルボタン
+        self.match_mode = tk.StringVar(value="部分一致")
+
+        def toggle_match_mode():
+            if self.match_mode.get() == "部分一致":
+                self.match_mode.set("単語")
+                self.btn_toggle.config(text="一致条件: 単語\n(スペース等で独立)", bg="#779977")
+            else:
+                self.match_mode.set("部分一致")
+                self.btn_toggle.config(text="一致条件: 部分一致\n(文字の一部でも対象)", bg="#555555")
+
+        self.btn_toggle = tk.Button(
+            fr_words, text="一致条件: 部分一致\n(文字の一部でも対象)", bg="#555555", fg=FG_COLOR,
+            command=toggle_match_mode, width=17, font=(MUI, 9)
+        )
+        self.btn_toggle.grid(row=0, column=2, rowspan=2, padx=(10, 5), pady=3, sticky="nsew")
+
+        # 一括置換実行ボタン
         self.btn_exec = tk.Button(
             fr_words, text="一括置換実行\n(自動バックアップ付)", 
             font=(MUI, 10, "bold"), bg=EXEC_BTN_BG, fg="#000000",
-            width=20, height=2, command=self.on_execute_replace
+            width=18, height=2, command=self.on_execute_replace
         )
-        self.btn_exec.grid(row=0, column=2, rowspan=2, padx=20, pady=3, sticky="nsew")
+        self.btn_exec.grid(row=0, column=3, rowspan=2, padx=5, pady=3, sticky="nsew")
+
+        # 検索(カウント)ボタン
+        self.btn_search = tk.Button(
+            fr_words, text="検索\n(カウントのみ)", 
+            font=(MUI, 10, "bold"), bg="#FFEEAA", fg="#000000",
+            width=14, height=2, command=self.on_search_word
+        )
+        self.btn_search.grid(row=0, column=4, rowspan=2, padx=(5, 20), pady=3, sticky="nsew")
 
         # ファイル選択ツリーエリア (中央)
         frame_mid = tk.Frame(self, bg=BG_COLOR)
@@ -138,13 +165,13 @@ class WordReplacerGUI(tk.Tk):
         self.scrollbar.pack(side="right", fill="y")
 
         # 実行結果サマリーエリア (下部拡張エリア)
-        frame_bottom = tk.LabelFrame(self, text=" 実行結果サマリー ", bg=BG_COLOR, fg=LOG_FG, font=(MUI, 10, "bold"))
+        frame_bottom = tk.LabelFrame(self, text=" 実行ログ ＆ サマリー ", bg=BG_COLOR, fg=LOG_FG, font=(MUI, 10, "bold"))
         frame_bottom.pack(fill="x", padx=10, pady=(5,10))
 
         fr_log = tk.Frame(frame_bottom, bg=BG_COLOR)
         fr_log.pack(fill="both", expand=True, padx=5, pady=5)
 
-        self.txt_log = tk.Text(fr_log, bg=TEXT_BG, fg=FG_COLOR, height=10, font=("Consolas", 9), relief="flat", wrap="none")
+        self.txt_log = tk.Text(fr_log, bg=TEXT_BG, fg=FG_COLOR, height=12, font=("Consolas", 9), relief="flat", wrap="none")
         log_scroll_y = ttk.Scrollbar(fr_log, orient="vertical", command=self.txt_log.yview)
         self.txt_log.configure(yscrollcommand=log_scroll_y.set)
 
@@ -238,7 +265,7 @@ class WordReplacerGUI(tk.Tk):
 
         try:
             dst_dir.mkdir(parents=True, exist_ok=True)
-            base_name = f"{today}{src.name}"
+            base_name = f"{today}_{src.name}"
             dst_file  = dst_dir / base_name
             counter   = 2
 
@@ -253,6 +280,86 @@ class WordReplacerGUI(tk.Tk):
 
         except Exception as e:
             return False, str(e)
+
+    #-------------------------------------------------------
+    def get_search_pattern(self, old_word: str):
+        """一致条件に応じた正規表現パターンを生成して返す"""
+        mode_str = self.match_mode.get()
+        if mode_str == "単語":
+            # (?<!\S) : 直前に非空白文字がない
+            # (?!\S)  : 直後に非空白文字がない
+            # （両端がスペース、タブ、改行、または行頭・行末であるワードにマッチ）
+            return re.compile(r'(?<!\S)' + re.escape(old_word) + r'(?!\S)')
+        else:
+            return re.compile(re.escape(old_word))
+
+    #-------------------------------------------------------
+    def on_search_word(self):
+        """ファイルの変更を行わず、対象ワードの出現回数のみをチェックしてサマリーに出力する"""
+        old_word = self.entry_old.get()
+
+        if not old_word:
+            messagebox.showwarning("警告", "検索対象の「置換前ワード」を入力してください。")
+            return
+
+        target_paths = [path for path, var in self.file_vars.items() if var.get()]
+
+        if not target_paths:
+            messagebox.showwarning("警告", "対象ファイルが選択されていません。")
+            return
+
+        self.txt_log.delete("1.0", "end")
+        mode_str = self.match_mode.get()
+        self.log(f"=== 検索処理開始: '{old_word}' (条件: {mode_str}) ===", "INFO")
+
+        pattern = self.get_search_pattern(old_word)
+
+        total_files = len(target_paths)
+        hit_files   = 0
+        total_hits  = 0
+        error_count = 0
+
+        for fpath_str in target_paths:
+            src = Path(fpath_str)
+            rec = self.file_records.get(fpath_str, {})
+            fname = rec.get("ファイル名", src.name)
+
+            if not src.exists():
+                self.log(f"× [{fname}] ファイルが存在しません: {fpath_str}", "ERROR")
+                error_count += 1
+                continue
+
+            try:
+                content = ""
+                try:
+                    with open(src, "r", encoding="utf-8") as f:
+                        content = f.read()
+                except UnicodeDecodeError:
+                    with open(src, "r", encoding="utf-8-sig") as f:
+                        content = f.read()
+
+                # 正規表現によるカウント
+                matches = pattern.findall(content)
+                count = len(matches)
+
+                if count > 0:
+                    hit_files += 1
+                    total_hits += count
+                    self.log(f"○ [{fname}] 検知: {count} 個", "SUCCESS")
+                else:
+                    self.log(f"- [{fname}] 対象ワードなし", "WARN")
+
+            except Exception as e:
+                self.log(f"× [{fname}] 読み込みエラー: {e}", "ERROR")
+                error_count += 1
+
+        self.log("\n================ 検索結果サマリー ================", "INFO")
+        self.log(f"対象ファイル数 : {total_files} 件", "INFO")
+        self.log( f"ヒットファイル : {hit_files} 件", "SUCCESS" if hit_files > 0 else "INFO" )
+        self.log( f"合計検知数     : {total_hits} 箇所", "SUCCESS" if total_hits > 0 else "INFO" )
+        if error_count > 0:
+            self.log(f"エラー発生数   : {error_count} 件", "ERROR")
+        self.log("==================================================", "INFO")
 
     #-------------------------------------------------------
     def on_execute_replace(self):
@@ -274,7 +381,10 @@ class WordReplacerGUI(tk.Tk):
             return
 
         self.txt_log.delete("1.0", "end")
-        self.log(f"=== 置換処理開始: '{old_word}' -> '{new_word}' ===", "INFO")
+        mode_str = self.match_mode.get()
+        self.log(f"=== 置換処理開始: '{old_word}' -> '{new_word}' (条件: {mode_str}) ===", "INFO")
+
+        pattern = self.get_search_pattern(old_word)
 
         total_files        = len(target_paths)
         updated_files      = 0
@@ -291,6 +401,7 @@ class WordReplacerGUI(tk.Tk):
                 error_count += 1
                 continue
 
+            # --- バックアップ処理 ---
             bk_ok, bk_res = self.backup_single_file(rec, src)
             if not bk_ok:
                 self.log(f"× [{fname}] バックアップ失敗のためスキップ: {bk_res}", "ERROR")
@@ -309,10 +420,14 @@ class WordReplacerGUI(tk.Tk):
                     with open(src, "r", encoding="utf-8-sig") as f:
                         content = f.read()
 
-                count = content.count(old_word)
+                # 正規表現による検索
+                matches = pattern.findall(content)
+                count = len(matches)
 
                 if count > 0:
-                    new_content = content.replace(old_word, new_word)
+                    # lambda を使い、置換文字列にエスケープ文字等が含まれていても安全に置換する
+                    new_content = pattern.sub(lambda m: new_word, content)
+                    
                     with open(src, "w", encoding=encoding_used) as f:
                         f.write(new_content)
 
@@ -322,7 +437,7 @@ class WordReplacerGUI(tk.Tk):
                     self.log( f"○ [{fname}] 置換成功: {count} 件更新"
                               f" (BK: {os.path.basename(bk_res)})", "SUCCESS" )
                 else:
-                    self.log(f"- [{fname}] 対象ワードなし (0件件変更, BK保存済)", "WARN")
+                    self.log(f"- [{fname}] 対象ワードなし (0件変更, BK保存済)", "WARN")
 
             except Exception as e:
                 self.log(f"× [{fname}] 置換エラー: {e}", "ERROR")

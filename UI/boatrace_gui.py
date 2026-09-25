@@ -821,7 +821,7 @@ class RaceWindow(tk.Toplevel):
     # ==================== 表示/更新 エントリー ======================
     def _reload_for(self, _date:date, venue_id:int, race_no:int, result:bool=False):
 
-        self._highright_D_btn(date)
+        self._highright_D_btn(_date)
         self._highright_R_btn(race_no)
         self.last_date                  = self.date
         self.last_race                  = self.race_no
@@ -880,11 +880,11 @@ class RaceWindow(tk.Toplevel):
         if upd: self._update(0)
 
     # ----------------------------------
-    def _highright_D_btn(self, on_date:str):
+    def _highright_D_btn(self, _date:str):
 
         for key, btn in self._day_btns.items():
-            if key == on_date : btn.state(['pressed'])
-            else:               btn.state(['!pressed'])
+            if key == _date : btn.state(['pressed'])
+            else:             btn.state(['!pressed'])
     # ----------------------------------
     def _highright_R_btn(self, on:int):
     

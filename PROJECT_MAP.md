@@ -49,7 +49,7 @@ boatrace/
           query_Race_programs        # Header ﾃﾞｰﾀ用クエリ
           query_Players              # 選手基本ﾃﾞｰﾀ用クエリ
           query_result               # 結果ﾃﾞｰﾀ用クエリ
-          query_Display_run          # 展示航走ﾃﾞｰﾀ用クエリ
+          query_before_info          # 直前情報 展示航走ﾃﾞｰﾀ用クエリ
 
       build_series_idx.py/
           uodate_series_idx          # RaceWindow Main Right の節間成績ﾃﾞｰﾀ 表示/更新

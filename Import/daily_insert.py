@@ -13,11 +13,10 @@ import Dal as dal
 
 BASE     = Path(r"C:\boatrace")
 LOG_PATH = BASE / r"Archive\logs\daily_insert"
-IMPORT_D = BASE / r"UI\Subprocess\ETL_import_Display.py"
+IMPORT_D = BASE / r"UI\Subprocess\ETL_Before_info.py"
 
 #-----------------------------------------------------------
 def ensure_programs(d_iso:str):
-
 
     (cnt,) = dal.fetch_one("""
                  SELECT COUNT(1)
@@ -35,8 +34,8 @@ def ensure_programs(d_iso:str):
 def call_K(date_iso:str, overwrite:bool=False, background:bool=False):
 
     if background:
-        file_name = f"K_{date_iso}.log"
-        log       = LOG_PATH / "K" / file_name
+        file_name = f"K_txt_{date_iso}.log"
+        log       = LOG_PATH / "K_txt" / file_name
         log.parent.mkdir(parents=True, exist_ok=True)
         log_file = open(log, "w", encoding="utf-8")
 
@@ -54,8 +53,8 @@ def call_K(date_iso:str, overwrite:bool=False, background:bool=False):
 def call_B(date_iso:str, overwrite:bool=False, background:bool=False):
 
     if background:
-        file_name = f"B_{date_iso}.log"
-        log       = LOG_PATH / "B" / file_name
+        file_name = f"B_txt_{date_iso}.log"
+        log       = LOG_PATH / "B_txt" / file_name
         log.parent.mkdir(parents=True, exist_ok=True)
         log_file = open(log, "w", encoding="utf-8")
 
@@ -74,11 +73,11 @@ def run_get_before_info(date_from:str, date_to:str, background:bool=False):
 
     if background:
         if date_from == date_to:
-            file_name = f"display_{date_from}.log"
-            log = LOG_PATH / "D" / file_name
+            file_name = f"before_info_{date_from}.log"
+            log = LOG_PATH / "B_info" / file_name
         else:
-            file_name = f"display_{date_from}-{date_to}.log"
-            log = LOG_PATH / "D" / file_name
+            file_name = f"before_info_{date_from}-{date_to}.log"
+            log = LOG_PATH / "B_info" / file_name
 
         log.parent.mkdir(parents=True, exist_ok=True)
 
@@ -111,7 +110,7 @@ def run_get_before_info(date_from:str, date_to:str, background:bool=False):
 #===============================================================================
 def parse_args():
 
-    p = argparse.ArgumentParser(description="Daily K/B/display_run updater")
+    p = argparse.ArgumentParser(description="Daily B/K/Before_info updater")
     p.add_argument("--date",      default=None,         help="対象日(yyyy)")
     p.add_argument("--date_from",                       help="期間開始(YYYY-MM-DD)")
     p.add_argument("--date_to",                         help="期間終了(YYYY-MM-DD)")
