@@ -1,5 +1,5 @@
 ﻿# -*- coding: utf-8 -*-
-# C:\boatrace\UI\Subprocess\import_Before_info.py
+# C:\boatrace\UI\Subprocess\get_Before_info.py
 
 import Dal as dal
 import argparse, re, sqlite3, sys, warnings, logging, random, time

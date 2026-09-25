@@ -19,7 +19,7 @@ UI,Screens,Classification,              C:\boatrace\UI\Screens\classification.py
 UI,Screens,__init__,                    C:\boatrace\UI\Screens\__init__.py,0
 
 UI,Helpers,build_rows,                  C:\boatrace\UI\Helpers\build_rows.py,1
-UI,Helpers,series_idx,                  C:\boatrace\UI\Helpers\series_idx.py,1
+UI,Helpers,build_series_idx,            C:\boatrace\UI\Helpers\build_series_idx.py,1
 UI,Helpers,sub_window,                  C:\boatrace\UI\Helpers\sub_window.py,0
 UI,Helpers,Custum_func,                 C:\boatrace\UI\Helpers\Custum_func.py,1
 UI,Helpers,queries,                     C:\boatrace\UI\Helpers\queries.py,1
@@ -30,9 +30,9 @@ UI,Helpers,__init__,                    C:\boatrace\UI\Helpers\__init__.py,0
 
 UI,Subprocess,get_today_info.py,        C:\boatrace\UI\Subprocess\get_today_info.py,1
 UI,Subprocess,get_Before_info.py,       C:\boatrace\UI\Subprocess\get_Before_info.py,1
-UI,Subprocess,import_result_today.py,   C:\boatrace\UI\Subprocess\import_result_today.py,1
+UI,Subprocess,get_results_today.py,     C:\boatrace\UI\Subprocess\get_results_today.py,1
 UI,Subprocess,ETL_Before_info.py,       C:\boatrace\UI\Subprocess\ETL_Before_info.py,0
-UI,Subprocess,ETL_odds_data.py,         C:\boatrace\Import\ETL_odds_data.py,0
+UI,Subprocess,ETL_odds_data.py,         C:\boatrace\UI\Subprocess\ETL_odds_data.py,0
 
 UI,Widgets,widgets.py,                  C:\boatrace\UI\Widgets\widgets.py,1
 UI,Widgets,center_widgets.py,           C:\boatrace\UI\Widgets\center_widgets.py,0

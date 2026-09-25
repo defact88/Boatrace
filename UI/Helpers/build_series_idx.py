@@ -1,5 +1,5 @@
 ﻿# -*- coding: utf-8 -*-
-# C:\boatrace\UI\Helpers\series_idx.py
+# C:\boatrace\UI\Helpers\build_series_idx.py
 
 from typing      import List, Dict, Optional
 from tkinter     import ttk
@@ -58,11 +58,11 @@ def date_today() -> date:
 
     return dt.now(JST).date()
 # ------------------
-def _str(d:date) -> str:
+def to_str(d:date) -> str:
 
     return d.strftime("%Y-%m-%d")
 # ------------------
-def _to_date(d_iso:str) -> date:
+def to_date(d_iso:str) -> date:
 
     return dt.strptime(d_iso, "%Y-%m-%d").date()
 # ------------------
@@ -82,7 +82,7 @@ def build_day_lbl(on_day:date, venue_id:int):
            AND venue_id = ?
          LIMIT 1
         """,
-        (_str(on_day), venue_id))
+        (to_str(on_day), venue_id))
 
     series_title = row[0]
     max_d        = on_day -timedelta(days=10)
@@ -95,7 +95,7 @@ def build_day_lbl(on_day:date, venue_id:int):
            AND date BETWEEN ? AND ?
       ORDER BY date ASC
         """,
-        (venue_id, series_title, _str(max_d), _str(on_day)))
+        (venue_id, series_title, to_str(max_d), to_str(on_day)))
 
     candidates = [r[0] for r in dates]
     if not candidates: return [], []
@@ -118,7 +118,7 @@ def build_day_lbl(on_day:date, venue_id:int):
     for d in candidates:
         held_race  = held_dates.get(d, 0)
         digested   = (held_race >= 6)
-        visible    = True if d == _str(on_day) else (held_race > 0)
+        visible    = True if d == to_str(on_day) else (held_race > 0)
         meta.append( {      "date":d,
                        "held_race":held_race,
                         "digested":digested,
@@ -191,7 +191,7 @@ def get_results(_date:date, base_day:date, race_no:int, venue_id:int, player_id:
                AND r.race_no   < ?
           ORDER BY r.race_no ASC
             """,
-            (_str(_date), venue_id, player_id, race_no)) or []
+            (to_str(_date), venue_id, player_id, race_no)) or []
     else:
         rows = dal.fetch_all(
             """
@@ -205,7 +205,7 @@ def get_results(_date:date, base_day:date, race_no:int, venue_id:int, player_id:
                AND e.player_id = ?
           ORDER BY r.race_no ASC
             """,
-            (_str(_date), venue_id, player_id)) or []
+            (to_str(_date), venue_id, player_id)) or []
 
     rows = rows[:2]
     # --------------
@@ -240,7 +240,7 @@ def get_other_race(_date:date, venue_id:int, player_id:int, race_no:int):
            AND player_id = ?
       ORDER BY Race_programs.race_no ASC
         """,
-        (_str(_date), venue_id, player_id)) or []
+        (to_str(_date), venue_id, player_id)) or []
 
     cand = [0, 0]
     if len(rows) < 2: return cand
@@ -366,13 +366,13 @@ def _assign_series_idx(self):
             if not info: continue
 
             d_str = info.get("date")
-            raw   = _filter_rows(pid, _to_date(d_str), result_map.get((pid, d_str), []))
+            raw   = _filter_rows(pid, to_date(d_str), result_map.get((pid, d_str), []))
             raw   = raw[:2]
             L     = _conv_one(raw[0]) if len(raw) >= 1 else ("", "", "", "", None)
             R     = _conv_one(raw[1]) if len(raw) >= 2 else ("", "", "", "", None)
 
-            _paint_abcd(self, cells[col_L], L[0], L[1], L[2], L[3], _to_date(d_str), f_no=L[4])
-            _paint_abcd(self, cells[col_R], R[0], R[1], R[2], R[3], _to_date(d_str), f_no=R[4])
+            _paint_abcd(self, cells[col_L], L[0], L[1], L[2], L[3], to_date(d_str), f_no=L[4])
+            _paint_abcd(self, cells[col_R], R[0], R[1], R[2], R[3], to_date(d_str), f_no=R[4])
 
 # --------------------------------------
 def _paint_abcd(self, cells:list[tk.Frame], r_no, cour, s_adj, fin, _date, f_no:int|None):

@@ -21,7 +21,7 @@ DB_PATH        = os.path.join(BASE_DIR, "boatrace.db")
 SP_DIR         = os.path.join(BASE_DIR, r"UI\Subprocess")
 SP_INFO        = os.path.join(SP_DIR, "get_today_info.py")
 SP_BEFORE      = os.path.join(SP_DIR, "get_Before_info.py")
-SP_RESULT      = os.path.join(SP_DIR, "import_result_today.py")
+SP_RESULT      = os.path.join(SP_DIR, "get_results_today.py")
 LOCK_PATH      = os.path.join(BASE_DIR, r"tmp\json\summarizer.lock")
 # 定数
 CHANGE_INTERVAL = 300  #   変更: n秒 間隔で巡回

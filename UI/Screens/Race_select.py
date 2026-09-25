@@ -10,9 +10,9 @@ from tkinter             import ttk, messagebox
 from typing              import Dict, Optional
 from datetime            import datetime as dt, date, timedelta, timezone
 
-from Helpers.Custum_func import cFr, cLbl, cBtn
-from Helpers.series_idx  import build_day_lbl
-from Widgets.widgets     import framing_held_type_icon  
+from Helpers.Custum_func      import cFr, cLbl, cBtn
+from Helpers.build_series_idx import build_day_lbl
+from Widgets.widgets          import framing_held_type_icon  
 
 #===============================================================================
 

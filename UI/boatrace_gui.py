@@ -9,18 +9,17 @@ from pathlib                import Path
 from collections            import deque
 
 import Dal as dal
-from Screens                import( DBOpsScreen, DBSchemScreen, DBQueryScreen, RaceSelectScreen,
-                                    PlayerAnalysisScreen, VenueAnalysisScreen,
-                                    MotorAnalysisScreen )
-from Helpers.build_rows     import query_program, make_rows, make_sub_rows
-from Helpers.queries        import Query
-from Helpers.series_idx     import update_series_idx, build_day_lbl
-from Helpers.sub_window     import open_player_picker
-from Helpers.Custum_func    import cFr, cLbl, cBtn
-from Widgets.center_widgets import framing_center_widgets
-from Widgets.placeholder    import build_main_placeholder, build_sub_placeholder
-from Widgets.widgets        import ( framing_graph, framing_figure, framing_weather,
-                                     clear_all_lanes, apply_absent_bg, set_player_image, )
+from Screens import( DBOpsScreen, DBSchemScreen, DBQueryScreen, RaceSelectScreen,
+                     PlayerAnalysisScreen, VenueAnalysisScreen, MotorAnalysisScreen )
+from Helpers.build_rows       import query_program, make_rows, make_sub_rows
+from Helpers.queries          import Query
+from Helpers.build_series_idx import update_series_idx, build_day_lbl
+from Helpers.sub_window       import open_player_picker
+from Helpers.Custum_func      import cFr, cLbl, cBtn
+from Widgets.center_widgets   import framing_center_widgets
+from Widgets.placeholder      import build_main_placeholder, build_sub_placeholder
+from Widgets.widgets          import ( framing_graph, framing_figure, framing_weather,
+                                       clear_all_lanes, apply_absent_bg, set_player_image, )
 
 # ====================================================================
 APP_TITLE = ""

@@ -82,11 +82,11 @@ get_Before_info.py,        --race,       required=False
 get_Before_info.py,        --ALL_venue,  required=False
 get_Before_info.py,        --ALL_race,   required=False
 
-import_result_today.py,    --date,       required=True
-import_result_today.py,    --venue,      required=False
-import_result_today.py,    --race,       required=False
-import_result_today.py,    --ALL_venue,  required=False
-import_result_today.py,    --ALL_race,   required=False
+get_results_today.py,      --date,       required=True
+get_results_today.py,      --venue,      required=False
+get_results_today.py,      --race,       required=False
+get_results_today.py,      --ALL_venue,  required=False
+get_results_today.py,      --ALL_race,   required=False
 
 ETL_Before_info.py,        --date,       required=False
 ETL_Before_info.py,        --date_from,  required=False

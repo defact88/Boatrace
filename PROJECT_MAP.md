@@ -13,7 +13,7 @@ boatrace/
 
   boatrace.db                        # SQLite3 DB
 
-  Dal.py                             # UI用DAL(sqlite3簡易ラッパ)
+  Dal.py                             # UI用Data Access Layer(sqlite3簡易ラッパ)
 
   UI/
     boatrace_gui.py                  # エントリ/ルータ/共通設定
@@ -23,11 +23,11 @@ boatrace/
 
     Subprocess/                      # summarize_today.pyから管理/実行
       get_Before_info.py             # 展示航走及び直前情報ﾃﾞｰﾀの取得/ﾊﾟｰｽ/挿入
-      import_Result_today.py         # ﾚｰｽ結果ﾃﾞｰﾀの取得/ﾊﾟｰｽ/挿入(翌日の日時更新時に正規ﾃﾞｰﾀでUPDATE)
+      get_results_today.py           # ﾚｰｽ結果ﾃﾞｰﾀの取得/ﾊﾟｰｽ/挿入(翌日の日時更新時に正規ﾃﾞｰﾀでUPDATE)
       get_today_info.py/
           get_change_info            # 当日変更情報(締切時刻変更,欠場艇等)の取得/ﾊﾟｰｽ/挿入
           get_cancel_info            # 当日中止ﾚｰｽの取得/ﾊﾟｰｽ/挿入
-      ETL_odds_data.py               # 指定期間で過去のoddsﾃﾞｰﾀを取得INSERT/UPDATE
+      ETL_odds_data.py               # 指定期間で過去のoddsﾃﾞｰﾀを一括取得INSERT/UPDATE
 
     Screens/                         # 画面クラス
       DB_ops.py                      # DBOpsScreen・・・DB参照 画面
@@ -40,10 +40,10 @@ boatrace/
     Helpers/
       Custum_func.py                 # tkinterのｵﾘｼﾞﾅﾙ短縮表記ｸﾗｽ/ﾒｿｯﾄﾞ
 
-      queries.py                     # DB 汎用クエリクラス
+      queries.py/                    # DB 汎用クエリクラス
           _pack                      # パッキングメソッド
 
-      build_rows.py                  # RaceWindow表示ﾃﾞｰﾀの取得(DB)/構成
+      build_rows.py/                 # RaceWindow表示ﾃﾞｰﾀの取得(DB)/構成
           make_rows                  # 各ｸｴﾘからのﾃﾞｰﾀを纏めてentry_rows, data_rowsを生成
           make_sub_rows              # 各ｸｴﾘからのﾃﾞｰﾀを纏めてsub_rowsを生成
           query_Race_programs        # Header ﾃﾞｰﾀ用クエリ
@@ -51,19 +51,19 @@ boatrace/
           query_result               # 結果ﾃﾞｰﾀ用クエリ
           query_Display_run          # 展示航走ﾃﾞｰﾀ用クエリ
 
-      series_idx.py
+      build_series_idx.py/
           uodate_series_idx          # RaceWindow Main Right の節間成績ﾃﾞｰﾀ 表示/更新
           build_day_labels           # 日程ラベルの構築
 
-      scraper_odds.py
+      scraper_odds.py/
           fetch_all_odds             # OddsWindowのｵｯｽﾞﾃﾞｰﾀ ｽｸﾚｲﾋﾟﾝｸﾞ/ﾊﾟｰｽ
 
-      ev_scanner.py
+      ev_scanner.py/
           evaluate_ev                # 予想ｴﾝｼﾞﾝ（未完成）
           persist_odds_snapshot      # oddsﾃﾞｰﾀ挿入/evaluate_evのﾗｯﾊﾟｰ
 
     Widgets/
-      widgets.py
+      widgets.py/
           framing_graph              # 当該ｺｰｽ別1,2,3着率ｸﾞﾗﾌの表示、主観選手からのｻﾌﾞｸﾞﾗﾌの表示
           framing_figure             # ｽﾘｯﾄ予想図 / 展示航走ｽﾘｯﾄ図 / ﾚｰｽ結果ｽﾘｯﾄ図
           framing_weather            # 天候ｱｲｺﾝ(天気、風向)
@@ -71,7 +71,7 @@ boatrace/
           clear_all_lanes            # ﾒｲﾝﾌﾟﾚｰｽﾎﾙﾀﾞｰ内の各ｳｨｼﾞｪｯﾄをｸﾘｱ
           set_player_image           # 画像読込/等倍比フィット
 
-      placeholder.py
+      placeholder.py/
           main_placeholder           # RaceWindowのメイン表示部(上部)枠組み
           sub_placeholder            # RaceWindowのサブ表示部(下部)枠組み
 
@@ -91,7 +91,7 @@ boatrace/
 
   Checker/
     data/
-      odds_snapshot_audit.py         # テーブルOdds_snapshotsの重複・過剰データの検査/削除スクリプト
+      odds_data_audit.py             # テーブルOddsの重複・過剰データの検査/削除スクリプト
     Player/
       check_score_ave.py             # 期単位で指定選手の公式得点率とDBデータ算出得点率の整合性をチェック
       check_score_ave_ALL.py         # check_score_ave.pyを全選手対象で実行
@@ -121,8 +121,8 @@ DB_PATH      C:\boatrace\boatrace.db
 選手画像:    C:\boatrace\assets\players\{player_id}.jpg
 B-archive:   C:\boatrace\archive\B\TEXT\B{YYMMDD}.TXT
 K-archive:   C:\boatrace\archive\K\K{YYMMDD}.TXT
-ログ:        C:\boatrace\Archive\logs\
 FAN-archive: C:\boatrace\archive\FAN\FAN_TXT\fan{YYMM}.TXT
+ログ:        C:\boatrace\Archive\logs\
 Temp_file    C:\boatrace\Temp\
 
 
@@ -146,5 +146,8 @@ GUI起動 → App.screens 登録
 
 画面分割時は コンストラクタで必要最小の依存を注入（app, db_path, date, venue_id など）
 外部依存は Helpers/Screens/Subprocess/Widgets 側で import 集約
-指示内容がレイアウトに関わる場合を除いて、UIレイアウトは既存寸法を崩さない
-（変更が必要な場合は要確認）
+指示内容がレイアウトに関わる場合を除いて、GUIレイアウトは既存寸法を崩さない（変更が必要な場合は要確認）
+使用/実行は固定PC環境・固定モニター・固定ウィンドウサイズ・固定レイアウト・固定ウィジェットサイズ
+処理/表示において他環境への汎用性は不要
+よってttkでしか機能実現しない場合を除いてなるべくtkを使用する
+

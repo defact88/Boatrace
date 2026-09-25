@@ -1,5 +1,5 @@
 ﻿# -*- coding: utf-8 -*-
-# ETL_odds_data.py
+# C:\boatrace\UI\Subprocess\ETL_odds_data.py
 
 import argparse, time, os
 import Dal as dal

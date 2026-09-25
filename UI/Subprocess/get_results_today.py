@@ -1,5 +1,5 @@
 ﻿# -*- coding: utf-8 -*-
-# C:\boatrace\UI\Subprocess\import_result_today.py
+# C:\boatrace\UI\Subprocess\get_results_today.py
 
 import Dal as dal
 import argparse, re, sqlite3, sys, warnings, unicodedata, random, time

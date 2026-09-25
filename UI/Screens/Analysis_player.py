@@ -10,7 +10,6 @@ from collections            import defaultdict
 from datetime               import datetime as dt, date, time, timedelta
 import os, tkinter as tk, Dal as dal
 
-from Helpers.convert        import convert_rank
 from Helpers.Custum_func    import cFr, cLbl, cBtn
 from Helpers.queries        import Query
 from Widgets.widgets        import set_player_image, framing_graph
@@ -43,13 +42,16 @@ ROW_KEYS  = [ ("starts",      "出走 数"),
               ("F_L",         "F / L"  ),
               ("S_K",         "S / K"  ), ]
 
-MONTH     = { "1M": 1, "2M": 2, "3M": 3, "4M": 4, "5M": 5, "6M": 6, "7M": 7, "8M": 8, "9M": 9,
-              "1Y":12, "2Y":24, "3Y":36, "4Y":48, "5Y":60,"10Y":120 }
+MONTH        = { "1M": 1, "2M": 2, "3M": 3, "4M": 4, "5M": 5, "6M": 6, "7M": 7, "8M": 8, "9M": 9,
+                 "1Y":12, "2Y":24, "3Y":36, "4Y":48, "5Y":60,"10Y":120 }
 
-ADJUST    = {"pre_y":-12, "pre_m":-1, "next_y":12, "next_m":1}
+ADJUST       = {"pre_y":-12, "pre_m":-1, "next_y":12, "next_m":1}
 
-FINAL_RNK = { 1:"①", 2:"②", 3:"③", 4:"④", 5:"⑤", 6:"⑥",
-              "F":"(F)", "L":"(L)", "S":"(S)", "K":"(K)"       }
+FINAL_RNK    = { 1:"①", 2:"②", 3:"③", 4:"④", 5:"⑤", 6:"⑥",
+                 "F":"(F)", "L":"(L)", "S":"(S)", "K":"(K)"       }
+
+PREFINAL_RNK = { 1:"[ 1 ]", 2:"[ 2 ]", 3:"[ 3 ]", 4:"[ 4 ]", 5:"[ 5 ]", 6:"[ 6 ]",
+                 "F":"[F]", "L":"[L]", "S":"[S]", "K":"[K]"       }
 
 GOPT      = { 0: dict(text="一般",            font=(MUI,8   )),
               1: dict(text="G3",              font=(MUI,8   )), 
@@ -90,12 +92,22 @@ TBL_H  = CEL_H *15 -1
 C_W    = 72
 CLW    = (C_W *5)+2
 
-# --------
+# ----------------------------
 def wid_txt(s: str) -> str:
+
     hair = "\u200A" 
     return hair.join(list(s))
+# ----------------------------
+def convert_rank(rank:int|str, final:int, prefinal:int):
+
+    if final:      return FINAL_RNK[rank]
+    elif prefinal: return PREFINAL_RNK[rank]
+    else:
+        return rank
+
 #===============================================================================
 class PlayerAnalysisScreen(tk.Toplevel):
+
     def __init__( self, master, p_id:int, v_id:Optional[int]=None,
                                          d_iso:Optional[str]=None,
                                            cou:Optional[int]=None  ):
