@@ -60,7 +60,7 @@ class SummarizeTodayInfo:
         self._stop             = False
         self._lock             = threading.Lock()
         self.running           = {"before":0, "result":0, "change":0, "cancel":0, "odds":0}
-        self.run_limit         = {"before":3, "result":3, "change":3, "cancel":1, "odds":3}
+        self.run_limit         = {"before":3, "result":3, "change":2, "cancel":1, "odds":3}
         self._threads          = set()
         self._ctl_prev_mute    = None
         self.tasks:      List[Task] = []
