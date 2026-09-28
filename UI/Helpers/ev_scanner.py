@@ -77,7 +77,7 @@ def evaluate_ev( data:dict, d:date, venue_id:int, race_no:int,
 #-----------------------------------------------------------
 def insert_odds_snapshot(data:dict, d:date, venue_id:int, race_no:int, hits:list):
 
-    now      = dt.now()
+    now      = dt.now().strftime("%Y-%m-%d %H:%M:%S")
     race_id  = _build_race_id(d, venue_id, race_no)
     hit_keys = {(bt, key) for bt, key, *_ in hits} if hits else set()
     rows     = []
@@ -85,23 +85,21 @@ def insert_odds_snapshot(data:dict, d:date, venue_id:int, race_no:int, hits:list
     for bet_type in BET_TYPES_PERSISTED:
         for key, raw in data.get(bet_type, {}).items():
 
-            hit = 1 if (bet_type, key) in hit_keys else 0 # ①未実装の為常に0
-
+            hit            = 1 if (bet_type, key) in hit_keys else 0 # ①未実装の為常に0
             key            = [key] if isinstance(key, int) else list(key)
-            b1, b2, b3     = (key + [0, 0])[:3]
+            combo          = int("".join(str(x) for x in key))
             odds, raw_odds = _parse_odds_value(raw)
 
-
-            rows.append( ( race_id, d.isoformat(), venue_id, race_no, bet_type,
-                           b1, b2, b3, odds, raw_odds, hit, now.strftime("%Y-%m-%d %H:%M:%S") ) )
+            rows.append( ( race_id, d.isoformat(), venue_id, race_no,
+                           bet_type, combo, odds, raw_odds, hit, now  ) )
 
     if not rows: return 0
 
     cnt = dal.executemany("""
-        INSERT INTO Odds( race_id, date, venue_id, race_no, bet_type,
-                          boat1, boat2, boat3, odds, raw_odds, hit, captured_at )
-             VALUES (?,?,?,?,?,?,?,?,?,?,?,?)
-        ON CONFLICT (race_id, bet_type, boat1, boat2, boat3)
+        INSERT INTO Odds( race_id, date, venue_id, race_no,
+                          bet_type, combo, odds, raw_odds, hit, captured_at )
+             VALUES (?,?,?,?,?,?,?,?,?,?)
+        ON CONFLICT (race_id, bet_type, combo)
                  DO UPDATE SET odds        = excluded.odds,
                                raw_odds    = excluded.raw_odds,
                                hit         = excluded.hit,

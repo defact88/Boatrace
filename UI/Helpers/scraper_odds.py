@@ -195,10 +195,13 @@ def parse_2boats(table_html:str, bet_type:str) -> dict:
         if not ('borderLeftNone' in fc and _is_int(ft)): continue
 
         odds_list  = [_clean(t) for c, t in tds if 'oddsPoint' in c]
+
         for R1, R2, odds_v in zip(range(1,7), R2_list, odds_list):
-            if not odds_v:            continue
+            if not odds_v: continue
+
             if bet_type == '2T': key = (R1, R2)
-            else:                     key = tuple(sorted([R1, R2]))
+            else:                key = tuple(sorted([R1, R2]))
+
             result[key] = odds_v
 
         R2_list = [i + 2 if idx <= i else i + 1 for idx in range(6)]
@@ -220,6 +223,7 @@ def parse_sp(page_html:str) -> tuple:
                 tds       = re.findall(r'<td([^>]*)>(.*?)</td>', tr, re.S)
                 boat_tds  = [(c, t) for c, t in tds if _boatno_cls(c)]
                 odds_tds  = [(c, t) for c, t in tds if 'oddsPoint' in c]
+
                 if boat_tds and odds_tds:
                     nv = _clean(boat_tds[0][1])
                     if _is_int(nv):
@@ -265,6 +269,7 @@ def fetch_all_odds( date_str:str, venue_id:int, race_no:int, on_progress=None,
     # --------------
     with ThreadPoolExecutor(max_workers=5) as ex:
         futures = {ex.submit(_fetch, k, u):k for k, u in urls.items()}
+
         for fut in as_completed(futures):
             try:
                 key, html  = fut.result()

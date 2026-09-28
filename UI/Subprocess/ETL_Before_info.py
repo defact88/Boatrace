@@ -32,7 +32,7 @@ def ETL_run(date_from:str, date_to:str, overwrite:bool=False):
         args_list = ["--date", date_str, "--ALL_venue", "--ALL_race"]
         
         try:
-            result_code = get_before_info.main(args_list)
+            result_code = get_Before_info.main(args_list)
 
             if result_code == 0:
                 print(f"\n[SUCCESS] {date_str} の処理が正常に完了しました。")

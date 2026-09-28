@@ -46,6 +46,7 @@ CREATE TABLE Season_result(
 
 CREATE INDEX IF NOT EXISTS idx_season_result_search 
                         ON Season_result(year, season, player_id);
+
 /*-------------------------------------------------------------------------------------*/
 CREATE TABLE Venues(
 
@@ -89,15 +90,14 @@ CREATE INDEX IF NOT EXISTS idx_races_1
 CREATE INDEX IF NOT EXISTS idx_races_venue_date_status
                         ON Races(venue_id, date, status, is_final);
 
-CREATE INDEX IF NOT EXISTS idx_races_race_id ON Races(race_id);
-
-CREATE INDEX IF NOT EXISTS idx_races_date_status ON Races(date, status, is_final);
+CREATE INDEX IF NOT EXISTS idx_races_date_status
+                        ON Races(date, status, is_final);
 
 /*------------------------------------------------------------------------------------*/
 CREATE TABLE Race_entries(
 
-  race_id     INTEGER NOT NULL REFERENCES Races(race_id),
   entry_id    INTEGER PRIMARY KEY,
+  race_id     INTEGER NOT NULL REFERENCES Races(race_id),
   race_no     INTEGER NOT NULL,
   venue_id    INTEGER NOT NULL REFERENCES Venues(venue_id),
   date        DATE    NOT NULL,
@@ -120,15 +120,15 @@ CREATE TABLE Race_entries(
   CHECK(violation   IN ('0','T','R','TR'))
 );
 
+CREATE INDEX IF NOT EXISTS idx_entries_race_id
+                        ON Race_entries(race_id);
+
 CREATE INDEX IF NOT EXISTS idx_entries_1
-                        ON Race_entries( date,       frame_no,    player_id,  finish_rank,
-                                         fault_code, fault_level, course,     slit_ADJ,
-                                         win_move,   venue_id,    race_id                  );
+                        ON Race_entries( date, frame_no, player_id, finish_rank, fault_code,
+                                         fault_level, course, slit_ADJ, win_move, venue_id, race_id );
 
 CREATE INDEX IF NOT EXISTS idx_entries_pid_date
                         ON Race_entries(player_id, date, race_id);
-
-CREATE INDEX IF NOT EXISTS idx_entries_race_id ON Race_entries(race_id);
 
 CREATE INDEX IF NOT EXISTS idx_entries_performance 
                         ON Race_entries(player_id, finish_rank, fault_code);
@@ -163,8 +163,10 @@ CREATE TABLE Race_programs(
 CREATE INDEX IF NOT EXISTS idx_programs_1 
                         ON Race_programs( date, frame_no, player_id, venue_id,
                                           day_no, race_no, series_title        );
+
 CREATE INDEX IF NOT EXISTS idx_programs_venue_series_date
                         ON Race_programs (venue_id, series_title, date);
+
 CREATE INDEX IF NOT EXISTS idx_programs_date_venue_pid
                         ON Race_programs (date, venue_id, player_id, race_no);
 
@@ -197,6 +199,12 @@ CREATE TABLE Before_info(
   CHECK(course   BETWEEN 1 AND 6)
 );
 
+CREATE INDEX IF NOT EXISTS idx_before_info_race_id
+                        ON Before_info(race_id);
+
+CREATE INDEX IF NOT EXISTS idx_before_info_player_id
+                        ON Before_info(player_id);
+
 /*-------------------------------------------------------------------------------------*/
 CREATE TABLE Odds(
 
@@ -207,9 +215,7 @@ CREATE TABLE Odds(
   race_no      INTEGER NOT NULL,
 
   bet_type     TEXT    NOT NULL,
-  boat1        INTEGER NOT NULL,
-  boat2        INTEGER NOT NULL DEFAULT 0,
-  boat3        INTEGER NOT NULL DEFAULT 0,
+  combo        INTEGER NOT NULL,
 
   odds         REAL,
   raw_odds     TEXT,
@@ -218,71 +224,63 @@ CREATE TABLE Odds(
 
   captured_at  DATETIME NOT NULL,
 
-  UNIQUE(race_id, bet_type, boat1, boat2, boat3)
+  UNIQUE(race_id, bet_type, combo)
 
   CHECK(bet_type IN ('3T','3F','2T','2F','KK','TT','FF')),
-  CHECK(boat1 BETWEEN 1 AND 6),
-  CHECK(boat2 IS 0 OR boat2 BETWEEN 1 AND 6),
-  CHECK(boat3 IS 0 OR boat3 BETWEEN 1 AND 6)
+  CHECK(combo BETWEEN 0 AND 666)
+
 );
 
 CREATE UNIQUE INDEX IF NOT EXISTS uq_odds
-    ON Odds(date, venue_id, race_no, bet_type, boat1, boat2, boat3);
+                               ON Odds(date, venue_id, race_no, bet_type, combo);
 
 CREATE INDEX IF NOT EXISTS idx_odds_race
-    ON Odds(date, venue_id, race_no, bet_type);
+                        ON Odds(date, venue_id, race_no, bet_type);
 
 /*-------------------------------------------------------------------------------------*/
-CREATE TABLE Oriten(
+CREATE TABLE Payouts(
 
-  
-/*-------------------------------------------------------------------------------------*/
-CREATE TABLE Summary_ETL(
+  race_id    INTEGER,
+  date       DATE    NOT NULL,
+  venue_id   INTEGER NOT NULL,
 
-  summary_id       INTEGER PRIMARY KEY AUTOINCREMENT,
-  run_started_at   TEXT    NOT NULL,
-  run_finished_at  TEXT    NOT NULL,
-  date_from        DATE,
-  date_to          DATE,
-  files_found      INTEGER DEFAULT 0,
-  files_imported   INTEGER DEFAULT 0,
-  races_expected   INTEGER DEFAULT 0,
-  races_inserted   INTEGER DEFAULT 0,
-  races_cancelled  INTEGER DEFAULT 0,
-  entries_expected INTEGER DEFAULT 0,
-  entries_inserted INTEGER DEFAULT 0,
-  entries_missing  INTEGER DEFAULT 0,
-  warnings_count   INTEGER DEFAULT 0,
-  warnings_json    TEXT
+  status     TEXT,
+
+  // status = 'normal'                             ：combo_xx = (nnn or nn or n)
+  // status in ('tie1', 'tie2', 'special') 賭式有り：combo_xx = (nnn or nn or n)
+  // status in ('tie1', 'tie2', 'special') 賭式無し：combo_xx =  9
+  // status = 'normal'                   賭式不成立：combo_xx =  0 
+
+  combo_3T   INTEGER NOT NULL,
+  combo_3F   INTEGER NOT NULL,
+  combo_2T   INTEGER NOT NULL,
+  combo_2F   INTEGER NOT NULL,
+  combo_TT   INTEGER NOT NULL,
+  combo_FF1  INTEGER NOT NULL,
+  combo_FF2  INTEGER NOT NULL,
+  combo_KK1  INTEGER NOT NULL,
+  combo_KK2  INTEGER NOT NULL,
+  combo_KK3  INTEGER NOT NULL,
+
+  payout_3T  INTEGER,
+  payout_3F  INTEGER,
+  payout_2T  INTEGER,
+  payout_2F  INTEGER,
+  payout_TT  INTEGER,
+  payout_FF1 INTEGER,
+  payout_FF2 INTEGER,
+  payout_KK1 INTEGER,
+  payout_KK2 INTEGER,
+  payout_KK3 INTEGER,
+
+  PRIMARY KEY (race_id, status)
+
+  CHECK( status IN ('normal', 'tie1', 'tie2', 'special') )
+
 );
 
-/*-------------------------------------------------------------------------------------*/
-CREATE TABLE Summary_races(
-
-  file_name  TEXT PRIMARY KEY,
-  date       DATE NOT NULL UNIQUE,
-  venues     INTEGER,
-  races      INTEGER,
-  cnt_SG     INTEGER,
-  cnt_PG1    INTEGER,
-  cnt_G1     INTEGER,
-  cnt_G2     INTEGER,
-  held       INTEGER,
-  cancelled  INTEGER
-);
-
-CREATE UNIQUE INDEX idx_summary_races_date ON Summary_races(date);
-
-/*-------------------------------------------------------------------------------------*/
-CREATE TABLE Summary_Players(
-
-  file_name  TEXT    PRIMARY KEY,
-  year       DATE    NOT NULL,
-  season     INTEGER NOT NULL,
-  players    INTEGER NOT NULL,
-  male       INTEGER NOT NULL,
-  female     INTEGER NOT NULL
-);
+CREATE UNIQUE INDEX IF NOT EXISTS payouts_race_id
+    ON Payouts(race_id, status);
 
 /*-------------------------------------------------------------------------------------*/
 CREATE VIEW V_daily_schedule
@@ -313,6 +311,7 @@ CREATE VIEW V_race_finish
       WHERE e.fault_code NOT IN ('F','L','K')
         AND(e.finish_rank IS NULL OR e.finish_rank != 0)
     AND NOT(e.fault_code   = 'S' AND e.fault_level  = 0)
+
    GROUP BY e.race_id, e.date;
 
 /*-------------------------------------------------------------------------------------*/

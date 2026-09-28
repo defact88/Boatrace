@@ -13,7 +13,7 @@ import Dal as dal
 
 BASE     = Path(r"C:\boatrace")
 LOG_PATH = BASE / r"Archive\logs\daily_insert"
-IMPORT_D = BASE / r"UI\Subprocess\ETL_Before_info.py"
+BEF_PATH = BASE / r"UI\Subprocess\ETL_Before_info.py"
 
 #-----------------------------------------------------------
 def ensure_programs(d_iso:str):
@@ -69,7 +69,7 @@ def call_B(date_iso:str, overwrite:bool=False, background:bool=False):
     import_B_txt.main(argv)
 
 #-----------------------------------------------------------
-def run_get_before_info(date_from:str, date_to:str, background:bool=False):
+def run_ETL_before_info(date_from:str, date_to:str, background:bool=False):
 
     if background:
         if date_from == date_to:
@@ -87,7 +87,7 @@ def run_get_before_info(date_from:str, date_to:str, background:bool=False):
 
         with open(log, "w", encoding="utf-8") as log_file:
             py  = sys.executable
-            cmd = [ py, str(IMPORT_D), "--date_from", date_from, "--date_to", date_to,]
+            cmd = [ py, str(BEF_PATH), "--date_from", date_from, "--date_to", date_to,]
             opt = dict( creationflags= subprocess.CREATE_NO_WINDOW,
                                stdout= log_file,
                                stderr= log_file,

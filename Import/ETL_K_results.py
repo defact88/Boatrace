@@ -10,6 +10,7 @@ import argparse, sys, re, sqlite3, shutil, random, time
 # ----------------- 外部依存 ---------------------
 from parse_and_upsert    import upsert_Races, upsert_Race_entries
 from upsert_Grade        import upsert_Grade
+
 # ------------------- パス -----------------------
 BASE           = Path(r"C:\boatrace")
 DIR_DL         = BASE / r"INBOX\DL\K"
@@ -143,7 +144,7 @@ def bring_from_archive(d:dt):
 #-----------------------------------------------------------
 def try_download(d:dt):
 
-    saved: List[Path] = []
+    saved:List[Path] = []
     yyyymm = d.strftime("%Y%m")
     yymmdd = d.strftime("%y%m%d")
     url    = f"http://www1.mbrace.or.jp/od2/K/{yyyymm}/k{yymmdd}.lzh"
@@ -171,6 +172,7 @@ def stage_DL_to_INBOX(files:List[Path]):
     staged:List[Path] = []
     for f in files:
         lhf = None
+
         try:
             lhf  = lhafile.Lhafile(str(f))
             for info in lhf.infolist():
@@ -180,6 +182,7 @@ def stage_DL_to_INBOX(files:List[Path]):
                 outp.write_bytes(data)
                 print(f"extracted: {f.name} -> K_Files")
                 staged.append(outp)
+
         except Exception as e:
             print(f"解凍失敗: {f} ({e})")
 
@@ -188,6 +191,7 @@ def stage_DL_to_INBOX(files:List[Path]):
 def archive_and_cleanup(txts:List[Path]):
 
     cnt_arc = 0
+
     for t in txts:
         dest = DIR_ARC / t.name
         try:
@@ -256,7 +260,8 @@ def import_K_txt(paths:Iterable[Path], overwrite:bool) -> dict:
 
             upsert_Race_entries(venue_id= v_id, body= body, date_iso= meta[0])
 
-        for key in total: total[key] += cnts[key]
+        for key in total:
+            total[key] += cnts[key]
 
         cnt_f   += 1
         print(f"import_K_txt  done: {path.name}")
@@ -295,6 +300,7 @@ def main(argv=None):
         try:
             d0 = dt.strptime(args.date_from, "%Y-%m-%d")
             d1 = dt.strptime(args.date_to,   "%Y-%m-%d")
+
         except ValueError:
             print("日付は YYYY-MM-DD で指定してください"); return 2
 
@@ -389,6 +395,7 @@ def main(argv=None):
         y_s    = int(date_from[:4])
         y_e    = int(  date_to[:4])
         years = list(range(y_s, y_e +1))
+
     elif date_from: years = [int(date_from[:4])]
     elif date_to:   years = [int(  date_to[:4])]
 
@@ -396,12 +403,13 @@ def main(argv=None):
         for y in years:
             print( f"\n== upsert_Grade == \n"
                    f" year : {y} / range : ({date_from}～{date_to}) \n" )
-            upsert_Grade( year= y, date_from= date_from, date_to= date_to,
-                                                 overwrite= args.overwrite )
+
+            upsert_Grade(year=y, date_from=date_from, date_to=date_to, overwrite=args.overwrite)
     else:
         print("[INFO] -- no_grade -- :skipping grade upsert. \n")
 
     return 0
+
 # ==============================================================================
 if __name__ == "__main__":
     sys.exit(main())

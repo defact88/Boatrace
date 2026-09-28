@@ -32,6 +32,7 @@ def _get_shared_conn() -> sqlite3.Connection:
         _shared_conn.execute("PRAGMA mmap_size     = 268435456")
 
     return _shared_conn
+
 #---------------------------------------
 def close_shared():
 
@@ -39,6 +40,7 @@ def close_shared():
     if _shared_conn is not None:
         _shared_conn.close()
         _shared_conn = None
+
 #---------------------------------------
 def _connect(db_path:str = DB_PATH) -> sqlite3.Connection:
 
@@ -47,6 +49,7 @@ def _connect(db_path:str = DB_PATH) -> sqlite3.Connection:
     c.execute("PRAGMA foreign_keys = ON")
 
     return c
+
 #---------------------------------------
 @contextmanager
 def connection(db_path:str= DB_PATH) -> Iterator[sqlite3.Connection]:
@@ -56,6 +59,7 @@ def connection(db_path:str= DB_PATH) -> Iterator[sqlite3.Connection]:
         yield c
     finally:
         c.close()
+
 #---------------------------------------
 @contextmanager
 def transaction(db_path:str = DB_PATH) -> Iterator[sqlite3.Connection]:
@@ -69,25 +73,30 @@ def transaction(db_path:str = DB_PATH) -> Iterator[sqlite3.Connection]:
         except Exception:
             c.rollback()
             raise
+
 #---------------------------------------
 def fetch_one(sql:str, params:Sequence[Any] = (), *, conn:Optional[sqlite3.Connection]=None):
 
     c = conn if conn is not None else _get_shared_conn()
 
     return c.execute(sql, params).fetchone()
+
 #---------------------------------------
 def fetch_all(sql:str, params:Sequence[Any] = (), *, conn:Optional[sqlite3.Connection]=None):
 
     c = conn if conn is not None else _get_shared_conn()
 
     return c.execute(sql, params).fetchall()
+
 #---------------------------------------
 def execute(sql:str, params:Sequence[Any] = (), *, conn:Optional[sqlite3.Connection]=None):
 
     if conn is not None:
         return conn.execute(sql, params).rowcount
+
     with transaction() as c:
         return c.execute(sql, params).rowcount
+
 #---------------------------------------
 def executemany(sql:str, seq_params:Iterable[Sequence[Any]], *, conn:Optional[sqlite3.Connection]=None):
 
@@ -95,6 +104,7 @@ def executemany(sql:str, seq_params:Iterable[Sequence[Any]], *, conn:Optional[sq
         return conn.executemany(sql, seq_params).rowcount
     with transaction() as c:
         return c.executemany(sql, seq_params).rowcount
+
 #---------------------------------------
 def executescript(script:str, *, conn:Optional[sqlite3.Connection]=None) -> None:
 
@@ -113,6 +123,7 @@ def _auto_backup(db_path: str):
         return
     ts  = datetime.now().strftime("%Y%m%d_%H%M%S")
     dst = BACKUP_DIR / f"boatrace_{ts}.db"
+
     with open(src, "rb") as fsrc, open(dst, "wb") as fdst:
         fdst.write(fsrc.read())
 
@@ -127,23 +138,28 @@ def list_tables() -> list[str]:
                        """)
 
     return [r[0] for r in rows]
+
 #---------------------------------------
 def list_columns(table:str) -> list[tuple[str, str]]:
 
     rows = fetch_all(f"PRAGMA table_info({table})")
 
     return [(r[1], r[2]) for r in rows]
+
 #---------------------------------------
 def vacuum(*, conn: Optional[sqlite3.Connection] = None):
 
     executescript("VACUUM;", conn=conn)
+
 #---------------------------------------
 def safe_sql(sql:str, params:Sequence[Any] = ()):
 
     head = sql.lstrip()[:16].upper()
     if WRITE_HEAD.match(head):
         return execute(sql, params)
+
     return fetch_all(sql, params)
+
 #---------------------------------------
 if __name__ == "__main__":
     print("DB:", DB_PATH)

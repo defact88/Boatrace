@@ -26,9 +26,9 @@ LOCK_PATH      = os.path.join(BASE_DIR, r"tmp\json\summarizer.lock")
 # 定数
 CHANGE_INTERVAL = 300  #   変更: n秒 間隔で巡回
 CANCEL_INTERVAL = 15   #   中止: n分 間隔で巡回
-OFFSET_DISPLAY  = 12   #   展示:   前レース締切から n分後 に実行
+OFFSET_BEFORE   = 12   #   展示:   前レース締切から n分後 に実行
 OFFSET_RESULT   = 20   #   結果: 当該レース締切から n分後 に実行
-RETRY_DIS       = 60   #   展示: 未反映なら n秒後に再試行
+RETRY_BEF       = 60   #   展示: 未反映なら n秒後に再試行
 RETRY_RES       = 180  #   結果: 未反映なら n秒後に再試行
 RETRY_NUM       = 10   #   展示/結果: リトライ回数
 ODDS_SET_SIZE   = 212  #   オッズ総数(3T:120 + 3F:20 + 2T:30 + 2F:15 + KK:15 + TT:6 + FF:6)
@@ -114,7 +114,7 @@ class SummarizeTodayInfo:
                                                  venue_id=v_id, race_no=rno, meta={"prio":0} ) )
                     else:
                         if rno == 1: run_d =      deadline -timedelta(minutes=15)
-                        else:        run_d = prev_deadline +timedelta(minutes=OFFSET_DISPLAY)
+                        else:        run_d = prev_deadline +timedelta(minutes=OFFSET_BEFORE)
                         new_tasks.append( Task( kind="before", run_at=run_d, d=d,
                                                 venue_id=v_id, race_no=rno, meta={"prio":1} ) )
                 #-------------
@@ -137,7 +137,6 @@ class SummarizeTodayInfo:
                         new_tasks.append( Task( kind="odds", run_at=run_o, d=d, venue_id=v_id,
                                                 race_no=rno, meta={"deadline":deadline, "prio":1} ) )
                 #-------------
-
                 prev_deadline = deadline
 
             lst_valid = [x for x in lst_sorted if x["deadline"]]
@@ -204,12 +203,12 @@ class SummarizeTodayInfo:
             #-----------------
             if not self._exists_before(d, v_id, rno) and not self._has_task("before", d, v_id, rno ):
 
-                if now > prev_deadline +timedelta(minutes=OFFSET_DISPLAY):
+                if now > prev_deadline +timedelta(minutes=OFFSET_BEFORE):
                     late_tasks.append( Task( kind="before", run_at=now, d=d,
                                              venue_id=v_id, race_no=rno, meta={"prio":0} ) )
                 else:
                     if rno == 1: run_d =      deadline -timedelta(minutes=15)
-                    else:        run_d = prev_deadline +timedelta(minutes=OFFSET_DISPLAY)
+                    else:        run_d = prev_deadline +timedelta(minutes=OFFSET_BEFORE)
                     new_tasks.append( Task( kind="before", run_at=run_d, d=d,
                                             venue_id=v_id, race_no=rno, meta={"prio":1} ) )
             #-----------------
@@ -378,7 +377,7 @@ class SummarizeTodayInfo:
                         return
                     ok = self._exec_before(t)
                     if not ok:
-                        t.next_try_at = now + timedelta(seconds=RETRY_DIS)
+                        t.next_try_at = now + timedelta(seconds=RETRY_BEF)
                         print( f"[    info    ] 【before 】[{VENUES[t.venue_id-1]} {t.race_no:02}R]"
                                f"  retry at [{t.next_try_at.strftime('%H:%M:%S')}]"                   )
                 #-------------
@@ -445,10 +444,10 @@ class SummarizeTodayInfo:
         with self._lock:
             n = 0
             for t in self.tasks:
-                if t.disabled or t.inflight:                           continue
-                if t.d != d   or t.venue_id != venue_id:               continue
+                if t.disabled or t.inflight:                          continue
+                if t.d != d   or t.venue_id != venue_id:              continue
                 if t.kind not in ("before","result","change","odds"): continue
-                if t.race_no is None or t.race_no < from_rno:          continue
+                if t.race_no is None or t.race_no < from_rno:         continue
 
                 t.disabled = True
                 n += 1
@@ -645,16 +644,16 @@ class SummarizeTodayInfo:
 
         with sqlite3.connect(str(DB_PATH), timeout=30) as conn:
             row = conn.execute("""
-                SELECT SUM( CASE WHEN dr.entry_id   IS     NULL THEN 1
-                                 WHEN dr.is_absent   =        1 THEN 0
-                                 WHEN dr.course     IS NOT NULL
-                                  AND dr.exhibition IS NOT NULL
-                                  AND dr.slit_ADJ   IS NOT NULL THEN 0
+                SELECT SUM( CASE WHEN be.entry_id   IS     NULL THEN 1
+                                 WHEN be.is_absent   =        1 THEN 0
+                                 WHEN be.course     IS NOT NULL
+                                  AND be.exhibition IS NOT NULL
+                                  AND be.slit_ADJ   IS NOT NULL THEN 0
                                  ELSE 1
-                            END                                         ) AS ng_count
+                             END                                        ) AS ng_count
                   FROM Race_programs rp
-             LEFT JOIN Before_info   dr
-                    ON dr.entry_id = rp.program_id
+             LEFT JOIN Before_info   be
+                    ON be.entry_id = rp.program_id
                  WHERE     rp.date= ?
                    AND rp.venue_id= ?
                    AND  rp.race_no= ?
@@ -677,6 +676,7 @@ class SummarizeTodayInfo:
              WHERE date=? AND venue_id=? AND race_no=?
                AND (finish_rank IS NOT NULL OR fault_code IN ('F', 'L', 'S', 'K'))
             """
+
         with self._connect_ro() as conn:
             cur = conn.cursor()
             cur.execute(sql, (d.strftime("%Y-%m-%d"), venue_id, race_no))
