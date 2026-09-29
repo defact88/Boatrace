@@ -21,13 +21,20 @@ boatrace/
     odds_window.py(OddsWindow)       # RaceWindowと並列でｻﾌﾞﾌﾟﾛｾｽ実行されるｵｯｽﾞ表示 画面
     results_window.py(ResultsWindow) # RaceWindowと並列でｻﾌﾞﾌﾟﾛｾｽ実行されるﾚｰｽ結果表示 画面
 
-    Subprocess/                      # summarize_today.pyから管理/実行
-      get_Before_info.py             # 展示航走及び直前情報ﾃﾞｰﾀの取得/ﾊﾟｰｽ/挿入
+    Scraper/                         # summarize_today.pyから管理/実行
+      get_Before_info.py             # 展示航走/直前情報ﾃﾞｰﾀの取得/ﾊﾟｰｽ/挿入
       get_results_today.py           # ﾚｰｽ結果ﾃﾞｰﾀの取得/ﾊﾟｰｽ/挿入(翌日の日時更新時に正規ﾃﾞｰﾀでUPDATE)
       get_today_info.py/
           get_change_info            # 当日変更情報(締切時刻変更,欠場艇等)の取得/ﾊﾟｰｽ/挿入
           get_cancel_info            # 当日中止ﾚｰｽの取得/ﾊﾟｰｽ/挿入
-      ETL_odds_data.py               # 指定期間で過去のoddsﾃﾞｰﾀを一括取得INSERT/UPDATE
+      get_payouts.py/
+          upsert_payouts             # 払戻情報(Payouts)へのﾃﾞｰﾀ取得・挿入ｽｸﾘﾌﾟﾄ
+
+    Updata/
+      daily_insert.py                # 日時更新(前日Kﾌｧｲﾙ/当日Bﾌｧｲﾙのｲﾝﾎﾟｰﾄ, 前日直線情報ﾃﾞｰﾀ/ｵｯｽﾞﾃﾞｰﾀの補填)
+      ETL_odds_data.py               # ｵｯｽﾞﾃﾞｰﾀ(Odds)を指定期間で一括取得
+      ETL_Before_info.py             # 展示航走/直線情報(Before_info)を指定期間で一括取得
+      update_FLstate.py              # Race_entriesからPlayers.flying_st/late_st(今期ﾌﾗｲﾝｸﾞ/出遅れ情報)のﾃﾞｰﾀ算出・挿入ﾌﾟﾛｾｽ
 
     Screens/                         # 画面クラス
       DB_ops.py                      # DBOpsScreen・・・DB参照 画面
@@ -78,15 +85,12 @@ boatrace/
       center_widgets.py              # RaceWindow/main_placeholder中央部切り替え式可変ウィジェット
 
   Import/
-    import_B_txt.py                  # 出走表ﾃﾞｰﾀ取得ｽｸﾘﾌﾟﾄ
-    daily_insert.py                  # 日時更新(全日K,当日Bﾌｧｲﾙのｲﾝﾎﾟｰﾄ, 前日「展示ﾃﾞｰﾀ」「oddsﾃﾞｰﾀ」の補填)
-    ETL_K_results.py                 # Races/Race_entries の各ﾃﾞｰﾀ取得・挿入ﾌﾟﾛｾｽのﾗｯﾊﾟｰ
-    upsert_Race_result.py            # K_TEXT(公式レース結果情報)ﾌｧｲﾙからRace_resultへのﾃﾞｰﾀ抽出・挿入
-    upsert_Result_entry.py           # K_TEXTﾌｧｲﾙからResult_entryへのﾃﾞｰﾀ抽出・挿入ﾌﾟﾛｾｽ
+    import_B_txt.py                  # B_txt(当日出走表ﾃﾞｰﾀ)からRace_programsへの取得・ﾊﾟｰｽ・挿入ｽｸﾘﾌﾟﾄ
+    ETL_K_results.py                 # Races/Race_entriesへの各ﾃﾞｰﾀ取得・挿入ﾌﾟﾛｾｽのﾗｯﾊﾟｰ
+    parse and upsert.py              # K_TEXT(公式ﾚｰｽ結果ﾌｧｲﾙ)からののﾊﾟｰｽ・挿入ﾌﾟﾛｾｽ
     upsert_Grade.py                  # 公式ﾍﾟｰｼﾞHMLからRace_result.gradeへのﾃﾞｰﾀ抽出・挿入
     import_Fan_txt.py                # FAN_TEXTﾌｧｲﾙからPlayers/Season_resultへのﾃﾞｰﾀ抽出・挿入
     DL_player_img.py                 # 公式ﾍﾟｰｼﾞから選手画像の取得ﾌﾟﾛｾｽ
-    update_FLstate.py                # Race_entriesからPlayers.flying_st/late_st(今期ﾌﾗｲﾝｸﾞ/出遅れ情報)のﾃﾞｰﾀ算出・挿入ﾌﾟﾛｾｽ
     insert_newcomer.py               # 期始めﾃﾞﾋﾞｭｰ選手ﾃﾞｰﾀ(正式FAN_TEXT公開までの間)の仮取得・挿入
 
   Checker/
