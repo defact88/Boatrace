@@ -403,10 +403,12 @@ class FileManagementGUI(tk.Tk):
             else: 
                 if val: args.append(val)
 
-        cmdline = [ "start", f'"{self.active_file}"', "cmd", "/K", "python",
-                    f'"{script_path}"'                                       ] + args
+        clean_args = [f'"{a}"' if " " in a else a for a in args if a]
+        python_cmd = f'python "{script_path}" ' + " ".join(clean_args)
+        cmdline    = f'start "{self.active_file}" cmd /K {python_cmd}'
 
-        try: subprocess.Popen(" ".join(cmdline), shell= True)
+
+        try: subprocess.Popen(cmdline, shell=True)
         except Exception as e:
             self.show_msg("Error", f"実行に失敗しました:\n{e}")
 

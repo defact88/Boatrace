@@ -1,7 +1,7 @@
 ﻿# -*- coding: utf-8 -*-
 # C:\boatrace\UI\Subprocess\ETL_odds_data.py
 
-import argparse, time, os
+import argparse, time, os, sys
 import Dal as dal
 from datetime import datetime, timedelta
 
@@ -13,18 +13,22 @@ VENUES = [ "桐  生", "戸  田", "江戸川", "平和島", "多摩川", "浜�
            "宮  島", "徳  山", "下  関", "若  松", "芦  屋", "福  岡", "唐  津", "大  村"  ]
 
 #=====================================================================
-def get_target_races(d_iso:str) -> list:
+def get_target_races(d_iso:str, venue_id:int|None, race_no:int|None) -> list:
 
-    rows = dal.fetch_all("""
+    params = [v for v in (d_iso, venue_id, race_no) if v != None]
+
+    sql = """
         SELECT venue_id, race_no
           FROM Races
-         WHERE date    = ? 
+         WHERE date    = ?
            AND status != 'cancelled'
-      ORDER BY venue_id, race_no
-    """,
-    (d_iso,))
+        """
 
-    return rows
+    sql += " AND venue_id = ?" if venue_id else ""
+    sql += " AND race_no  = ?" if race_no  else ""
+    sql += " ORDER BY venue_id, race_no"
+
+    return dal.fetch_all(sql, tuple(params))
 
 #-------------------------------------------------
 def check_odds_exists(d_iso:str, venue_id:int, race_no:int) -> bool:
@@ -58,14 +62,16 @@ def delete_existing_odds(d_iso:str, venue_id:int, race_no:int):
     (d_iso, venue_id, race_no))
 
 #=====================================================================
-def main():
+def main(argv=None):
 
-    parser = argparse.ArgumentParser(description="オッズ不足データを期間指定で一括取得")
-    parser.add_argument("--date_from", required=True, help="開始日 (YYYY-MM-DD)")
-    parser.add_argument("--date_to",   required=True, help="終了日 (YYYY-MM-DD)")
-    parser.add_argument("--overwrite", action="store_true", help="既存データを上書き(UPDATE相当)")
+    p = argparse.ArgumentParser()
+    p.add_argument("--date_from", required=True,  help="開始日 (YYYY-MM-DD)")
+    p.add_argument("--date_to",   required=True,  help="終了日 (YYYY-MM-DD)")
+    p.add_argument("--venue_id",  required=False, help="場指定")
+    p.add_argument("--race_no",   required=False, help="レース指定")
+    p.add_argument("--overwrite", action="store_true", help="既存データを上書き")
     
-    args = parser.parse_args()
+    args = p.parse_args(argv)
     
     try:
         date_from = datetime.strptime(args.date_from, "%Y-%m-%d").date()
@@ -87,12 +93,12 @@ def main():
         d_str = current_date.strftime("%Y%m%d")
         print(f"\n[{d_iso}] 対象レースの確認中...")
 
-        target_races = get_target_races(d_iso)
+        target_races = get_target_races(d_iso, args.venue_id, args.race_no)
         if not target_races:
             print(f"  -> 対象レースが見つかりません。")
             current_date += timedelta(days=1)
             continue
-            
+
         for row in target_races:
             venue_id = row["venue_id"]
             race_no  = row["race_no"]
@@ -136,4 +142,4 @@ def main():
 
 #=====================================================================
 if __name__ == "__main__":
-    main()
+    raise SystemExit(main())

@@ -72,7 +72,7 @@ def wid_txt(s:str) -> str:
     return hair.join(list(s))
 
 # --------------------------------------------------------------------
-def build_day_lbl(on_day:date, venue_id:int):
+def build_day_lbl(_date:date, venue_id:int):
 
     row = dal.fetch_one(
         """
@@ -82,10 +82,10 @@ def build_day_lbl(on_day:date, venue_id:int):
            AND venue_id = ?
          LIMIT 1
         """,
-        (to_str(on_day), venue_id))
+        (to_str(_date), venue_id))
 
     series_title = row[0]
-    max_d        = on_day -timedelta(days=10)
+    max_d        = _date -timedelta(days=10)
 
     dates = dal.fetch_all("""
         SELECT DISTINCT date
@@ -95,7 +95,7 @@ def build_day_lbl(on_day:date, venue_id:int):
            AND date BETWEEN ? AND ?
       ORDER BY date ASC
         """,
-        (venue_id, series_title, to_str(max_d), to_str(on_day)))
+        (venue_id, series_title, to_str(max_d), to_str(_date)))
 
     candidates = [r[0] for r in dates]
     if not candidates: return [], []
@@ -103,14 +103,14 @@ def build_day_lbl(on_day:date, venue_id:int):
     placeholders = ",".join("?" * len(candidates))
 
     held_rows = dal.fetch_all(f"""
-        SELECT date, COUNT(1) AS cnt
-          FROM Races
-         WHERE venue_id = ?
-           AND status   = 'held'
-           AND date IN ({placeholders})
-         GROUP BY date
-        """,
-        (venue_id, *candidates))
+                    SELECT date, COUNT(1) AS cnt
+                      FROM Races
+                     WHERE venue_id = ?
+                       AND status   = 'held'
+                       AND date IN ({placeholders})
+                  GROUP BY date
+                    """,
+                    (venue_id, *candidates))
 
     held_dates = {r[0]:int(r[1]) for r in held_rows}
     meta       = []
@@ -118,7 +118,8 @@ def build_day_lbl(on_day:date, venue_id:int):
     for d in candidates:
         held_race  = held_dates.get(d, 0)
         digested   = (held_race >= 6)
-        visible    = True if d == to_str(on_day) else (held_race > 0)
+        visible    = True if d == to_str(_date) else (held_race > 0)
+
         meta.append( {      "date":d,
                        "held_race":held_race,
                         "digested":digested,
@@ -129,8 +130,8 @@ def build_day_lbl(on_day:date, venue_id:int):
     prev_digested = False
 
     for i, item in enumerate(meta):
-        if i == 0:           label_no  = 1
-        elif prev_digested:  label_no += 1
+        if i == 0:          label_no  = 1
+        elif prev_digested: label_no += 1
 
         item["label_no"] = label_no
         prev_digested    = item["digested"]
@@ -148,9 +149,10 @@ def build_day_lbl(on_day:date, venue_id:int):
             (last_date, venue_id))
 
         last["final_day"] = any(RE_FINAL.search(r[0] or "") for r in rows)
+        visible           = [item for item in meta if item.get("visible", True)]
 
-        visible = [item for item in meta if item.get("visible", True)]
-        if len(visible) > 7: visible = visible[-7:]
+        if len(visible) > 7:
+            visible = visible[-7:]
 
         slots:list[dict] = visible[:]
 

@@ -9,11 +9,13 @@ import argparse, subprocess, sys, os
 from update_FLstate  import update_FLstate
 import ETL_odds_data, import_B_txt
 import ETL_Before_info,  ETL_K_results
+import ETL_odds_data
 import Dal as dal
 
-BASE     = Path(r"C:\boatrace")
-LOG_PATH = BASE / r"Archive\logs\daily_insert"
-BEF_PATH = BASE / r"UI\Subprocess\ETL_Before_info.py"
+BASE      = Path(r"C:\boatrace")
+LOG_PATH  = BASE / r"Archive\logs\daily_insert"
+BEF_PATH  = BASE / r"UI\Subprocess\ETL_Before_info.py"
+ODDS_PATH = BASE / r"UI\Subprocess\ETL_odds_data.py"
 
 #-----------------------------------------------------------
 def ensure_programs(d_iso:str):
@@ -69,61 +71,59 @@ def call_B(date_iso:str, overwrite:bool=False, background:bool=False):
     import_B_txt.main(argv)
 
 #-----------------------------------------------------------
-def run_ETL_before_info(date_from:str, date_to:str, background:bool=False):
+def run_ETL(date_from:str, date_to:str, background:bool, overwrite:bool):
+
+    argv = ["--date_from", date_from, "--date_to", date_to,]
+    if overwrite:
+        argv.append("--overwrite")
 
     if background:
-        if date_from == date_to:
-            file_name = f"before_info_{date_from}.log"
-            log = LOG_PATH / "B_info" / file_name
-        else:
-            file_name = f"before_info_{date_from}-{date_to}.log"
-            log = LOG_PATH / "B_info" / file_name
 
-        log.parent.mkdir(parents=True, exist_ok=True)
+        for prc, _path in (("B_info", BEF_PATH), ("odds", ODDS_PATH)):
+            d         = date_from if date_from == date_to else f"{date_from} - {date_to}"
+            file_name = f"{prc}_{d}.log"
+            log       = LOG_PATH / prc / file_name
 
-        startupinfo             = subprocess.STARTUPINFO()
-        startupinfo.dwFlags    |= subprocess.STARTF_USESHOWWINDOW
-        startupinfo.wShowWindow = 0 
+            log.parent.mkdir(parents=True, exist_ok=True)
 
-        with open(log, "w", encoding="utf-8") as log_file:
-            py  = sys.executable
-            cmd = [ py, str(BEF_PATH), "--date_from", date_from, "--date_to", date_to,]
-            opt = dict( creationflags= subprocess.CREATE_NO_WINDOW,
-                               stdout= log_file,
-                               stderr= log_file,
-                                stdin= subprocess.DEVNULL,
-                                  cwd= str(BASE),                                       )
-            try:
-                proc = subprocess.Popen( cmd, **opt)
+            startupinfo             = subprocess.STARTUPINFO()
+            startupinfo.dwFlags    |= subprocess.STARTF_USESHOWWINDOW
+            startupinfo.wShowWindow = 0 
 
-            except subprocess.TimeoutExpired:
-                proc.terminate()
-                proc.wait(timeout=3)
-                print("Terminated by stop request")
+            with open(log, "w", encoding="utf-8") as log_file:
+                cmd = [sys.executable, str(_path),]
+                cmd.append(argv)
+                opt = dict( creationflags= subprocess.CREATE_NO_WINDOW,
+                                   stdout= log_file,
+                                   stderr= log_file,
+                                    stdin= subprocess.DEVNULL,
+                                      cwd= str(BASE),                                       )
+                try:
+                    proc = subprocess.Popen(cmd, **opt)
 
-            except Exception as e:
-                print(str(e))
+                except subprocess.TimeoutExpired:
+                    proc.terminate()
+                    proc.wait(timeout=3)
+                    print("Terminated by stop request")
+
+                except Exception as e:
+                    print(str(e))
 
     else:
-        ETL_Before_info.main(["--date_from", date_from, "--date_to", date_to])
+        ETL_Before_info.main(argv)
+        ETL_odds_data.main(argv)
 
 #===============================================================================
-def parse_args():
+def main():
 
-    p = argparse.ArgumentParser(description="Daily B/K/Before_info updater")
+    p = argparse.ArgumentParser()
     p.add_argument("--date",      default=None,         help="対象日(yyyy)")
     p.add_argument("--date_from",                       help="期間開始(YYYY-MM-DD)")
     p.add_argument("--date_to",                         help="期間終了(YYYY-MM-DD)")
     p.add_argument("--overwrite",  action="store_true", help="上書きﾓｰﾄﾞ")
     p.add_argument("--all",        action="store_true", help="直近10日不足日")
     p.add_argument("--background", action="store_true", help="BGモード")
-
-    return p.parse_args()
-
-#---------------------------------------
-def main():
-
-    args  = parse_args()
+    args  = p.parse_args()
 
     if args.date and (args.date_from or args.date_to):
         print("date / (date_from , date_to) 両方の指定はできません")
@@ -156,7 +156,7 @@ def main():
 
     update_FLstate()
 
-    run_get_before_info(yesterday(d_f), yesterday(d_t), args.background)
+    run_ETL(yesterday(d_f), yesterday(d_t), args.background, args.overwrite)
 
     sys.exit(0)
 

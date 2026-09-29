@@ -41,10 +41,10 @@ class Query():
 
         super().__init__()
 
+        self.option         = {k:v for k, v in locals().items() if v is not None} or {}
         self.date_from      = self.to_str(date_from)
         self.date_to        = self.to_str(date_to)
         self.player_id      = player_id
-        self.option         = {k:v for k, v in locals().items() if v is not None} or {}
         self.exclude_rookie = exclude_rookie
 
         self.parts = {   "player_id":(" AND e.player_id   = ?", lambda s:[player_id]),

@@ -26,11 +26,6 @@ HEADERS = { "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:142.0) G
             "Connection": "keep-alive",
 }
 
-logging.basicConfig( filename = LOG_DIR / "import_D_error.log",
-                     level    = logging.DEBUG,
-                     format   = "%(asctime)s %(levelname)s %(message)s",
-                     encoding = "utf-8",                                 )
-
 # ----------------------------
 def yyyymmdd(s:str) -> str:
     return s.replace("-", "")

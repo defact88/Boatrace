@@ -55,7 +55,7 @@ def ETL_run(date_from:str, date_to:str, overwrite:bool=False):
 #---------------------------------------
 def parse_args(argv=None):
 
-    p = argparse.ArgumentParser(description="ETL for import_Before_info.py")
+    p = argparse.ArgumentParser()
     p.add_argument("--date",      default=None,         help="対象日(yyyy)")
     p.add_argument("--date_from",                       help="期間開始(YYYY-MM-DD)")
     p.add_argument("--date_to",                         help="期間終了(YYYY-MM-DD)")

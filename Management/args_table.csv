@@ -1,4 +1,4 @@
-﻿ファイル名,引数,required
+ファイル名,引数,required
 check_score_ave.py,        year,         required=True
 check_score_ave.py,        season,       required=True
 check_score_ave.py,        player_id,    required=True

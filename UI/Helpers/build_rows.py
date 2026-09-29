@@ -6,7 +6,6 @@ from Helpers.queries import Query
 from datetime        import datetime as dt, date, timedelta
 import Dal as dal
 
-
 # ------------------
 def to_str(x) -> str:
 

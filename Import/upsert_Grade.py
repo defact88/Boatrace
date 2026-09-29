@@ -41,20 +41,14 @@ RE_PLACING  = re.compile(r"(?:順位\s*決定(?:\s*戦)?|[QＱ]\s*[CＣ]\s*順�
 RE_QC_FINAL = re.compile(r"(?:賞金\s*女王\s*決定(?:\s*戦)?|[QＱ]\s*[CＣ]\s*優勝\s*戦)")
 
 
-# ===== DB更新ユーティリティ =====
-def conn():
-    c             = sqlite3.connect(DB)
-    c.row_factory = sqlite3.Row
-
-    return c
 #----------------------------------
-def pad_display(text: str, width: int):
+def pad_display(text:str, width:int):
     disp_len = wcswidth(text)
 
     return text + " " * max(0, width - disp_len)
 
 #------------------------ 公式ｽｹｼﾞｭｰﾙ取得・抽出 ----------------------
-def fetch_html(year: int, hcd: str):
+def fetch_html(year:int, hcd:str):
 
     base_url = "https://www.boatrace.jp/owpc/pc/race/gradesch"
     url      = f"{base_url}?year={year}&hcd={hcd}"
@@ -76,12 +70,12 @@ def detect_grade(row_html:str, is_hcd01:bool):
 
     m = re.search(r'<td[^>]+class="([^"]+)"[^>]*>\s*</td>', row_html, re.IGNORECASE)
     if not m: return ""
-
     cls = m.group(1)
-    if "is-SG" in cls:return "SG"
-    if "is-G1" in cls:return "PG1" if is_hcd01 else "G1"
-    if "is-G2" in cls:return "G2"
-    if "is-G3" in cls:return "G3"
+
+    if "is-SG" in cls: return "SG"
+    if "is-G1" in cls: return "PG1" if is_hcd01 else "G1"
+    if "is-G2" in cls: return "G2"
+    if "is-G3" in cls: return "G3"
 
     return ""
 
@@ -136,7 +130,6 @@ def build_schedule_lines(year:int):
     combined:List[Tuple[str,int,int,str,str]] = []
 
     for hcd in ("01", "02"):
-
         html = fetch_html(year, hcd)
         if not html: continue
 
@@ -160,9 +153,10 @@ def load_schedule_lines(year:int):
     if not src.exists(): return None
 
     lines:List[Tuple[str,int,int,str,str]] = []
+
     with src.open("r", encoding="utf-8") as f:
         for ln in f:
-            ln = ln.rstrip("\r\n")
+            ln    = ln.rstrip("\r\n")
             if not ln: continue
 
             parts = ln.split("\t")
@@ -181,7 +175,7 @@ def load_schedule_lines(year:int):
     return lines
 
 # ------------------- ﾚﾃﾞｨｰｽCC/ﾁｬﾚﾝｼﾞｶｯﾌﾟ個別UPSERT ------------------
-def upsert_cc_lcc(schedule:List, overwrite:bool):
+def upsert_cc_lcc(schedule:list, overwrite:bool):
 
     processed_cnt, upd_g2, upd_sg = 0, 0, 0
     targets = {(dd, fd, vid) for (dd, fd, vid, _, _, title) in schedule if CC_LCC.search(title)}
@@ -196,6 +190,7 @@ def upsert_cc_lcc(schedule:List, overwrite:bool):
             print(f"[CC / LCC] 対象外") ;continue
 
         processed_cnt  += 1
+
         qmarks = ",".join(["?"] * len(exe_dates))
 
         rows   = dal.fetch_all(f"""
@@ -226,7 +221,7 @@ def upsert_cc_lcc(schedule:List, overwrite:bool):
                 sql = "UPDATE races SET grade=5 WHERE race_id=?"
                 if not overwrite:
                     sql += " AND grade IS NULL"
-                upd_sg += c.execute(sql, (race_id,))
+                upd_sg += dal.execute(sql, (race_id,))
 
     if processed_cnt:
         summs = f"( {exe_dates[0]:>}～{exe_dates[-1]} )\t{len(exe_dates)}日間：総更新数"
@@ -237,9 +232,9 @@ def upsert_cc_lcc(schedule:List, overwrite:bool):
     return upd_g2, upd_sg, processed_cnt
 
 # ----------------- クイーンズCLIMAX(PG1)個別 UPSERT -----------------
-def upsert_climax(schedule:List, overwrite:bool):
+def upsert_climax(schedule:list, overwrite:bool):
     # --------------
-    def _get_title_held(date_:str, venue_id_:int, race_no_:int):
+    def _get_title_held(_date:str, venue_id:int, race_no:int):
 
         r = dal.fetch_one("""
             SELECT race_title
@@ -247,7 +242,7 @@ def upsert_climax(schedule:List, overwrite:bool):
              WHERE date=? AND venue_id=? AND race_no=? AND status='held'
              LIMIT 1
             """,
-            (date_, venue_id_, race_no_))
+            (_date, venue_id, race_no))
 
         return (r[0] if r else "") or ""
      # -------------
@@ -273,7 +268,7 @@ def upsert_climax(schedule:List, overwrite:bool):
         day                               = base_trial_start_day
 
         while day <= search_last_day_for_trials and trials_found < 6:
-            idx = day - 1
+            idx = day -1
             if 0 <= idx < len(exe_dates):
                 d   = exe_dates[idx]
                 t11 = _get_title_held(d, venue_id, 11)
@@ -310,20 +305,22 @@ def upsert_climax(schedule:List, overwrite:bool):
             day += 1
 
         if trials_found == 6 and finals_found == 2:
+
             processed_cnt  += 1
-            updated = 0
+            updated         = 0
+
             for dt_str, rno in target_pairs:
                 where_null = "AND grade IS NULL" if not overwrite else ""
                 updated  += dal.execute(f"""
                                 UPDATE races
-                                   SET grade = 4
+                                   SET grade    = 4
                                  WHERE venue_id = ?
                                    AND date     = ?
                                    AND race_no  = ?
                                    AND status   = 'held'
                            {where_null}
-                                 """,
-                                 (venue_id, dt_str, rno))
+                                """,
+                                (venue_id, dt_str, rno))
 
             total_updated += updated
 
@@ -337,7 +334,7 @@ def upsert_climax(schedule:List, overwrite:bool):
     return total_updated, processed_cnt
 
 #---------------------------------------------------------------------
-def get_exe_dates(venue_id:int, due_date:str, base_days):
+def get_exe_dates(venue_id:int, due_date:str, base_days:int):
 
     _date         = date.fromisoformat(due_date)
     dates         = []
@@ -345,14 +342,14 @@ def get_exe_dates(venue_id:int, due_date:str, base_days):
 
     for d in range(base_days +2):
         row = dal.fetch_one("""
-                         SELECT status,
-                                series_title
-                           FROM Races
-                          WHERE date     = ?
-                            AND venue_id = ?
-                            AND race_no  = 6
-                         """,
-                         (_date.isoformat(), venue_id))
+                  SELECT status,
+                         series_title
+                    FROM Races
+                   WHERE date     = ?
+                     AND venue_id = ?
+                     AND race_no  = 6
+                  """,
+                  (_date.isoformat(), venue_id))
 
         if row:
             dates.append(_date.isoformat())
@@ -387,13 +384,13 @@ def cnt_grades_inDB(year:int):
 
     rows = dal.fetch_all("""
                SELECT grade,
-                COUNT (*) 
+                      COUNT(*) 
                  FROM races
                 WHERE strftime('%Y', date) = ?
              GROUP BY grade
              ORDER BY grade
                """,
-               (str(year),))
+               (str(year),) )
 
     grades = {i:0 for i in range(6)}
 
@@ -433,12 +430,14 @@ def upsert_Grade(year:int, date_from:str=None, date_to:str=None, overwrite:bool=
     print(f"[INFO] 読込 {len(lines)} 行")
 
     bad_days, cc_esc, qc_esc  = 0, 0, 0
-    upd_qc, exe_qc, upd_g2, upd_sg, exe_cc = 0, 0, 0, 0, 0
+    #exe_qc, exe_cc            = 0, 0
+    #upd_sg, upd_qc, upd_g2    = 0, 0, 0
     cnt_upserted_gr           = {i:0 for i in range(6)}
     grades_bfr                = cnt_grades_inDB(year)
 
     for ln in lines:
         due_date, final_date, v_id, g_num, grade, title = ln
+
         if title == "グランプリシリーズ":     continue
         if QC.search(title):     qc_esc += 1 ;continue
         if CC_LCC.search(title): cc_esc += 1 ;continue
@@ -457,7 +456,8 @@ def upsert_Grade(year:int, date_from:str=None, date_to:str=None, overwrite:bool=
         n = upsert_event_grade(v_id, exe_date, g_num, overwrite=overwrite)
         log.write(f"{summs1}\t{summs2}\t{len(exe_date)}日間：総更新数{n}\n")
 
-        if g_num in cnt_upserted_gr: cnt_upserted_gr[g_num] += n
+        if g_num in cnt_upserted_gr:
+            cnt_upserted_gr[g_num] += n
 
     if cc_esc: upd_g2, upd_sg, exe_cc = upsert_cc_lcc(lines, overwrite=overwrite)
     if qc_esc: upd_qc, exe_qc         = upsert_climax(lines, overwrite=overwrite)
@@ -490,7 +490,7 @@ def upsert_Grade(year:int, date_from:str=None, date_to:str=None, overwrite:bool=
     total_gr_bfr   = sum(grades_bfr.values())
     total_gr_aft   = sum(grades_aft.values())
     upserted_total = sum(cnt_upserted_gr.values())
-    grd_idx        = {0:'－般', 1:' G3 ', 2:' G2 ', 3:' G1 ', 4:' PG1', 5:' SG '}
+    grd_idx        = ['－般', ' G3 ', ' G2 ', ' G1 ', ' PG1', ' SG ']
 
     print(  "\n=== サマリ ===\n"
            f"{year}年  対象総数: {all_targets}\n"
@@ -509,7 +509,7 @@ def upsert_Grade(year:int, date_from:str=None, date_to:str=None, overwrite:bool=
         before   = grades_bfr.get(i, 0)
         after    = grades_aft.get(i, 0)
         upserted = cnt_upserted_gr.get(i, 0)
-        grd      = grd_idx.get(i, 0)
+        grd      = grd_idx[i]
 
         print(f"  {grd}: DB = {before:5} >> {after:5}  更新数 = {upserted}")
 
