@@ -4,13 +4,8 @@
 import tkinter as tk
 from tkinter import ttk, messagebox, filedialog
 from pathlib import Path
-import os
-import csv
-import shutil
-import datetime
-import ctypes
-import sys
-import re  # 正規表現モジュールを追加
+import os, csv, shutil, datetime, ctypes, sys, re
+
 
 def minimize_console():
     try:
@@ -43,6 +38,7 @@ ERR_FG       = "#FF6666"
 GUI, MUI, HNH, CBR     = "Yu Gothic UI", "Meiryo UI", "Helvetica Neue Heavy", "Cambria"
 GR, SD, RD, RA, SK, BD = "groove", "solid", "ridge", "raised", "sunken", "bold"
 ALL, CT                = "nsew", "center"
+
 #===============================================================================
 class WordReplacerGUI(tk.Tk):
 
@@ -51,7 +47,7 @@ class WordReplacerGUI(tk.Tk):
 
         self.protocol("WM_DELETE_WINDOW", self._on_close)
         self.title("")
-        self.geometry("820x750+1750+420")
+        self.geometry("800x750+1750+415")
         self.configure(bg=BG_COLOR)
         self.resizable(True, True)
 
@@ -80,7 +76,7 @@ class WordReplacerGUI(tk.Tk):
         # CSVパス指定
         fr_csv = tk.Frame(frame_top, bg=PANEL_BG)
         fr_csv.pack(fill="x", padx=10, pady=5)
-        tk.Label(fr_csv, text="CSV FileMap:", font=(MUI, 10, "bold"), bg=PANEL_BG, fg=LOG_FG).pack(side="left")
+        tk.Label(fr_csv, text="CSV FileMap:", font=(MUI,10,BD), bg=PANEL_BG, fg=LOG_FG).pack(side="left")
         self.lbl_csv_path = tk.Label(fr_csv, text=str(CSV_FILEMAP), bg=PANEL_BG, fg="#AAAAAA", anchor="w")
         self.lbl_csv_path.pack(side="left", padx=10, fill="x", expand=True)
         tk.Button(fr_csv, text="再読込", bg="#444444", fg=FG_COLOR, command=self.load_file_map).pack(side="right")
@@ -110,14 +106,14 @@ class WordReplacerGUI(tk.Tk):
 
         self.btn_toggle = tk.Button(
             fr_words, text="一致条件: 部分一致\n(文字の一部でも対象)", bg="#555555", fg=FG_COLOR,
-            command=toggle_match_mode, width=17, font=(MUI, 9)
+            command=toggle_match_mode, width=17, font=(MUI,9)
         )
         self.btn_toggle.grid(row=0, column=2, rowspan=2, padx=(10, 5), pady=3, sticky="nsew")
 
         # 一括置換実行ボタン
         self.btn_exec = tk.Button(
             fr_words, text="一括置換実行\n(自動バックアップ付)", 
-            font=(MUI, 10, "bold"), bg=EXEC_BTN_BG, fg="#000000",
+            font=(MUI,10,BD), bg=EXEC_BTN_BG, fg="#000000",
             width=18, height=2, command=self.on_execute_replace
         )
         self.btn_exec.grid(row=0, column=3, rowspan=2, padx=5, pady=3, sticky="nsew")
@@ -125,7 +121,7 @@ class WordReplacerGUI(tk.Tk):
         # 検索(カウント)ボタン
         self.btn_search = tk.Button(
             fr_words, text="検索\n(カウントのみ)", 
-            font=(MUI, 10, "bold"), bg="#FFEEAA", fg="#000000",
+            font=(MUI,10,BD), bg="#FFEEAA", fg="#000000",
             width=14, height=2, command=self.on_search_word
         )
         self.btn_search.grid(row=0, column=4, rowspan=2, padx=(5, 20), pady=3, sticky="nsew")
@@ -165,13 +161,13 @@ class WordReplacerGUI(tk.Tk):
         self.scrollbar.pack(side="right", fill="y")
 
         # 実行結果サマリーエリア (下部拡張エリア)
-        frame_bottom = tk.LabelFrame(self, text=" 実行ログ ＆ サマリー ", bg=BG_COLOR, fg=LOG_FG, font=(MUI, 10, "bold"))
+        frame_bottom = tk.LabelFrame(self, text=" 実行ログ ＆ サマリー ", bg=BG_COLOR, fg=LOG_FG, font=(MUI,10))
         frame_bottom.pack(fill="x", padx=10, pady=(5,10))
 
         fr_log = tk.Frame(frame_bottom, bg=BG_COLOR)
         fr_log.pack(fill="both", expand=True, padx=5, pady=5)
 
-        self.txt_log = tk.Text(fr_log, bg=TEXT_BG, fg=FG_COLOR, height=12, font=("Consolas", 9), relief="flat", wrap="none")
+        self.txt_log = tk.Text(fr_log, bg=TEXT_BG, fg=FG_COLOR, height=12, font=(MUI,9), relief="flat", wrap="none")
         log_scroll_y = ttk.Scrollbar(fr_log, orient="vertical", command=self.txt_log.yview)
         self.txt_log.configure(yscrollcommand=log_scroll_y.set)
 
@@ -216,17 +212,17 @@ class WordReplacerGUI(tk.Tk):
         grouped = {}
 
         for r in self.file_map:
-            cat    = r.get("カテゴリ") or "未分類"
+            cat    = r.get("カテゴリ")     or "未分類"
             subcat = r.get("サブカテゴリ") or "未分類"
             grouped.setdefault(cat, {}).setdefault(subcat, []).append(r)
 
         for cat, subcats in grouped.items():
             lbl_cat = tk.Label(self.scroll_frame, text=f"■ {cat}", font=(MUI,10,BD), bg=ENTRY_BG, fg=SELCOL, anchor="w")
-            lbl_cat.pack(fill="x", padx=5, pady=(8, 2))
+            lbl_cat.pack(fill="x", padx=5, pady=(8,2))
 
             for subcat, records in subcats.items():
                 lbl_sub = tk.Label(self.scroll_frame, text=f"  └ {subcat}", font=(MUI,9,BD), bg=ENTRY_BG, fg="#AAAAAA", anchor="w")
-                lbl_sub.pack(fill="x", padx=15, pady=(3, 1))
+                lbl_sub.pack(fill="x", padx=15, pady=(3,1))
 
                 for rec in records:
                     fname     = rec.get("ファイル名", "")
@@ -244,7 +240,7 @@ class WordReplacerGUI(tk.Tk):
                                                                           selectcolor=BG_COLOR )
                     chk.pack(side="left")
 
-                    lbl_path = tk.Label(fr_item, text=f" ({fpath_str})", bg=ENTRY_BG, fg="#666666", font=(MUI, 8))
+                    lbl_path = tk.Label(fr_item, text=f" ({fpath_str})", bg=ENTRY_BG, fg="#666666", font=(MUI,8))
                     lbl_path.pack(side="left")
 
         self.log(f"[情報] {len(self.file_map)} 件のファイルマッピングを読み込みました。", "INFO")
@@ -282,20 +278,17 @@ class WordReplacerGUI(tk.Tk):
             return False, str(e)
 
     #-------------------------------------------------------
-    def get_search_pattern(self, old_word: str):
-        """一致条件に応じた正規表現パターンを生成して返す"""
+    def get_search_pattern(self, old_word:str):
+
         mode_str = self.match_mode.get()
         if mode_str == "単語":
-            # (?<!\S) : 直前に非空白文字がない
-            # (?!\S)  : 直後に非空白文字がない
-            # （両端がスペース、タブ、改行、または行頭・行末であるワードにマッチ）
             return re.compile(r'(?<!\S)' + re.escape(old_word) + r'(?!\S)')
         else:
             return re.compile(re.escape(old_word))
 
     #-------------------------------------------------------
     def on_search_word(self):
-        """ファイルの変更を行わず、対象ワードの出現回数のみをチェックしてサマリーに出力する"""
+
         old_word = self.entry_old.get()
 
         if not old_word:
@@ -338,9 +331,8 @@ class WordReplacerGUI(tk.Tk):
                     with open(src, "r", encoding="utf-8-sig") as f:
                         content = f.read()
 
-                # 正規表現によるカウント
                 matches = pattern.findall(content)
-                count = len(matches)
+                count   = len(matches)
 
                 if count > 0:
                     hit_files += 1
@@ -355,7 +347,7 @@ class WordReplacerGUI(tk.Tk):
 
         self.log("\n================ 検索結果サマリー ================", "INFO")
         self.log(f"対象ファイル数 : {total_files} 件", "INFO")
-        self.log( f"ヒットファイル : {hit_files} 件", "SUCCESS" if hit_files > 0 else "INFO" )
+        self.log( f"ヒットファイル : {hit_files} 件", "SUCCESS"    if hit_files  > 0 else "INFO" )
         self.log( f"合計検知数     : {total_hits} 箇所", "SUCCESS" if total_hits > 0 else "INFO" )
         if error_count > 0:
             self.log(f"エラー発生数   : {error_count} 件", "ERROR")
@@ -401,7 +393,6 @@ class WordReplacerGUI(tk.Tk):
                 error_count += 1
                 continue
 
-            # --- バックアップ処理 ---
             bk_ok, bk_res = self.backup_single_file(rec, src)
             if not bk_ok:
                 self.log(f"× [{fname}] バックアップ失敗のためスキップ: {bk_res}", "ERROR")
@@ -420,12 +411,10 @@ class WordReplacerGUI(tk.Tk):
                     with open(src, "r", encoding="utf-8-sig") as f:
                         content = f.read()
 
-                # 正規表現による検索
                 matches = pattern.findall(content)
-                count = len(matches)
+                count   = len(matches)
 
                 if count > 0:
-                    # lambda を使い、置換文字列にエスケープ文字等が含まれていても安全に置換する
                     new_content = pattern.sub(lambda m: new_word, content)
                     
                     with open(src, "w", encoding=encoding_used) as f:
@@ -465,6 +454,7 @@ class WordReplacerGUI(tk.Tk):
             sys.exit()
 
         except Exception: pass
+
 #===============================================================================
 if __name__ == "__main__":
     app = WordReplacerGUI()

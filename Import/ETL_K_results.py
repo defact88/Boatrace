@@ -229,6 +229,8 @@ def current_counts(c:sqlite3.Connection,dates:Optional[Set[str]]=None) -> Dict[s
         f"{sql_txt} race_entries WHERE race_id IN "
         f"(SELECT race_id FROM races WHERE 1=1 {q_dates})",params).fetchone()[0]
 
+    c.close()
+
     return {"races": races, "cancelled": canc, "entries": entries}
 
 #-----------------------------------------------------------

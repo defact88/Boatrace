@@ -20,6 +20,7 @@ UI,Screens,__init__,                    C:\boatrace\UI\Screens\__init__.py,0
 
 UI,Updata,daily_insert.py,              C:\boatrace\UI\Updata\daily_insert.py,1
 UI,Updata,delete_data.py,               C:\boatrace\UI\Updata\delete_data.py
+UI,Updata,update_FLstate.py,            C:\boatrace\UI\Updata\update_FLstate.py,0
 UI,Updata,ETL_Before_info.py,           C:\boatrace\UI\Updata\ETL_Before_info.py,0
 UI,Updata,ETL_odds_data.py,             C:\boatrace\UI\Updata\ETL_odds_data.py,0
 
@@ -36,7 +37,6 @@ UI,Helpers,sub_window,                  C:\boatrace\UI\Helpers\sub_window.py,0
 UI,Helpers,Custum_func,                 C:\boatrace\UI\Helpers\Custum_func.py,1
 UI,Helpers,queries,                     C:\boatrace\UI\Helpers\queries.py,1
 UI,Helpers,ev_scanner.py,               C:\boatrace\UI\Helpers\ev_scanner.py,0
-UI,Helpers,update_FLstate.py,           C:\boatrace\UI\Helpers\update_FLstate.py,0
 UI,Helpers,__init__,                    C:\boatrace\UI\Helpers\__init__.py,0
 
 UI,Widgets,widgets.py,                  C:\boatrace\UI\Widgets\widgets.py,1
@@ -44,10 +44,8 @@ UI,Widgets,center_widgets.py,           C:\boatrace\UI\Widgets\center_widgets.py
 UI,Widgets,placeholder.py,              C:\boatrace\UI\Widgets\placeholder.py,1
 UI,Widgets,__init__,                    C:\boatrace\UI\Widgets\__init__.py,0
 
-
 Import,Import_B,import_B_txt.py,        C:\boatrace\Import\import_B_txt.py,1
 Import,Import_FAN,import_Fan.py,        C:\boatrace\Import\import_Fan.py,0
-
 Import,Import_K,ETL_K_results.py,       C:\boatrace\Import\ETL_K_results.py,1
 Import,Import_K,upsert_Grade.py,        C:\boatrace\Import\upsert_Grade.py,1
 Import,Import_K,parse_and_upsert.py,    C:\boatrace\Import\parse_and_upsert.py,1

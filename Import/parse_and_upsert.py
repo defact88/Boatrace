@@ -50,7 +50,7 @@ def conn():
     c = sqlite3.connect(DB)
     c.execute("PRAGMA foreign_keys=ON;")
     return c
-#-------------------------------------------------
+#=====================================================================
 def upsert_races(c:sqlite3.Connection, r:Dict):
 
     pre_cnt = c.total_changes
@@ -103,9 +103,11 @@ def insert_races(c:sqlite3.Connection, r:Dict):
 
 #-------------------------------------------------
 def _deg_from_txt(txt:str|None):
+
     if not txt: return None
 
     return TXT2DEG.get(txt.strip(), None)
+
 #-----------------------------
 def _venue_dir_deg(c:sqlite3.Connection, venue_id:int):
 
@@ -114,11 +116,14 @@ def _venue_dir_deg(c:sqlite3.Connection, venue_id:int):
     if not row or row[0] is None: return None
 
     return _deg_from_txt(str(row[0]))
+
 #-----------------------------
 def _get_title(body:str):
+
     m = re.search(r"競走成績[^\n]*\n\s*(.+?)\n", body)
 
     return m.group(1).strip() if m else ""
+
 #-----------------------------
 def _get_date(name:str):
 
@@ -127,6 +132,7 @@ def _get_date(name:str):
     y, m, d = map(int, dt.groups())
 
     return f"20{y:02d}-{m:02d}-{d:02d}"
+
 #-----------------------------
 def _get_subblocks(body: str):
 
@@ -140,6 +146,7 @@ def _get_subblocks(body: str):
         out.append((rno, start, end))
 
     return out
+
 #-----------------------------
 def _is_final(title:str):
 
@@ -228,13 +235,11 @@ def upsert_Races(venue_id:int, body:str, filename:str, overwrite:bool=False):
 
     return (date_iso, {"ins_r":cnt_ins, "upd_r":cnt_upd, "cnt_canc":cnt_canc})
 
-#=========================================================================================
-# C:\boatrace\Inport\upsert_Race_entries.py
+#=====================================================================
 
 RE_WIN_MOVE    = re.compile(r"ﾚｰｽﾀｲﾑ[ 　]+([^\s　]{2,6})")
 RE_ENTRY_HEAD  = re.compile(r"^\s*(\d{1,2})R\s+.*?H\d{4}m\s+\S+\s+風\s+\S*?\s*\d+m\s+波\s+\d+cm", re.M)
 RE_RESULT_HEAD = re.compile(r"^\s*着\s+艇\s+登番", re.M)
-
 RE_ROW_LINE    = re.compile(r"""
     ^\s*
     (?P<head>(?:\d{2}|F|L[01]|K[01]?|S[012])) \s+
@@ -253,11 +258,15 @@ RE_ROW_LINE    = re.compile(r"""
 
 #-----------------------------
 def _parse_time(s:str):
+
     s = s.strip()
+
     return float(s) if s and s[0].isdigit() else None
 #-----------------------------
 def _parse_course(s:str):
+
     s = s.strip()
+
     return int(s) if s.isdigit() else None
 #-------------------------------------------------
 def _subblocks_by_race(body:str):
@@ -303,10 +312,11 @@ def _not_all_ladies(c:sqlite3.Connection, race_id:int) -> bool:
           FROM Race_entries e
           JOIN Players p
             ON p.player_id = e.player_id
-         WHERE e.race_id =?
-           AND p.sex='男'
+         WHERE e.race_id   = ?
+           AND p.sex       ='男'
       GROUP BY e.race_id
-    """, (race_id,)).fetchone()
+        """,
+        (race_id,)).fetchone()
 
     return bool(row)
 
@@ -320,7 +330,8 @@ def _update_all_ladies_day(c:sqlite3.Connection, date_iso:str, venue_id:int):
            AND venue_id = ?
            AND status   = 'held'
       ORDER BY race_no
-        """, (date_iso, venue_id)).fetchall()
+        """,
+        (date_iso, venue_id)).fetchall()
 
     for race_no, race_id in rows:
         is_ladies = not _not_all_ladies(c, race_id)
@@ -328,10 +339,11 @@ def _update_all_ladies_day(c:sqlite3.Connection, date_iso:str, venue_id:int):
         c.execute("""
             UPDATE Races
                SET all_ladies = ?
-             WHERE date     = ?
-               AND venue_id = ?
-               AND race_no  = ?
-            """, (1 if is_ladies else 0, date_iso, venue_id, race_no))
+             WHERE date       = ?
+               AND venue_id   = ?
+               AND race_no    = ?
+            """,
+            (1 if is_ladies else 0, date_iso, venue_id, race_no))
 
 #-------------------------------------------------
 def upsert_entry(c:sqlite3.Connection, race_id:int, venue_id:int, e:Dict):
@@ -370,9 +382,9 @@ def upsert_Race_entries(venue_id:int, body:str, date_iso:str):
                       SELECT race_id,
                              status
                         FROM races
-                       WHERE date     =?
-                         AND venue_id =?
-                         AND race_no  =?
+                       WHERE date     = ?
+                         AND venue_id = ?
+                         AND race_no  = ?
                       """,
                       (date_iso, venue_id, race_no)).fetchone()
 
@@ -434,3 +446,4 @@ def upsert_Race_entries(venue_id:int, body:str, date_iso:str):
         c.commit()
 
     return total
+#=====================================================================
