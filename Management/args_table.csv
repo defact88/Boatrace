@@ -69,12 +69,16 @@ daily_insert.py,           --date_from,  required=False
 daily_insert.py,           --date_to,    required=False
 daily_insert.py,           --overwrite,  required=False
 daily_insert.py,           --background, required=False
-daily_insert.py,           --all,        required=False
+daily_insert.py,           --days,       required=False
 
 delete_data.py,            --enable_K,   required=False
 delete_data.py,            --enable_B,   required=False
 delete_data.py,            --date_from,  required=False
 delete_data.py,            --date_to,    required=False
+
+get_payouts.py,            --date,       required=True
+get_payouts.py,            --venue,      required=True
+get_payouts.py,            --race,       required=True
 
 get_Before_info.py,        --date,       required=True
 get_Before_info.py,        --venue,      required=False
@@ -95,6 +99,8 @@ ETL_Before_info.py,        --overwrite,  required=False
 
 ETL_odds_data.py,          --date_from,  required=True
 ETL_odds_data.py,          --date_to,    required=True
+ETL_odds_data.py,          --venue,      required=False
+ETL_odds_data.py,          --race,       required=False
 ETL_odds_data.py,          --overwrite,  required=False
 
 get_today_info.py,          flag,        required=True

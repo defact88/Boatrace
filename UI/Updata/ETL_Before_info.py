@@ -1,5 +1,5 @@
 ﻿# -*- coding: utf-8 -*-
-# C:\boatrace\UI\Subprocess\ETL_Before_info.py
+# C:\boatrace\UI\Updata\ETL_Before_info.py
 
 import time, sys, subprocess, argparse
 from datetime          import datetime as dt, timedelta
@@ -53,30 +53,26 @@ def ETL_run(date_from:str, date_to:str, overwrite:bool=False):
     print(f"{'='*50}")
 
 #---------------------------------------
-def parse_args(argv=None):
+def main(argv=None):
 
     p = argparse.ArgumentParser()
     p.add_argument("--date",      default=None,         help="対象日(yyyy)")
     p.add_argument("--date_from",                       help="期間開始(YYYY-MM-DD)")
     p.add_argument("--date_to",                         help="期間終了(YYYY-MM-DD)")
     p.add_argument("--overwrite", action="store_true",  help="上書きﾓｰﾄﾞ")
-
-    return p.parse_args(argv)
-
-#---------------------------------------
-def main(argv=None):
-
-    args  = parse_args(argv)
+    args = p.parse_args(argv)
 
     if args.date and (args.date_from or args.date_to):
         print("date / (date_from , date_to) 両方の指定はできません")
         raise SystemExit(2)
+
     if (args.date_from and not args.date_to) or (args.date_to and not args.date_from):
         print("(--date_from , --date_to) を併せて指定してください")
         raise SystemExit(2)
 
     d_from = None
     d_to   = None
+
     if args.date:
         d_from = dt.strptime(args.date,      "%Y-%m-%d")
         d_to   = dt.strptime(args.date,      "%Y-%m-%d")
@@ -88,4 +84,4 @@ def main(argv=None):
 
 #---------------------------------------
 if __name__ == "__main__":
-    raise SystemExit(main())
+    sys.exit(main())

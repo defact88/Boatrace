@@ -67,8 +67,8 @@ def main(argv=None):
     p = argparse.ArgumentParser()
     p.add_argument("--date_from", required=True,  help="開始日 (YYYY-MM-DD)")
     p.add_argument("--date_to",   required=True,  help="終了日 (YYYY-MM-DD)")
-    p.add_argument("--venue_id",  required=False, help="場指定")
-    p.add_argument("--race_no",   required=False, help="レース指定")
+    p.add_argument("--venue",     required=False, help="場指定")
+    p.add_argument("--race",      required=False, help="レース指定")
     p.add_argument("--overwrite", action="store_true", help="既存データを上書き")
     
     args = p.parse_args(argv)
@@ -93,7 +93,7 @@ def main(argv=None):
         d_str = current_date.strftime("%Y%m%d")
         print(f"\n[{d_iso}] 対象レースの確認中...")
 
-        target_races = get_target_races(d_iso, args.venue_id, args.race_no)
+        target_races = get_target_races(d_iso, args.venue, args.race)
         if not target_races:
             print(f"  -> 対象レースが見つかりません。")
             current_date += timedelta(days=1)
@@ -142,4 +142,4 @@ def main(argv=None):
 
 #=====================================================================
 if __name__ == "__main__":
-    raise SystemExit(main())
+    sys.exit(main())

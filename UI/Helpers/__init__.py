@@ -8,6 +8,4 @@ from .Custum_func      import cFr, cLbl, ttFr, cEnt, cBtn, cCvs
 from .queries          import Query
 from .build_series_idx import update_series_idx
 from .build_series_idx import build_day_lbl
-from .scraper_odds     import fetch_all_odds
-from .selenium_buyer   import SeleniumBuyer, PurchaseError
 from .ev_scanner       import evaluate_ev

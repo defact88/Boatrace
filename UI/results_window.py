@@ -16,45 +16,50 @@ VENUES = [ "", "桐生", "戸田", "江戸川", "平和島", "多摩川", "浜�
                  "津", "三国", "びわこ", "住之江",   "尼崎",   "鳴門",  "丸亀", "児島",
                "宮島", "徳山",   "下関",   "若松",   "芦屋",   "福岡",  "唐津", "大村", ]
 
-FRM_BG = {1:"#FFFFFF", 2:"#333333", 3:"#D40000", 4:"#0066CC", 5:"#FFD400", 6:"#008A2E"}
-FRM_FG = {1:"#000000", 2:"#FFFFFF", 3:"#FFFFFF", 4:"#FFFFFF", 5:"#000000", 6:"#FFFFFF"}
+MAIN_HDR_BG = "#2B4A7A"
+MAIN_HDR_FG = "#FFFFFF"
 
+HDR_COLOR   = {"bg":"#2F75B5", "fg":"#FFFFFF"}
+PAY_ROW_BG  = ["#FFFFFF", "#F4F8FF"]
+PAY_AMT_FG  = "#D40000"
+PAY_AMT_FG2 = "#000000"
+
+FRM_BG      = {1:"#FFFFFF", 2:"#333333", 3:"#D40000", 4:"#0066CC", 5:"#FFD400", 6:"#008A2E"}
+FRM_FG      = {1:"#000000", 2:"#FFFFFF", 3:"#FFFFFF", 4:"#FFFFFF", 5:"#000000", 6:"#FFFFFF"}
 MAIN_BG     = "#F0F4FA"
 FAULT_FG    = "#D40000"
 ABSENT_BG   = "#CCCCCC"
 NAME_BG     = "#FFFFFF"
 PANEL_BG    = "#F0F4FA"
-HDR_BG      = "#2B4A7A"
-HDR_FG      = "#FFFFFF"
+
 BAR_COLOR   = "#0069D5"
-BAR_TRACK   = "#f7f9ff"
-TBL_HDR     = dict(bg="#2F75B5", fg="#FFFFFF")
+BAR_TRACK   = "#FFFFFF"
 
-PAY_HDR_BG  = "#2F75B5"
-PAY_HDR_FG  = "#FFFFFF"
-PAY_ROW_BG  = ["#FFFFFF", "#F4F8FF"]
-PAY_AMT_FG  = "#D40000"
-PAY_AMT_FG2 = "#000000"
+PAY_HDR_H   = 25   # 払戻一覧 ヘッダー  高さ
+PAY_ROW_H   = 32   # 払戻一覧 セル      高さ
+PAY_LBL_W   = 55   # 払戻一覧 レースno, 幅
+PAY_3T_W    = 173  # 払戻一覧 3連単     幅
+PAY_3F_W    = 173  # 払戻一覧 3連複     幅
+PAY_2T_W    = 173  # 払戻一覧 2連単     幅
+PAY_KK_W    = 173  # 払戻一覧 拡連複    幅
 
-PAY_HDR_H   = 20
-PAY_ROW_H   = 30
-PAY_LBL_W   = 80   # 払戻一覧 レースno, 幅
-PAY_3T_W    = 168  # 払戻一覧 3連単     幅
-PAY_3F_W    = 168  # 払戻一覧 3連複     幅
-PAY_2T_W    = 168  # 払戻一覧 2連単     幅
-PAY_KK_W    = 168  # 払戻一覧 拡連複    幅
+RES_ROW_H   = 45   # 結果一覧 セル高さ
+RES_BOAT_W  = 160  # 結果一覧 セル幅
+RES_LBL_W   = 50   # 結果一覧 レースno, 幅
+RES_MOVE_W  = 60   # 結果一覧 決まり手  幅
 
-ROW_H       = 46   # 結果一覧 セル高さ
-BOAT_W      = 160  # 結果一覧 セル幅
-LBL_W       = 50   # 結果一覧 レースno, 幅
-MOVE_W      = 60   # 結果一覧 決まり手  幅
-
-SUM_LBL_W   = 70   # 着位分布 縦軸ラベル 幅
-SUM_COL_W   = 170  # 着位分布 セル       幅
-SUM_ROW_H   = 45   # 着位分布 セル       高さ
+SUM_HDR_H   = 25   # 着位分布 ヘッダー   高さ
+SUM_LBL_W   = 55   # 着位分布 縦軸ラベル 幅
+SUM_COL_W   = 172  # 着位分布 セル       幅
+SUM_ROW_H   = 30   # 着位分布 セル       高さ
 BAR_TRACK_W = 165  # 着位分布 棒グラフ   幅
-BAR_H       = 11   # 着位分布 棒グラフ   高さ
+BAR_H       = 10   # 着位分布 棒グラフ   高さ
 
+# ----------------------------
+def wid_txt(s:str) -> str:
+
+    hair = "\u200A" 
+    return hair.join(list(s))
 #===============================================================================
 class ResultsWindow(tk.Tk):
 
@@ -118,9 +123,9 @@ class ResultsWindow(tk.Tk):
         elif state in ("deiconify", "normal"):
             self.deiconify()
 
-        new_date  = d.get("date",  self.date)
-        new_venue = d.get("venue", self.venue_id)
-        changed   = (new_date != self.date or int(new_venue) != self.venue_id)
+        #new_date  = d.get("date",  self.date)
+        #new_venue = d.get("venue", self.venue_id)
+        #changed   = (new_date != self.date or int(new_venue) != self.venue_id)
 
         if changed:
             self.date     = new_date
@@ -131,10 +136,10 @@ class ResultsWindow(tk.Tk):
     # --------------------- UI 構築 ------------------------
     def _build_ui(self):
 
-        hdr = cFr(self, bg=HDR_BG, H=36) ;hdr._pack(fill="x", side="top")
+        hdr = cFr(self, bg=MAIN_HDR_BG, H=35) ;hdr._pack(fill="x", side="top")
 
-        self.lbl_title = cLbl(hdr, text="", bg=HDR_BG, fg=HDR_FG, font=(MUI,9,BD))
-        self.lbl_title._pack(side="left", px=10, py=5)
+        self.lbl_title = cLbl(hdr, text="", bg=MAIN_HDR_BG, fg=MAIN_HDR_FG, font=(MUI,9,BD))
+        self.lbl_title._pack(side="left", px=10, py=2)
 
         cBtn( hdr, text=" 更   新 ", Com=self._on_refresh, bg="#4A7ACC", fg="white",
                   font=(GUI,9,BD), Rel=RA, px=8 )._pack(side="right", px=10, py=4)
@@ -145,9 +150,9 @@ class ResultsWindow(tk.Tk):
         self.top_frame    = cFr(body, bg=PANEL_BG)
         self.bottom_frame = cFr(body, bg=PANEL_BG)
 
-        self.payout_frame._pack(fill="x",              side="top", px=10, py=(8, 4))
-        self.top_frame._pack(   fill="x",              side="top",        py=(4, 4))
-        self.bottom_frame._pack(fill="both", Exp=True, side="top",        py=(5,10))
+        self.payout_frame._pack(fill="x",              side="top", px=10, py=(8,5))
+        self.top_frame._pack(   fill="x",              side="top",        py=(0,0))
+        self.bottom_frame._pack(fill="both", Exp=True, side="top",        py=(5,8))
 
     # ------------------------------------------------------
     def _on_refresh(self):
@@ -250,8 +255,7 @@ class ResultsWindow(tk.Tk):
         for col, (_, _, _, w) in enumerate(bet_cols):
             tbl.Cconf(col + 1, minsize=w)
 
-        cLbl(tbl, text="", bg=PAY_HDR_BG
-             )._grid(R=0, C=0, Stk=ALL)
+        cLbl(tbl, text="", **HDR_COLOR, Bd=(1,RD))._grid(R=0, C=0, Stk=ALL)
 
         span = {}
 
@@ -259,7 +263,7 @@ class ResultsWindow(tk.Tk):
             if col  > 3:  break
             if col == 3: span = dict(Cspan=3)
 
-            cLbl( tbl, text=label, font=(MUI,9), Anc=CT, Bd=(1,RD), bg=PAY_HDR_BG, fg=PAY_HDR_FG,
+            cLbl( tbl, text=label, font=(MUI,9), Anc=CT, Bd=(1,RD), **HDR_COLOR,
                  )._grid(R=0, C=col +1, **span, Stk=ALL)
 
         for row in range(1, 13):
@@ -269,24 +273,24 @@ class ResultsWindow(tk.Tk):
             row_bg = PAY_ROW_BG[(row) % 2]
             pd     = self.payout_rows.get(row)
 
-            cLbl( tbl, text=f"{row}R     ", font=(MUI,8,BD), bg=row_bg, Anc="e", Bd=(1,GR)
-                 )._grid(R=row, C=0, Stk=ALL, px=(0,2))
+            cLbl( tbl, text=f"{row} R    ", font=(MUI,8,BD) , Anc="e", Bd=(1,RD), **HDR_COLOR
+                 )._grid(R=row, C=0, Stk=ALL)
 
             for col, (_, ck, pk, _) in enumerate(bet_cols):
 
                 combo      = pd[ck] if pd and pd.get(ck) not in (None, 0, 9) else None
                 payout     = pd[pk] if pd and pd.get(pk) is not  None        else None
                 combo_txt  = self._fmt_combo(ck, combo) if combo  else ""
-                payout_txt = f"{payout:,}円"            if payout else ""
+                payout_txt = f"{payout:,} 円"           if payout else ""
                 amt_fg     = PAY_AMT_FG if payout and payout >= 10000 else PAY_AMT_FG2
-                px1        = 35 if col >= 2 else 15
-                px2        = 20 if col >= 2 else 12
+                px1        = 15 if col <= 1 else 30
+                px2        = 10 if col <= 2 else 23
 
                 cell = cFr(tbl, bg=row_bg, Bd=(1,GR)) ;cell._grid(R=row, C=col +1, Stk=ALL)
 
-                cLbl(cell, text=combo_txt,  bg=row_bg, font=(MUI,10,BD), Anc="w"
+                cLbl(cell, text=combo_txt,  bg=row_bg, font=(GUI,10,BD), Anc="w"
                      )._pack(side="left",  px=(px1,0))
-                cLbl(cell, text=payout_txt, bg=row_bg, font=(MUI,10),    Anc="e", fg=amt_fg
+                cLbl(cell, text=payout_txt, bg=row_bg, font=(GUI,10,BD), Anc="e", fg=amt_fg
                      )._pack(side="right", px=(0,px2))
 
     #-------------------------------------------------------
@@ -306,12 +310,12 @@ class ResultsWindow(tk.Tk):
 
         tbl = cFr(parent, bg=PANEL_BG) ;tbl._pack(side="top")
 
-        tbl.Cconf(0, minsize=LBL_W)
-        tbl.Cconf(7, minsize=MOVE_W)
+        tbl.Cconf(0, minsize=RES_LBL_W)
+        tbl.Cconf(7, minsize=RES_MOVE_W)
         for col in range(1, 7):
-            tbl.Cconf(col, minsize=BOAT_W)
+            tbl.Cconf(col, minsize=RES_BOAT_W)
         for row in range(12):
-            tbl.Rconf(row, minsize=ROW_H)
+            tbl.Rconf(row, minsize=RES_ROW_H)
             self._render_race_row(tbl, row, row+1, self.race_rows.get(row+1, []))
 
     # ------------------------------------------------------
@@ -326,13 +330,13 @@ class ResultsWindow(tk.Tk):
 
         w_m = next((e["win_move"] for e in data if e.get("f_rank") == 1 and e.get("win_move")), "" )
 
-        cLbl( tbl, text=w_m, font=(MUI,9), bg=PANEL_BG, Anc=CT
+        cLbl( tbl, text=wid_txt(w_m), font=(MUI,9), bg=PANEL_BG, Anc=CT
              )._grid(R=row, C=7, px=(10,0), Stk=ALL)
 
     # ------------------------------------------------------
     def _render_boat_cell(self, tbl, row, col, entry):
 
-        cell = cFr(tbl, bg=PANEL_BG) ;cell._grid(R=row, C=col, Stk=ALL, px=0, py=8)
+        cell = cFr(tbl, bg=PANEL_BG) ;cell._grid(R=row, C=col, Stk=ALL, px=0, py=7)
 
         if entry is None:
             return
@@ -346,7 +350,7 @@ class ResultsWindow(tk.Tk):
              )._pack(side="left", fill="y")
 
         is_fault = entry["fault_code"] != "N"
-        name_bg  = ABSENT_BG if is_fault else NAME_BG
+        name_bg  = ABSENT_BG if is_fault else MAIN_BG
 
         fr = cFr(cell, bg=name_bg) ;fr._pack(side="left", fill="both", px=(5,5), Exp=True)
 
@@ -360,41 +364,43 @@ class ResultsWindow(tk.Tk):
     # ----------------- コース別着順分布 -------------------
     def _render_course_summary(self, parent):
 
-        fr = cFr(parent, bg=PANEL_BG, Bd=(1,SD)) ;fr._pack(side="top")
+        fr1 = cFr(parent, bg=PANEL_BG, Bd=(1,SD)) ;fr1._pack(side="top", pady=(0,0))
+        fr2 = cFr(parent, bg=PANEL_BG, Bd=(1,SD)) ;fr2._pack(side="top", pady=(0,0))
 
-        fr.Rconf(0, Min=30)
-        fr.Cconf(0, Min=SUM_LBL_W)
+        fr1.Cconf(0, Min=SUM_LBL_W) ;fr1.Rconf(0, Min=SUM_HDR_H)
+        fr2.Cconf(0, Min=SUM_LBL_W)
         for col in range(1, 7):
-            fr.Cconf(col, Min=SUM_COL_W)
+            fr1.Cconf(col, Min=SUM_COL_W)
+            fr2.Cconf(col, Min=SUM_COL_W)
 
-        cLbl(fr, text="", **TBL_HDR, Bd=(1,RA))._grid(R=0, C=0, Stk=ALL)
-
+        cLbl(fr1, text="", **HDR_COLOR, Bd=(1,RA))._grid(R=0, C=0, Stk=ALL)
         for course in range(1, 7):
-            cLbl( fr, text=f"{course} コース", **TBL_HDR, font=(MUI,9,BD), Anc=CT, Bd=(1,RD)
+            cLbl( fr1, text=f"{course} コース", **HDR_COLOR, font=(MUI,9,BD), Anc=CT, Bd=(1,RD)
                  )._grid(R=0, C=course, Stk=ALL)
 
         n_races = self.finished_races
 
         for rank in range(1, 7):
-            fr.Rconf(rank, Min=SUM_ROW_H)
+            if rank <= 3: fr1.Rconf(rank,   Min=SUM_ROW_H)
+            else:         fr2.Rconf(rank-4, Min=SUM_ROW_H)
+            frame = fr1  if rank <= 3 else fr2
+            row   = rank if rank <= 3 else rank-4
 
-            cLbl( fr, text=f"{rank} 着", **TBL_HDR, font=(MUI,9), Anc=CT, Bd=(1,RD)
-                 )._grid(R=rank, C=0, Stk=ALL)
+            cLbl( frame, text=f"{rank} 着", **HDR_COLOR, font=(MUI,9), Anc=CT, Bd=(1,RD)
+                 )._grid(R=row, C=0, Stk=ALL)
 
             for course in range(1, 7):
                 cnt = self.course_rank_cnt.get((course, rank), 0)
                 pct = (cnt / n_races * 100.0) if n_races else 0.0
-                self._render_pct_cell(fr, rank, course, pct)
+                self._render_pct_cell(frame, row, course, pct)
 
     # ---------------------------------
     def _render_pct_cell(self, parent, row, col, pct):
 
-        cell = cFr(parent, bg="#FFFFFF", Bd=(1,GR))
-        cell._grid(R=row, C=col, Stk=ALL)
+        cell = cFr(parent, bg="#FFFFFF", Bd=(1,GR)) ;cell._grid(R=row, C=col, Stk=ALL)
 
         bar_track = cFr(cell, bg=BAR_TRACK, W=BAR_TRACK_W, H=BAR_H)
-        bar_track._pack(py=(14,4))
-        bar_track.pack_propagate(False)
+        bar_track._pack(py=(14,4)) ;bar_track.pack_propagate(False)
 
         bar_w = int(BAR_TRACK_W * max(0.0, min(100.0, pct)) / 100.0)
         if bar_w > 0:

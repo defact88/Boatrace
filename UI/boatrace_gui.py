@@ -68,8 +68,7 @@ FAULT_OPT = { 0:{"font":(MUI, 8   ),"fg":"black"},
 ON_LAUNCH     = {"ensure_prg":True, "summarrizer":True}
 
 DB_PATH       = r"C:\boatrace\boatrace.db"
-DAILY_INSERT  = r"C:\boatrace\Import\daily_insert.py"
-IMPORT_B      = r"C:\boatrace\Import\import_B_txt.py"
+DAILY_INSERT  = r"C:\boatrace\UI\Updata\daily_insert.py"
 SUMMARIZ      = r"C:\boatrace\UI\summarize_today.py"
 ODDS_WINDOW   = r"C:\boatrace\UI\odds_window.py"
 RESULTS_WINDOW= r"C:\boatrace\UI\results_window.py"

@@ -1,21 +1,18 @@
 ﻿# -*- coding: utf-8 -*-
 # C:\boatrace\Import\daily_insert.py
 
-from __future__      import annotations
-from pathlib         import Path
-from datetime        import datetime as dt, date, timedelta
+from __future__ import annotations
+from pathlib    import Path
+from datetime   import datetime as dt, date, timedelta
 import argparse, subprocess, sys, os
 
-from update_FLstate  import update_FLstate
-import ETL_odds_data, import_B_txt
-import ETL_Before_info,  ETL_K_results
-import ETL_odds_data
+import update_FLstate
+import ETL_odds_data, ETL_Before_info, ETL_K_results, import_B_txt
 import Dal as dal
 
-BASE      = Path(r"C:\boatrace")
-LOG_PATH  = BASE / r"Archive\logs\daily_insert"
-BEF_PATH  = BASE / r"UI\Subprocess\ETL_Before_info.py"
-ODDS_PATH = BASE / r"UI\Subprocess\ETL_odds_data.py"
+LOG_PATH  = Path(r"C:\boatrace\Archive\logs\daily_insert")
+BEF_PATH  = Path(r"C:\boatrace\UI\Updata\ETL_Before_info.py")
+ODDS_PATH = Path(r"C:\boatrace\UI\Updata\ETL_odds_data.py")
 
 #-----------------------------------------------------------
 def ensure_programs(d_iso:str):
@@ -120,8 +117,8 @@ def main():
     p.add_argument("--date",      default=None,         help="対象日(yyyy)")
     p.add_argument("--date_from",                       help="期間開始(YYYY-MM-DD)")
     p.add_argument("--date_to",                         help="期間終了(YYYY-MM-DD)")
+    p.add_argument("--days",                            help="直近n日間不足日補填")
     p.add_argument("--overwrite",  action="store_true", help="上書きﾓｰﾄﾞ")
-    p.add_argument("--all",        action="store_true", help="直近10日不足日")
     p.add_argument("--background", action="store_true", help="BGモード")
     args  = p.parse_args()
 
@@ -132,8 +129,8 @@ def main():
         print("(--date_from , --date_to) を併せて指定してください")
         raise SystemExit(2)
 
-    if args.all:
-        d_f = (dt.today() - timedelta(days=10)).strftime("%Y-%m-%d")
+    if args.days:
+        d_f = (dt.today() - timedelta(days=args.days)).strftime("%Y-%m-%d")
         d_t = dt.today().strftime("%Y-%m-%d")
     elif args.date:
         d_f, d_t = args.date, args.date

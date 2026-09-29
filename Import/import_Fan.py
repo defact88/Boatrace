@@ -476,11 +476,12 @@ def main():
         for w in summ.warnings: print(w)
 
     if not summ.warnings: archive_files(paths)
+
 #-------------------------------------------------------------------------------
 if __name__ == "__main__":
     main()
 
-    try: subprocess.run( ["python", r"C:\boatrace\Import\DL_player_img.py"],
-                                                                      check=True )
+    try:
+        subprocess.run( ["python", r"C:\boatrace\Import\Helper\DL_player_img.py"], check=True )
     except Exception as e:
         print(f"[WARN] download_player_images.py 呼び出し失敗: {e}")

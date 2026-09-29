@@ -241,7 +241,7 @@ class FileManagementGUI(tk.Tk):
                                    bg="#AACCFF", fg="#000000", command=self.on_execute )
         self.btn_upd  = tk.Button( self.frame_act, text="日時 更新",**btn_opt3,
                                    bg="#66CC99", fg="#000000",
-                                   command=lambda:self.on_launch(DAILY_PATH, aug=" --all", cmd=True) )
+                                   command=lambda:self.on_launch(DAILY_PATH, aug=" --days 5", cmd=True) )
         self.btn_cmt  = tk.Button( self.frame_act, text="Commit",  **btn_opt2,
                                    bg="#66CC99", fg="#000000",
                                    command=lambda:self.on_launch(BAT_COMMIT, cmd=True) )
@@ -403,12 +403,10 @@ class FileManagementGUI(tk.Tk):
             else: 
                 if val: args.append(val)
 
-        clean_args = [f'"{a}"' if " " in a else a for a in args if a]
-        python_cmd = f'python "{script_path}" ' + " ".join(clean_args)
-        cmdline    = f'start "{self.active_file}" cmd /K {python_cmd}'
+        cmdline = [ "start", f'"{self.active_file}"', "cmd", "/K", "python",
+                    f'"{script_path}"'                                       ] + args
 
-
-        try: subprocess.Popen(cmdline, shell=True)
+        try: subprocess.Popen(" ".join(cmdline), shell= True)
         except Exception as e:
             self.show_msg("Error", f"実行に失敗しました:\n{e}")
 

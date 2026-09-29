@@ -2,14 +2,17 @@
 # C:\boatrace\UI\Subprocess\get_results_today.py
 
 import Dal as dal
-import argparse, re, sqlite3, sys, warnings, unicodedata, random, time
+import argparse, re, sys, warnings, unicodedata, random, time
 from datetime  import datetime as dt
 from pathlib   import Path
 from bs4       import BeautifulSoup, FeatureNotFound, XMLParsedAsHTMLWarning
 from curl_cffi import requests
 
+from get_payouts import upsert_payouts
+
 warnings.filterwarnings("ignore", category=XMLParsedAsHTMLWarning)
-# ------------------------------------------------------------
+
+# ----------------------------------------------------------
 BASE_DIR = Path(r"C:\boatrace")
 DB_PATH  = BASE_DIR / "boatrace.db"
 URL_TPL  = "https://www.boatrace.jp/owpc/pc/race/raceresult?rno={rno}&jcd={jcd:02d}&hd={hd}"
@@ -32,8 +35,8 @@ def yyyymmdd(s: str) -> str:
 # ----------------------------------------------------------
 def build_ids(d_iso:str, venue_id:int, race_no:int, frame_no:int):
 
-    _date = dt.strptime(d_iso, "%Y-%m-%d")
-    ymd   = _date.strftime("%y%m%d")
+    _date    = dt.strptime(d_iso, "%Y-%m-%d")
+    ymd      = _date.strftime("%y%m%d")
     race_id  = int(f"{ymd}{venue_id:02d}{race_no:02d}")
     entry_id = int(f"{ymd}{venue_id:02d}{race_no:02d}{frame_no}")
 
@@ -375,328 +378,6 @@ def upsert_results(d_iso:str, venue_id:int, race_no:int, prog, fin, stinfo, winm
     return dal.executemany(sql, params)
 
 # ------------------------------------------------------------
-# combo整数を生成するヘルパー
-def _combo(*frames) -> int:
-    return int("".join(str(f) for f in frames))
-
-# ------------------------------------------------------------
-# Race_entriesからfinish_rank順に枠番を取得
-# 返値: {1: [frame_no, ...], 2: [...], ...}  (同着は同rank内に複数)
-def _get_finish_frames(race_id: int) -> dict:
-
-    rows = dal.fetch_all("""
-               SELECT finish_rank, frame_no, fault_code
-                 FROM Race_entries
-                WHERE race_id = ?
-                  AND finish_rank IS NOT NULL
-             ORDER BY finish_rank, frame_no
-               """, (race_id,))
-
-    result = {}
-    for rk, fr, fc in rows:
-        result.setdefault(rk, []).append((fr, fc))
-
-    return result
-
-# ------------------------------------------------------------
-# Oddsテーブルからcomboに対応するoddsを取得
-def _get_odds(race_id: int, bet_type: str, combo: int):
-
-    row = dal.fetch_one("""
-              SELECT odds
-                FROM Odds
-               WHERE race_id  = ?
-                 AND bet_type = ?
-                 AND combo    = ?
-              """, (race_id, bet_type, combo))
-
-    return row[0] if row else None
-
-# ------------------------------------------------------------
-# 払い戻し金額を計算 (odds -> 100円単位で切り捨て、最低70円)
-def _payout(odds) -> int | None:
-
-    if odds is None:
-        return None
-
-    return max(70, int(odds * 10) * 10)
-
-# ------------------------------------------------------------
-# 同着を含む全パターンのcomboセットを生成
-# 返値: [ {bet_type: combo, ...}, ... ]  len=1 (normal) or 2 (tie1) or 3 (tie2)
-def _build_combo_sets(finish: dict) -> list[dict]:
-
-    # 着順ごとの枠番リスト取得 (fault_code不問: 返還判定に必要)
-    r1_list = [fr for fr, _ in finish.get(1, [])]
-    r2_list = [fr for fr, _ in finish.get(2, [])]
-    r3_list = [fr for fr, _ in finish.get(3, [])]
-
-    # fault_codeをframe_noで引けるようにまとめる
-    fault_map = {}
-    for rank_frames in finish.values():
-        for fr, fc in rank_frames:
-            fault_map[fr] = fc
-
-    INVALID = {"F", "L", "K"}
-
-    def is_return(combo_int: int) -> bool:
-        """comboに含まれる艇番にF/L/Kがあれば返還 → payout=70"""
-        for ch in str(combo_int):
-            if ch.isdigit() and fault_map.get(int(ch)) in INVALID:
-                return True
-        return False
-
-    # 同着パターン: 各ランクが複数艇あれば順列展開
-    # 1着: r1_list, 2着: r2_list, 3着: r3_list
-    # 賭け式ごとに若番基準の正規順(normal)と追加パターン(tie1,tie2)を生成
-
-    sets = []  # list of dict {bet_type -> combo_int or 0 or 9}
-
-    # --- 3T ---
-    three_t = []
-    for a in r1_list:
-        for b in r2_list:
-            for c in r3_list:
-                three_t.append(_combo(a, b, c))
-
-    # --- 3F ---
-    three_f_set = set()
-    for a in r1_list:
-        for b in r2_list:
-            for c in r3_list:
-                three_f_set.add(_combo(*sorted([a, b, c])))
-    three_f = sorted(three_f_set)
-
-    # --- 2T ---
-    two_t = []
-    for a in r1_list:
-        for b in r2_list:
-            two_t.append(_combo(a, b))
-    two_t = list(dict.fromkeys(two_t))  # 順序保持で重複除去
-
-    # --- 2F ---
-    two_f_set = set()
-    for a in r1_list:
-        for b in r2_list:
-            two_f_set.add(_combo(*sorted([a, b])))
-    two_f = sorted(two_f_set)
-
-    # --- TT (単勝: 1着のみ) ---
-    tt = sorted(r1_list)
-
-    # --- FF (複勝: 2着以内) ---
-    ff_set = set(r1_list) | set(r2_list)
-    ff     = sorted(ff_set)
-
-    # --- KK (拡連複: 1着-2着, 1着-3着, 2着-3着 の各ペア昇順) ---
-    kk_set = set()
-    for a in r1_list:
-        for b in r2_list:
-            kk_set.add(_combo(*sorted([a, b])))
-    for a in r1_list:
-        for c in r3_list:
-            kk_set.add(_combo(*sorted([a, c])))
-    for b in r2_list:
-        for c in r3_list:
-            kk_set.add(_combo(*sorted([b, c])))
-    kk = sorted(kk_set)
-
-    # --- パターン数 (同着による最大分岐) ---
-    n = max(len(three_t), len(tt))  # TT/3Tの分岐数が基本
-
-    def _get(lst, i, none_val=9):
-        return lst[i] if i < len(lst) else none_val
-
-    for i in range(max(n, 1)):
-
-        label = "normal" if i == 0 else f"tie{i}"
-
-        c3T  = _get(three_t, i, 0) if three_t  else 0
-        c3F  = _get(three_f, i, 9) if three_f  else 0
-        c2T  = _get(two_t,   i, 9) if two_t    else 0
-        c2F  = _get(two_f,   i, 9) if two_f    else 0
-        cTT  = _get(tt,      i, 9) if tt        else 0
-        cFF1 = _get(ff,      0, 9)              # FF は同着によらず固定2枠
-        cFF2 = _get(ff,      1, 9)
-        cKK1 = _get(kk,      0, 9) if kk       else 0
-        cKK2 = _get(kk,      1, 9) if kk       else 0
-        cKK3 = _get(kk,      2, 9) if kk       else 0
-
-        # tie行ではKK/3F/2F/FFの追加パターンが存在しない → 9
-        if i > 0:
-            if len(three_f) <= 1: c3F  = 9
-            if len(two_f)   <= 1: c2F  = 9
-            if len(kk)      <= 2: cKK1 = cKK2 = cKK3 = 9  # tie行にKKパターン無し
-            cFF1 = cFF2 = 9
-
-        sets.append({
-            "label": label,
-            "c3T":   c3T,  "c3F":  c3F,
-            "c2T":   c2T,  "c2F":  c2F,
-            "cTT":   cTT,
-            "cFF1":  cFF1, "cFF2": cFF2,
-            "cKK1":  cKK1, "cKK2": cKK2, "cKK3": cKK3,
-            "fault_map": fault_map,
-            "is_return": is_return,
-        })
-
-    return sets
-
-# ------------------------------------------------------------
-def upsert_payouts(d_iso: str, venue_id: int, race_no: int, race_id: int):
-
-    finish = _get_finish_frames(race_id)
-
-    if not finish:
-        return  # 結果未取得
-
-    # 不成立チェック: 1着・2着・3着それぞれの有効艇数
-    r1 = finish.get(1, [])
-    r2 = finish.get(2, [])
-    r3 = finish.get(3, [])
-
-    has3 = len(r1) > 0 and len(r2) > 0 and len(r3) > 0
-    has2 = len(r1) > 0 and len(r2) > 0
-    has1 = len(r1) > 0
-
-    combo_sets = _build_combo_sets(finish)
-
-    rows = []
-
-    for s in combo_sets:
-
-        label       = s["label"]
-        is_return   = s["is_return"]
-
-        def po(bet_type: str, combo: int, valid: bool) -> int | None:
-            if not valid or combo in (0, 9):
-                return None
-            odds = _get_odds(race_id, bet_type, combo)
-            if odds is None:
-                return 70   # 特払い
-            if is_return(combo):
-                return 70   # 返還
-            return _payout(odds)
-
-        # special判定: 通常comboのoddがNoneの賭け式があるか
-        def is_special(bet_type: str, combo: int, valid: bool) -> bool:
-            if not valid or combo in (0, 9): return False
-            return _get_odds(race_id, bet_type, combo) is None
-
-        c3T  = s["c3T"];  c3F  = s["c3F"]
-        c2T  = s["c2T"];  c2F  = s["c2F"]
-        cTT  = s["cTT"]
-        cFF1 = s["cFF1"]; cFF2 = s["cFF2"]
-        cKK1 = s["cKK1"]; cKK2 = s["cKK2"]; cKK3 = s["cKK3"]
-
-        any_special = any([
-            is_special("3T",  c3T,  has3),
-            is_special("3F",  c3F,  has3),
-            is_special("2T",  c2T,  has2),
-            is_special("2F",  c2F,  has2),
-            is_special("TT",  cTT,  has1),
-            is_special("FF",  cFF1, has1),
-            is_special("FF",  cFF2, has1),
-            is_special("KK",  cKK1, has3),
-            is_special("KK",  cKK2, has3),
-            is_special("KK",  cKK3, has3),
-        ])
-
-        if any_special:
-            # special行: 特払いのcomboのみpayout=70, 他は9/None
-            spec_row = {
-                "label":     "special",
-                "c3T":  c3T  if is_special("3T", c3T,  has3) else 9,
-                "c3F":  c3F  if is_special("3F", c3F,  has3) else 9,
-                "c2T":  c2T  if is_special("2T", c2T,  has2) else 9,
-                "c2F":  c2F  if is_special("2F", c2F,  has2) else 9,
-                "cTT":  cTT  if is_special("TT", cTT,  has1) else 9,
-                "cFF1": cFF1 if is_special("FF", cFF1, has1) else 9,
-                "cFF2": cFF2 if is_special("FF", cFF2, has1) else 9,
-                "cKK1": cKK1 if is_special("KK", cKK1, has3) else 9,
-                "cKK2": cKK2 if is_special("KK", cKK2, has3) else 9,
-                "cKK3": cKK3 if is_special("KK", cKK3, has3) else 9,
-                "p3T":  70   if is_special("3T", c3T,  has3) else None,
-                "p3F":  70   if is_special("3F", c3F,  has3) else None,
-                "p2T":  70   if is_special("2T", c2T,  has2) else None,
-                "p2F":  70   if is_special("2F", c2F,  has2) else None,
-                "pTT":  70   if is_special("TT", cTT,  has1) else None,
-                "pFF1": 70   if is_special("FF", cFF1, has1) else None,
-                "pFF2": 70   if is_special("FF", cFF2, has1) else None,
-                "pKK1": 70   if is_special("KK", cKK1, has3) else None,
-                "pKK2": 70   if is_special("KK", cKK2, has3) else None,
-                "pKK3": 70   if is_special("KK", cKK3, has3) else None,
-            }
-            rows.append(spec_row)
-
-        rows.append({
-            "label": label,
-            "c3T": c3T,  "c3F": c3F,
-            "c2T": c2T,  "c2F": c2F,
-            "cTT": cTT,
-            "cFF1": cFF1, "cFF2": cFF2,
-            "cKK1": cKK1, "cKK2": cKK2, "cKK3": cKK3,
-            "p3T":  po("3T", c3T,  has3),
-            "p3F":  po("3F", c3F,  has3),
-            "p2T":  po("2T", c2T,  has2),
-            "p2F":  po("2F", c2F,  has2),
-            "pTT":  po("TT", cTT,  has1),
-            "pFF1": po("FF", cFF1, has1),
-            "pFF2": po("FF", cFF2, has1),
-            "pKK1": po("KK", cKK1, has3),
-            "pKK2": po("KK", cKK2, has3),
-            "pKK3": po("KK", cKK3, has3),
-        })
-
-    sql = """
-            INSERT INTO Payouts
-                      ( race_id,   date,    venue_id,
-                        status,
-                        combo_3T,  combo_3F, combo_2T, combo_2F, combo_TT,
-                        combo_FF1, combo_FF2,
-                        combo_KK1, combo_KK2, combo_KK3,
-                        payout_3T, payout_3F, payout_2T, payout_2F, payout_TT,
-                        payout_FF1, payout_FF2,
-                        payout_KK1, payout_KK2, payout_KK3 )
-            VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
-       ON CONFLICT(race_id, status)
-     DO UPDATE SET combo_3T   = excluded.combo_3T,
-                   combo_3F   = excluded.combo_3F,
-                   combo_2T   = excluded.combo_2T,
-                   combo_2F   = excluded.combo_2F,
-                   combo_TT   = excluded.combo_TT,
-                   combo_FF1  = excluded.combo_FF1,
-                   combo_FF2  = excluded.combo_FF2,
-                   combo_KK1  = excluded.combo_KK1,
-                   combo_KK2  = excluded.combo_KK2,
-                   combo_KK3  = excluded.combo_KK3,
-                   payout_3T  = excluded.payout_3T,
-                   payout_3F  = excluded.payout_3F,
-                   payout_2T  = excluded.payout_2T,
-                   payout_2F  = excluded.payout_2F,
-                   payout_TT  = excluded.payout_TT,
-                   payout_FF1 = excluded.payout_FF1,
-                   payout_FF2 = excluded.payout_FF2,
-                   payout_KK1 = excluded.payout_KK1,
-                   payout_KK2 = excluded.payout_KK2,
-                   payout_KK3 = excluded.payout_KK3
-          """
-
-    params = [
-        ( race_id,  d_iso,  venue_id,
-          r["label"],
-          r["c3T"],  r["c3F"],  r["c2T"],  r["c2F"],  r["cTT"],
-          r["cFF1"], r["cFF2"],
-          r["cKK1"], r["cKK2"], r["cKK3"],
-          r["p3T"],  r["p3F"],  r["p2T"],  r["p2F"],  r["pTT"],
-          r["pFF1"], r["pFF2"],
-          r["pKK1"], r["pKK2"], r["pKK3"],  )
-        for r in rows
-    ]
-
-    dal.executemany(sql, params)
-
-# ------------------------------------------------------------
 def main():
 
     ap = argparse.ArgumentParser()
@@ -734,7 +415,6 @@ def main():
                     return 0
                 print(f"[OK] jcd={jcd}  {rno}R is cancelled")
                 continue
-
 
             url = URL_TPL.format(rno=rno, jcd=jcd, hd=hd)
 
@@ -788,8 +468,7 @@ def main():
                     return 2
                 continue
 
-            race_id, _ = build_ids(args.date, jcd, rno, 1)
-            upsert_payouts(args.date, jcd, rno, race_id)
+            upsert_payouts(args.date, jcd, rno)
 
             if args.ALL_race: print(f"[JCD={jcd}  {rno} R] done.")
 
@@ -800,5 +479,6 @@ def main():
             return 0
     return 0
 
+    # ------------------------------------------------------------
 if __name__ == "__main__":
     sys.exit(main())

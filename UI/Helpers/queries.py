@@ -37,7 +37,7 @@ class Query():
                    exclude_venue:Optional[int]  = None,
                           flying:Optional[bool] = False,
                       not_flying:Optional[bool] = False,
-                  exclude_rookie:Optional[list]= [False, False]                   ):
+                  exclude_rookie:Optional[list] = [False, False]                  ):
 
         super().__init__()
 
@@ -118,18 +118,16 @@ class Query():
               JOIN Venues v
                 ON e.venue_id = v.venue_id
              WHERE e.date BETWEEN ? AND ?
-               AND r.status  = 'held'
+               AND r.status  = 'held' 
               """
 
-        params  = [self.date_from, self.date_to]
-        exec_r  = self.exclude_rookie[0]
-        add_sql, add_param = self._build_filter_clause(exec_r)
-        sql    += add_sql
-        sql    += " ORDER BY e.date ASC, e.race_no ASC"
-        params += add_param
-        rows    = dal.fetch_all(sql, tuple(params)) or []
+        exec_r              = self.exclude_rookie[0]
+        add_sql, add_params = self._build_filter_clause(exec_r)
+        sql                += add_sql
+        sql                += " ORDER BY e.date ASC, e.race_no ASC"
+        params              = [self.date_from, self.date_to] +add_params
 
-        return rows
+        return dal.fetch_all(sql, tuple(params)) or []
 
     # ------------------------------------------------------
     def _query_self_others(self):
@@ -152,7 +150,6 @@ class Query():
                                  AND NOT (     e.fault_code  = 'S'
                                            AND e.fault_level =  0 )
                    """
- 
         sql_own2 = """
               ) SELECT course,
                  COUNT(*) AS starts,
@@ -165,9 +162,8 @@ class Query():
                    SUM(slit_adj)                                    AS st_sum
                   FROM base
               GROUP BY course
-                  """
-
-        sql_othr1 = """
+                   """
+        sql_oths1 = """
                    WITH my_races AS ( SELECT e.race_id,
                                              e.finish_rank,
                                              e.fault_code,
@@ -183,9 +179,8 @@ class Query():
                                      AND NOT e.fault_code  IN ('F','L','K')
                                      AND NOT (     e.fault_code  = 'S'
                                                AND e.fault_level =  0 )
-                   """
-
-        sql_othr2 = """
+                    """
+        sql_oths2 = """
                ) SELECT e.race_id,
                         e.player_id,
                         e.course,
@@ -197,24 +192,18 @@ class Query():
                    JOIN my_races mr
                      ON mr.race_id = e.race_id
                     """
-        sql_othr3 = " ORDER BY e.race_id, e.course"
 
-        add_sql, add_param = self._build_filter_clause(0)
-        sql_own            = (sql_own1 + add_sql + sql_own2)
+        add_sql, add_param = self._build_filter_clause(False)
+        sql_own     = (sql_own1 +add_sql +sql_own2)
+        rk_sql      = self._build_exclude_rookie_clause() if self.exclude_rookie[1] else ""
+        sql_oths    = sql_oths1 +add_sql +sql_oths2 +rk_sql +" ORDER BY e.race_id, e.course"
 
-        rookie_sql, rookie_param = ("", [])
-        if self.exclude_rookie[1]:
-            rookie_sql, rookie_param = self._build_exclude_rookie_clause()
+        params      = [self.date_from, self.date_to] +add_param
 
-        sql_othr = sql_othr1 + add_sql + sql_othr2 + rookie_sql + sql_othr3
+        own_rows  = dal.fetch_all(sql_own,  tuple(params))
+        oths_rows = dal.fetch_all(sql_oths, tuple(params))
 
-        params      = [self.date_from, self.date_to] + add_param
-        params_othr = params + rookie_param
-
-        rows1  = dal.fetch_all(sql_own, tuple(params))
-        rows2  = dal.fetch_all(sql_othr, tuple(params_othr))
-
-        return (rows1, rows2)
+        return (own_rows, oths_rows)
 
     # ------------------------------------------------------
     def _packing_by_grade(self, rows):  # 選手成績一覧
@@ -248,7 +237,7 @@ class Query():
                     c["st_cnt"] += 1
 
                 if flevel != 0 or rank != 0:
-                    p = self._point_for(grade, is_final, rank, s_title)
+                    p = self._point_for(0, is_final, rank, s_title) # grade別成績にgrade加点しない
                     c["sc_sum"] += p
                     c["sc_cnt"] += 1
 
@@ -528,7 +517,7 @@ class Query():
         return {"own":dict(own), "oth":dict(oth)}
 
     # --------------- ｵﾌﾟｼｮﾝSQL, params作成 ----------------
-    def _build_filter_clause(self, exclude_rookie):
+    def _build_filter_clause(self, excl_rookie:bool=False):
 
         sql, params = [], []
 
@@ -554,10 +543,9 @@ class Query():
             elif isinstance(param, (list, tuple)): params.extend(param)
             elif param is not None:                params.append(param)
 
-        if self.exclude_rookie and exclude_rookie:
-            frag, prm = self._build_exclude_rookie_clause()
+        if excl_rookie:
+            frag = self._build_exclude_rookie_clause()
             sql.append(frag)
-            params.extend(prm)
 
         return "".join(sql), params
 
@@ -612,13 +600,12 @@ class Query():
         frag = """
             AND e.player_id IN ( SELECT p.player_id
                                    FROM Players p
-                                  WHERE julianday(?) -julianday(date('1957-11-01',
-                                                                        '+'
-                                                                     || ((p.regist_period -1) *6)
-                                                                     || ' months'
-                                                                    ) ) >= 365 )
+                                  WHERE p.regist_period < 133 +CAST(
+                                                      ( (strftime('%Y','now')-2026)*12
+                                                       +(strftime('%m','now')-11  )-24 ) / 6 
+                                                                                AS INTEGER ) )
                """
-        return frag, [self.date_to]
+        return frag
 
     # --------------------------------------------
     def _calc_term_bounds_for_date(self, d:date):

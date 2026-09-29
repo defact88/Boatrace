@@ -5,7 +5,8 @@ from __future__  import annotations
 from dataclasses import dataclass, field
 from datetime    import datetime, timedelta, timezone, date
 from typing      import Dict, List, Optional, Tuple
-from Helpers.scraper_odds import fetch_all_odds
+from pathlib     import Path
+from Scraper.scraper_odds import fetch_all_odds
 from Helpers.ev_scanner   import evaluate_ev, insert_odds_snapshot, ProbabilityProvider
 
 import sqlite3, subprocess, threading, time, sys, os, signal, argparse, re, json, ctypes
@@ -16,13 +17,11 @@ VENUES = [ "桐   生",  "戸   田", "江戸川", "平和島", "多摩川", "�
            "宮   島",  "徳   山", "下   関", "若   松", "芦   屋", "福   岡", "唐   津", "大   村", ]
 # ---- 環境設定 ----------------------------------
 # パス
-BASE_DIR       = r"C:\boatrace"
-DB_PATH        = os.path.join(BASE_DIR, "boatrace.db")
-SP_DIR         = os.path.join(BASE_DIR, r"UI\Subprocess")
-SP_INFO        = os.path.join(SP_DIR, "get_today_info.py")
-SP_BEFORE      = os.path.join(SP_DIR, "get_Before_info.py")
-SP_RESULT      = os.path.join(SP_DIR, "get_results_today.py")
-LOCK_PATH      = os.path.join(BASE_DIR, r"tmp\json\summarizer.lock")
+DB_PATH        = Path(r"C:\boatrace\boatrace.db")
+SP_INFO        = Path(r"C:\boatrace\UI\Scraper\get_today_info.py")
+SP_BEFORE      = Path(r"C:\boatrace\UI\Scraper\get_Before_info.py")
+SP_RESULT      = Path(r"C:\boatrace\UI\Scraper\get_results_today.py")
+LOCK_PATH      = Path(r"C:\boatrace\tmp\json\summarizer.lock")
 # 定数
 CHANGE_INTERVAL = 300  #   変更: n秒 間隔で巡回
 CANCEL_INTERVAL = 15   #   中止: n分 間隔で巡回
