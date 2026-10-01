@@ -51,7 +51,7 @@ FINAL_RNK    = { 1:"①", 2:"②", 3:"③", 4:"④", 5:"⑤", 6:"⑥",
                  "F":"(F)", "L":"(L)", "S":"(S)", "K":"(K)"       }
 
 PREFINAL_RNK = { 1:"[ 1 ]", 2:"[ 2 ]", 3:"[ 3 ]", 4:"[ 4 ]", 5:"[ 5 ]", 6:"[ 6 ]",
-                 "F":"[F]", "L":"[L]", "S":"[S]", "K":"[K]"       }
+                 "F":"[ F ]", "L":"[ L ]", "S":"[ S ]", "K":"[ K ]"       }
 
 GOPT      = { 0: dict(text="一般",            font=(MUI,8   )),
               1: dict(text="G3",              font=(MUI,8   )), 
@@ -677,12 +677,12 @@ class PlayerAnalysisScreen(tk.Toplevel):
         cv.create_rectangle(L, T, L+XW, T+YH, outline="#a4b7cb", width=1, fill="white")
 
         if show_sr:                 # 右軸ﾗﾍﾞﾙ
-            for yv in [0, 3.0, 5.0, 6.0, 10]:
+            for yv in [0, 3.0, 6.0, 10]:
                 y = T + YH - int( (yv / 10.0) * YH )
                 cv.create_text(W-R +5, y, text=f"{yv}", anchor="w", font=(GUI, 9))
                 if yv == 6.0:
                     cv.create_line(L, y, XW+L, y, fill="#c1c1c1", width=1)
-                if yv in [3.0, 5.0]:
+                if yv in [3.0]:
                     cv.create_line(L, y, XW+L, y, fill="#dedede", width=1)
             if not data:
                 cv.create_text(L+XW / 2, YH+T / 2, text="データなし", font=(MUI, 10))

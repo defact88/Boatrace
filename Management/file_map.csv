@@ -23,6 +23,7 @@ UI,Updata,delete_data.py,               C:\boatrace\UI\Updata\delete_data.py
 UI,Updata,update_FLstate.py,            C:\boatrace\UI\Updata\update_FLstate.py,0
 UI,Updata,ETL_Before_info.py,           C:\boatrace\UI\Updata\ETL_Before_info.py,0
 UI,Updata,ETL_odds_data.py,             C:\boatrace\UI\Updata\ETL_odds_data.py,0
+UI,Updata,ETL_payouts_data.py,          C:\boatrace\UI\Updata\ETL_payouts_data.py,0
 
 UI,Scraper,get_today_info.py,           C:\boatrace\UI\Scraper\get_today_info.py,1
 UI,Scraper,get_Before_info.py,          C:\boatrace\UI\Scraper\get_Before_info.py,1

@@ -3,9 +3,12 @@
 
 import argparse, threading, sys, sqlite3, json
 import tkinter as tk
-from datetime    import datetime as dt
-from Custum_func import cFr, cLbl, cBtn
 
+from datetime                 import date, datetime as dt
+from Custum_func              import cFr, cLbl, cBtn
+from Helpers.build_series_idx import build_day_lbl
+
+#-----------------------------------------------------------
 DB = r"C:\boatrace\boatrace.db"
 
 GUI, MUI, HNH      = "Yu Gothic UI", "Meiryo UI", "Helvetica Neue Heavy"
@@ -55,6 +58,16 @@ SUM_ROW_H   = 30   # 着位分布 セル       高さ
 BAR_TRACK_W = 165  # 着位分布 棒グラフ   幅
 BAR_H       = 10   # 着位分布 棒グラフ   高さ
 
+# ------------------
+def to_str(x:date) -> str:
+
+   if isinstance(x,  str): return x
+   if isinstance(x, date): return x.strftime("%Y-%m-%d")
+# ------------------
+def to_date(x:str) -> date:
+
+    if isinstance(x, date): return x
+    if isinstance(x,  str): return dt.strptime(x, "%Y-%m-%d").date()
 # ----------------------------
 def wid_txt(s:str) -> str:
 
@@ -111,7 +124,7 @@ class ResultsWindow(tk.Tk):
             pass
 
     # ----------------- 受信コマンド処理 -------------------
-    def _handle_command(self, d: dict):
+    def _handle_command(self, d:dict):
 
         state = d.get("state")
         if state == "stop":
@@ -123,15 +136,14 @@ class ResultsWindow(tk.Tk):
         elif state in ("deiconify", "normal"):
             self.deiconify()
 
-        #new_date  = d.get("date",  self.date)
-        #new_venue = d.get("venue", self.venue_id)
-        #changed   = (new_date != self.date or int(new_venue) != self.venue_id)
+        new_date  = d.get("date",  self.date)
+        new_venue = d.get("venue", self.venue_id)
+        changed   = (new_date != self.date or int(new_venue) != self.venue_id)
 
         if changed:
             self.date     = new_date
             self.venue_id = int(new_venue)
-            self._load_data()
-            self._render()
+            self._on_refresh()
 
     # --------------------- UI 構築 ------------------------
     def _build_ui(self):
@@ -143,6 +155,9 @@ class ResultsWindow(tk.Tk):
 
         cBtn( hdr, text=" 更   新 ", Com=self._on_refresh, bg="#4A7ACC", fg="white",
                   font=(GUI,9,BD), Rel=RA, px=8 )._pack(side="right", px=10, py=4)
+
+        self.btn_fr = cFr(hdr, bg=MAIN_HDR_BG, H=35) ;self.btn_fr._pack(side="left", px=30)
+        self._mk_day_buttons(self.btn_fr)
 
         body = cFr(self, bg=PANEL_BG) ;body._pack(fill="both", expand=True)
 
@@ -224,15 +239,16 @@ class ResultsWindow(tk.Tk):
     # ---------------------- 描画 --------------------------
     def _render(self):
 
-        d     = dt.fromisoformat(self.date).strftime("%Y 年 %#m 月 %#d 日")
+        d     = to_date(self.date).strftime("%Y 年 %#m 月 %#d 日")
         venue = VENUES[self.venue_id] if 0 <= self.venue_id < len(VENUES) else ""
 
-        self.lbl_title.config(text=f" {d}    {venue}   レース結果 ")
+        self.lbl_title.config(text=f" {d}    {venue}   レース結果一覧 ")
 
         for w in self.payout_frame.winfo_children():  w.destroy()
         for w in self.top_frame.winfo_children():     w.destroy()
         for w in self.bottom_frame.winfo_children():  w.destroy()
 
+        self._update_day_btn_style()
         self._render_payout_table(self.payout_frame)
         self._render_race_table(self.top_frame)
         self._render_course_summary(self.bottom_frame)
@@ -290,7 +306,7 @@ class ResultsWindow(tk.Tk):
 
                 cLbl(cell, text=combo_txt,  bg=row_bg, font=(GUI,10,BD), Anc="w"
                      )._pack(side="left",  px=(px1,0))
-                cLbl(cell, text=payout_txt, bg=row_bg, font=(GUI,10,BD), Anc="e", fg=amt_fg
+                cLbl(cell, text=payout_txt, bg=row_bg, font=(MUI,9,BD), Anc="e", fg=amt_fg
                      )._pack(side="right", px=(0,px2))
 
     #-------------------------------------------------------
@@ -394,7 +410,7 @@ class ResultsWindow(tk.Tk):
                 pct = (cnt / n_races * 100.0) if n_races else 0.0
                 self._render_pct_cell(frame, row, course, pct)
 
-    # ---------------------------------
+    # ------------------------------------------------------
     def _render_pct_cell(self, parent, row, col, pct):
 
         cell = cFr(parent, bg="#FFFFFF", Bd=(1,GR)) ;cell._grid(R=row, C=col, Stk=ALL)
@@ -409,12 +425,53 @@ class ResultsWindow(tk.Tk):
             txt = f"{pct:.0f} %" if pct else "" 
             cLbl(cell, text=txt , bg="#FFFFFF", font=(MUI,9))._pack(py=(0,6))
 
+    #------------------- 日程切替 ボタン -------------------
+    def _mk_day_buttons(self, parent:tk.Frame):
+
+        for child in parent.winfo_children(): child.destroy()
+
+        self._day_btns = {}
+        labels, _ = build_day_lbl(to_date(self.date), self.venue_id)
+
+        for col, info in enumerate(labels):
+            if not info["visible"]: continue
+
+            dn   = info["label_no"]
+            d    = to_date(info["date"])
+            txt  = "初 日"  if dn == 1           else f"{dn}日目"
+            txt  = "最終日" if info["final_day"] else txt
+
+            btn  = cBtn(parent, text=txt, width=7, Com=lambda d=d:self._switch_day(d) )
+            btn._grid(R=0, C=col, px=2)
+
+            self._day_btns[d] = btn
+
+            if col >= 9: break
+
+        self._update_day_btn_style()
+
+    #-------------------------------------------------------
+    def _switch_day(self, d):
+
+        self.date = d
+        self._update_day_btn_style()
+        self._on_refresh()
+
+    #-------------------------------------------------------
+    def _update_day_btn_style(self):
+
+        for d, btn in self._day_btns.items():
+            if d == to_date(self.date):
+                btn.config(bg="#FFD700", fg="#222222", font=(MUI,8,BD), relief=GR)
+            else:
+                btn.config(bg="#4A6A9A", fg="#FFFFFF", font=(MUI,8,BD), relief=RA)
+
 #=================== エントリポイント ======================
 def main():
 
     parser = argparse.ArgumentParser(description="ボートレース 結果ウィンドウ")
-    parser.add_argument("--date",  required=True,           help="YYYY-MM-DD")
-    parser.add_argument("--venue", required=True, type=int, help="会場ID 1-24")
+    parser.add_argument("--date",   required=True,           help="YYYY-MM-DD")
+    parser.add_argument("--venue",  required=True, type=int, help="会場ID 1-24")
     args = parser.parse_args()
 
     app = ResultsWindow(date=args.date, venue_id=args.venue)

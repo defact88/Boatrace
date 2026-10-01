@@ -578,6 +578,7 @@ class RaceWindow(tk.Toplevel):
         self.flying      = True
         self.not_flying  = True
         self.exclude_edo = True if venue_id != 3 else False
+        self.on_mark     = False
         self._odds_proc    = None
         self._results_proc = None
 
@@ -660,7 +661,7 @@ class RaceWindow(tk.Toplevel):
         for child in parent.winfo_children(): child.destroy()
 
         self._day_btns = {}
-        labels, no_use = build_day_lbl(self.date, self.venue_id)
+        labels, _ = build_day_lbl(self.date, self.venue_id)
 
         for col, info in enumerate(labels):
             if not info["visible"]: continue

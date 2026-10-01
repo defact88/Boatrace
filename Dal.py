@@ -4,9 +4,18 @@
 from __future__ import annotations
 import os, re, sqlite3
 from contextlib import contextmanager
-from datetime   import datetime
+from datetime   import date, datetime as dt
 from pathlib    import Path
 from typing     import Iterable, Iterator, Optional, Sequence, Any
+
+def adapt_date_iso(val):
+    return val.isoformat()
+
+def adapt_datetime_iso(val):
+    return val.isoformat()
+
+sqlite3.register_adapter(date, adapt_date_iso)
+sqlite3.register_adapter(dt, adapt_datetime_iso)
 #---------------------------------------
 
 DB_PATH    = r"C:\boatrace\boatrace.db"
@@ -15,6 +24,7 @@ WRITE_HEAD = re.compile(
                  r"^(?:INSERT|UPDATE|DELETE|REPLACE|CREATE|ALTER|DROP|VACUUM|ATTACH)\b", re.I )
 
 _shared_conn:Optional[sqlite3.Connection] = None
+_total_changes:int                        = 0
 
 #---------------------------------------
 def _get_shared_conn() -> sqlite3.Connection:
@@ -90,20 +100,32 @@ def fetch_all(sql:str, params:Sequence[Any] = (), *, conn:Optional[sqlite3.Conne
 
 #---------------------------------------
 def execute(sql:str, params:Sequence[Any] = (), *, conn:Optional[sqlite3.Connection]=None):
+    global _total_changes
 
     if conn is not None:
-        return conn.execute(sql, params).rowcount
+        count = conn.execute(sql, params).rowcount
+        _total_changes += max(0, count)
+        return count
 
     with transaction() as c:
-        return c.execute(sql, params).rowcount
+        count = c.execute(sql, params).rowcount
+        _total_changes += max(0, count)
+        return count
 
 #---------------------------------------
-def executemany(sql:str, seq_params:Iterable[Sequence[Any]], *, conn:Optional[sqlite3.Connection]=None):
+def executemany( sql:str, seq_params:Iterable[Sequence[Any]],
+                    *, conn:Optional[sqlite3.Connection]=None ):
+    global _total_changes
 
     if conn is not None:
-        return conn.executemany(sql, seq_params).rowcount
+        count = conn.executemany(sql, seq_params).rowcount
+        _total_changes += max(0, count)
+        return count
+        
     with transaction() as c:
-        return c.executemany(sql, seq_params).rowcount
+        count = c.executemany(sql, seq_params).rowcount
+        _total_changes += max(0, count)
+        return count
 
 #---------------------------------------
 def executescript(script:str, *, conn:Optional[sqlite3.Connection]=None) -> None:
@@ -115,13 +137,19 @@ def executescript(script:str, *, conn:Optional[sqlite3.Connection]=None) -> None
         c.executescript(script)
 
 #---------------------------------------
+def total_changes() -> int:
+
+    global _total_changes
+    return _total_changes
+
+#---------------------------------------
 def _auto_backup(db_path: str):
 
     BACKUP_DIR.mkdir(parents=True, exist_ok=True)
     src = Path(db_path)
     if not src.exists():
         return
-    ts  = datetime.now().strftime("%Y%m%d_%H%M%S")
+    ts  = dt.now().strftime("%Y%m%d_%H%M%S")
     dst = BACKUP_DIR / f"boatrace_{ts}.db"
 
     with open(src, "rb") as fsrc, open(dst, "wb") as fdst:

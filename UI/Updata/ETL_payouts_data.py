@@ -1,12 +1,12 @@
 ﻿# -*- coding: utf-8 -*-
-# C:\boatrace\UI\Subprocess\ETL_odds_data.py
+# C:\boatrace\UI\Updata\ETL_get_payouts_data.py
 
 import argparse, time, os, sys
 import Dal as dal
-from datetime import datetime as dt, timedelta
+from datetime    import datetime as dt, timedelta
 
-from scraper_odds import fetch_all_odds
-from ev_scanner   import insert_odds_snapshot
+from get_payouts import upsert_payouts
+import ETL_K_results
 
 VENUES = [ "桐  生", "戸  田", "江戸川", "平和島", "多摩川", "浜名湖", "蒲  郡", "常  滑",
            "  津  ", "三  国", "びわこ", "住之江", "尼  崎", "鳴  門", "丸  亀", "児  島",
@@ -31,30 +31,29 @@ def get_target_races(d_iso:str, venue_id:int|None, race_no:int|None) -> list:
     return dal.fetch_all(sql, tuple(params))
 
 #-------------------------------------------------
-def check_odds_exists(d_iso:str, venue_id:int, race_no:int) -> bool:
+def exists_payouts(d_iso:str, venue_id:int, race_no:int) -> bool:
 
     rows = dal.fetch_all("""
-        SELECT captured_at,
-               COUNT(*) AS cnt
-          FROM Odds
+        SELECT COUNT(*) AS cnt
+          FROM Payouts
          WHERE date     =?
            AND venue_id =?
            AND race_no  =?
-      GROUP BY captured_at
+      GROUP BY date
     """,
     (d_iso, venue_id, race_no))
 
     for r in rows:
-        if r["cnt"] >= 212:
+        if r["cnt"] >= 1:
             return True
 
     return False
 #-------------------------------------------------
-def delete_existing_odds(d_iso:str, venue_id:int, race_no:int):
+def delete_existing_payouts(d_iso:str, venue_id:int, race_no:int):
 
     dal.execute("""
         DELETE
-          FROM Odds
+          FROM Payouts
          WHERE date     =?
            AND venue_id =?
            AND race_no  =?
@@ -65,35 +64,43 @@ def delete_existing_odds(d_iso:str, venue_id:int, race_no:int):
 def main(argv=None):
 
     p = argparse.ArgumentParser()
+    p.add_argument("--date",      required=False, help="指定日 (YYYY-MM-DD)")
     p.add_argument("--date_from", required=True,  help="開始日 (YYYY-MM-DD)")
     p.add_argument("--date_to",   required=True,  help="終了日 (YYYY-MM-DD)")
-    p.add_argument("--venue",     required=False, help="場指定")
-    p.add_argument("--race",      required=False, help="レース指定")
+    p.add_argument("--venue",     required=False, help="場(venue_id)指定")
+    p.add_argument("--race",      required=False, help="レース(race_no)指定")
+    p.add_argument("--from_html", action="store_true", help="公式ページHTMLから取得")
     p.add_argument("--overwrite", action="store_true", help="既存データを上書き")
-    
     args = p.parse_args(argv)
-    
-    try:
-        date_from = dt.strptime(args.date_from, "%Y-%m-%d").date()
-        date_to   = dt.strptime(args.date_to,   "%Y-%m-%d").date()
 
-    except ValueError:
-        print("[Error] 日付フォーマットは YYYY-MM-DD で指定してください。")
+    if args.date and (args.date_from or args.date_to):
+        print("date / (date_from , date_to) 両方の指定はできません")
+        raise SystemExit()
+    if (args.date_from and not args.date_to) or (args.date_to and not args.date_from):
+        print("(date_from , date_to) を併せて指定してください")
+        raise SystemExit()
+
+    if args.date:
+        d_from, d_to = args.date, args.date
+    elif args.date_from and args.date_to:
+        d_from, d_to = args.date_from, args.date_to
+    else:
+        _today       = dt.today().strftime("%Y-%m-%d")
+        d_from, d_to = _today, _today
+
+    if not args.from_html:
+        ETL_K_results.run_ETL(d_from, d_to, overwrite=args.overwrite, payouts_only=True)
         return
 
-    if date_from > date_to:
-        print("[Error] --date_from は --date_to と同じか、以前の日付を指定してください。")
-        return
+    current_date = dt.strptime(d_from, "%Y-%m-%d").date()
 
-    current_date = date_from
-
-    while current_date <= date_to:
+    while current_date <= dt.strptime(d_to, "%Y-%m-%d").date():
 
         d_iso = current_date.strftime("%Y-%m-%d")
-        d_str = current_date.strftime("%Y%m%d")
-        print(f"\n[{d_iso}] 対象レースの確認中...")
 
+        print(f"\n[{d_iso}] 対象レースの確認中...")
         target_races = get_target_races(d_iso, args.venue, args.race)
+
         if not target_races:
             print(f"  -> 対象レースが見つかりません。")
             current_date += timedelta(days=1)
@@ -103,7 +110,7 @@ def main(argv=None):
             venue_id = row["venue_id"]
             race_no  = row["race_no"]
 
-            exists = check_odds_exists(d_iso, venue_id, race_no)
+            exists = exists_payouts(d_iso, venue_id, race_no)
 
             if exists:
                 if not args.overwrite:
@@ -113,23 +120,20 @@ def main(argv=None):
                 else:
                     print( f"  [{d_iso} {VENUES[int(venue_id)-1]} {race_no:02d}R] "
                            f"既存データ削除 上書き更新します。"                     )
-                    delete_existing_odds(d_iso, venue_id, race_no)
+
+                    delete_existing_payouts(d_iso, venue_id, race_no)
+
             else:
                 print( f"  [{d_iso} {VENUES[int(venue_id)-1]} {race_no:02d}R] "
                        f"既存データ無し 取得開始..."                             )
 
             try:
-                data = fetch_all_odds(d_str, venue_id, race_no)
-                if data.get("error"):
-                    print(f"    [WARN] ページ取得エラー: {data['error']}")
+                data = upsert_payouts(d_iso, venue_id, race_no)
 
-                res = insert_odds_snapshot(data, current_date, venue_id, race_no, hits=[])
-                if res == 1:
-                    print(f"    -> 取得成功 (212件)")
-                elif res == 2:
-                    print(f"    -> 取得完了 (インサート件数 212件未満)")
+                if data < 1:
+                    print(f"    [WARN] データ取得失敗")
                 else:
-                    print(f"    -> 取得失敗 (保存対象データなし)")
+                    print(f"    -> 取得完了") 
 
                 time.sleep(1.0)
 

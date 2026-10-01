@@ -1,198 +1,190 @@
 ﻿# -*- coding: utf-8 -*-
-# C:\boatrace\UI\Subprocess\ETL_Before_info.py
+# get_payouts.py
 
-import time, sys, subprocess, argparse
-from datetime import datetime as dt, timedelta
+import sys, argparse, re, warnings, random, time, unicodedata
+from datetime  import datetime as dt
+from bs4       import BeautifulSoup, FeatureNotFound, XMLParsedAsHTMLWarning
+from curl_cffi import requests
 import Dal as dal
 
-# ------------------------------------------------------------
-def _combo(*frames) -> int:
-
-    return int("".join(str(f) for f in frames))
+warnings.filterwarnings("ignore", category=XMLParsedAsHTMLWarning)
 
 # ------------------------------------------------------------
-def _get_finish_frames(race_id:int) -> dict:
-
-    rows = dal.fetch_all("""
-               SELECT finish_rank, frame_no
-                 FROM Race_entries
-                WHERE race_id = ?
-                  AND finish_rank IS NOT NULL
-             ORDER BY finish_rank, frame_no
-               """,
-               (race_id,) )
-
-    result = {}
-    for rk, fr in rows:
-        result.setdefault(rk, []).append(fr)
-
-    return result
+HEADERS = { "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:142.0) Gecko/20100101 Firefox/142.0",
+            "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+            "Accept-Language": "ja,en-US;q=0.7,en;q=0.3",
+            "Upgrade-Insecure-Requests": "1",
+            "Sec-Fetch-Dest": "document",
+            "Sec-Fetch-Mode": "navigate",
+            "Sec-Fetch-Site": "none",
+            "Sec-Fetch-User": "?1",
+            "Connection": "keep-alive",                  }
 
 # ------------------------------------------------------------
-def _get_odds(race_id:int, bet_type:str, combo:int):
+def fetch_payout_html(d_iso:str, v_id:int, rno:int) -> str:
 
-    row = dal.fetch_one("""
-              SELECT odds
-                FROM Odds
-               WHERE race_id  = ?
-                 AND bet_type = ?
-                 AND combo    = ?
-              """,
-              (race_id, bet_type, combo) )
+    hd  = d_iso.replace("-", "")
+    url = f"https://www.boatrace.jp/owpc/pc/race/raceresult?rno={rno}&jcd={v_id:02d}&hd={hd}"
 
-    return row[0] if row else None
+    with requests.Session(impersonate="firefox") as session:
+        session.headers.update(HEADERS)
+        try:
+            time.sleep(random.uniform(1.6,3.2))
+            res = session.get(url, timeout=15)
+            res.raise_for_status()
+            return res
 
-# ------------------------------------------------------------
-def _payout(odds) -> int|None:
-
-    if odds is None:
-        return None
-    return int(odds * 10) * 10
+        except Exception as e:
+            print(f"HTML取得エラー: {e}")
+            return ""
 
 # ------------------------------------------------------------
-def _build_combo_sets(finish:dict) -> list[dict]:
+def parse_payouts_html(soup:BeautifulSoup) -> dict:
 
-    r1_list = finish.get(1, [])
-    r2_list = finish.get(2, [])
-    r3_list = finish.get(3, [])
+    results = { '3T':[], '3F':[], '2T':[], '2F':[], 'KK':[], 'TT':[], 'FF':[] }
+    if not soup:
+        return results
 
-    # --- 3T ---
-    three_t = []
-    for a in r1_list:
-        for b in r2_list:
-            for c in r3_list:
-                three_t.append(_combo(a, b, c))
+    tables       = soup.find_all("table", class_="is-w495")
+    payout_table = None
 
-    # --- 3F ---
-    three_f = sorted({_combo(*sorted([a, b, c])) for a in r1_list for b in r2_list for c in r3_list})
+    for tbl in tables:
+        th = tbl.find("th")
+        if th and "勝式" in th.text:
+            payout_table = tbl
+            break
 
-    # --- 2T ---
-    two_t = list(dict.fromkeys( _combo(a, b) for a in r1_list for b in r2_list))
+    if not payout_table:
+        return results
 
-    # --- 2F ---
-    two_f = sorted({_combo(*sorted([a, b])) for a in r1_list for b in r2_list})
+    bet_map      = { '3連単':'3T','3連複':'3F','2連単':'2T','2連複':'2F',
+                     '拡連複':'KK', '単勝':'TT', '複勝':'FF'              }
+    current_type = None
 
-    # --- TT ---
-    tt = sorted(r1_list)
+    for tr in payout_table.find_all("tr"):
+        tds = tr.find_all("td")
+        if not tds: continue
 
-    # --- FF ---
-    ff = sorted(set(r1_list) | set(r2_list))
+        idx_combo  = 0
+        idx_payout = 1
+        first_text = tds[0].text.strip()
 
-    # --- KK ---
-    kk = sorted( {_combo(*sorted([a, b])) for a in r1_list for b in r2_list} |
-                 {_combo(*sorted([a, c])) for a in r1_list for c in r3_list} |
-                 {_combo(*sorted([b, c])) for b in r2_list for c in r3_list}   )
+        if first_text in bet_map:
+            current_type = bet_map[first_text]
+            idx_combo    = 1
+            idx_payout   = 2
 
-    n = max(len(three_t), len(tt), 1)
+        if not current_type or len(tds) <= idx_payout:
+            continue
 
-    def _get(lst, i, none_val=9):
-        return lst[i] if i < len(lst) else none_val
+        combo_str  = tds[idx_combo ].text.strip().replace('\xa0', '')
+        payout_str = tds[idx_payout].text.strip().replace('\xa0', '')
 
-    sets = []
-    for i in range(n):
+        if not combo_str and not payout_str:
+            continue
+
+        payout_val = None
+        if payout_str:
+            p_nums = re.findall(r'\d+', payout_str.replace(',', ''))
+            if p_nums:
+                payout_val = int("".join(p_nums))
+
+        combo_val = None
+
+        if     "特払" in combo_str:
+            combo_val = 8
+        elif "不成立" in combo_str:
+            combo_val = 0
+            if payout_val is None: 
+                payout_val = 0
+        else:
+            nums = re.findall(r'\d+', combo_str)
+            if nums:
+                combo_val = int("".join(nums))
+
+        if combo_val is not None:
+            results[current_type].append({'combo':combo_val, 'payout':payout_val})
+
+    return results
+
+# ------------------------------------------------------------
+def _get_val(lst, idx, key, default):
+
+    if idx < len(lst):
+        v = lst[idx].get(key)
+        return v if v is not None else default
+
+    return default
+
+# ------------------------------------------------------------
+def build_combo_sets_from_parsed(results:dict) -> list[dict]:
+
+    rows     = []
+    n1       = max([len(results[k]) for k in ['3T', '3F', '2T', '2F', 'TT']] + [0])
+    n_ff     = (len(results['FF']) + 1) // 2
+    n_kk     = (len(results['KK']) + 2) // 3
+    num_rows = max(1, n1, n_ff, n_kk)
+
+    for i in range(num_rows):
         label = "normal" if i == 0 else f"tie_{i}"
 
-        c3T  = _get(three_t, i, 0) if three_t else 0
-        c3F  = _get(three_f, i, 9) if three_f else 0
-        c2T  = _get(two_t,   i, 9) if two_t   else 0
-        c2F  = _get(two_f,   i, 9) if two_f   else 0
-        cTT  = _get(tt,      i, 9) if tt      else 0
-        cFF1 = _get(ff,      0, 9)
-        cFF2 = _get(ff,      1, 9)
-        cKK1 = _get(kk,      0, 9) if kk      else 0
-        cKK2 = _get(kk,      1, 9) if kk      else 0
-        cKK3 = _get(kk,      2, 9) if kk      else 0
+        # 不在データ(非同着時のtie枠など)は全て None (SQLではNULL) とする
+        c3T  = _get_val(results['3T'], i,     'combo', None)
+        p3T  = _get_val(results['3T'], i,     'payout', None)
+        c3F  = _get_val(results['3F'], i,     'combo', None)
+        p3F  = _get_val(results['3F'], i,     'payout', None)
+        c2T  = _get_val(results['2T'], i,     'combo', None)
+        p2T  = _get_val(results['2T'], i,     'payout', None)
+        c2F  = _get_val(results['2F'], i,     'combo', None)
+        p2F  = _get_val(results['2F'], i,     'payout', None)
+        cTT  = _get_val(results['TT'], i,     'combo', None)
+        pTT  = _get_val(results['TT'], i,     'payout', None)
 
-        if i > 0:
-            if len(three_f) <= 1: c3F = 9
-            if len(two_f)   <= 1: c2F = 9
-            cFF1 = cFF2 = 9
-            if len(kk) <= 2: cKK1 = cKK2 = cKK3 = 9
+        cFF1 = _get_val(results['FF'], i*2,   'combo', None)
+        pFF1 = _get_val(results['FF'], i*2,   'payout', None)
+        cFF2 = _get_val(results['FF'], i*2+1, 'combo', None)
+        pFF2 = _get_val(results['FF'], i*2+1, 'payout', None)
 
-        sets.append( { "label": label,
-                         "c3T": c3T,   "c3F": c3F,   "c2T": c2T,   "c2F": c2F,   "cTT": cTT,
-                        "cFF1": cFF1, "cFF2": cFF2, "cKK1": cKK1, "cKK2": cKK2, "cKK3": cKK3, } )
+        cKK1 = _get_val(results['KK'], i*3,   'combo', None)
+        pKK1 = _get_val(results['KK'], i*3,   'payout', None)
+        cKK2 = _get_val(results['KK'], i*3+1, 'combo', None)
+        pKK2 = _get_val(results['KK'], i*3+1, 'payout', None)
+        cKK3 = _get_val(results['KK'], i*3+2, 'combo', None)
+        pKK3 = _get_val(results['KK'], i*3+2, 'payout', None)
 
-    return sets
+        rows.append( { "label":label,
+                         "c3T":c3T,   "c3F":c3F,   "c2T":c2T,   "c2F":c2F,   "cTT":cTT,
+                        "cFF1":cFF1, "cFF2":cFF2, "cKK1":cKK1, "cKK2":cKK2, "cKK3":cKK3,
+                         "p3T":p3T,   "p3F":p3F,   "p2T":p2T,   "p2F":p2F,   "pTT":pTT,
+                        "pFF1":pFF1, "pFF2":pFF2, "pKK1":pKK1, "pKK2":pKK2, "pKK3":pKK3  } )
+
+    return rows
 
 # ------------------------------------------------------------
-def upsert_payouts(d_iso:str, venue_id:int, race_no:int):
+def build_ids(d_iso:str, venue_id:int, race_no:int) -> int:
+
+    _date   = dt.strptime(d_iso, "%Y-%m-%d")
+    ymd     = _date.strftime("%y%m%d")
+    race_id = int(f"{ymd}{venue_id:02d}{race_no:02d}")
+
+    return race_id
+
+# ------------------------------------------------------------
+def upsert_payouts(d_iso:str, venue_id:int, race_no:int, soup:BeautifulSoup=None):
 
     race_id = build_ids(d_iso, venue_id, race_no)
-    finish  = _get_finish_frames(race_id)
 
-    if not finish:
+    if soup is None:
+        res = fetch_payout_html(d_iso, venue_id, race_no)
+        if not res: return
+        soup = BeautifulSoup(res.text,"lxml")
+
+    results = parse_payouts_html(soup)
+
+    if not any(results.values()):
         return
 
-    r1   = finish.get(1, [])
-    r2   = finish.get(2, [])
-    r3   = finish.get(3, [])
-    has3 = bool(r1 and r2 and r3)
-    has2 = bool(r1 and r2)
-    has1 = bool(r1)
-
-    combo_sets = _build_combo_sets(finish)
-    rows       = []
-
-    for s in combo_sets:
-
-        label = s["label"]
-        c3T   = s["c3T"]  ;c3F  = s["c3F"]
-        c2T   = s["c2T"]  ;c2F  = s["c2F"]
-        cTT   = s["cTT"]
-        cFF1  = s["cFF1"] ;cFF2 = s["cFF2"]
-        cKK1  = s["cKK1"] ;cKK2 = s["cKK2"] ;cKK3 = s["cKK3"]
-        #-----------
-        def po(bet_type:str, combo:int, valid:bool) -> int | None:
-
-            if not valid or combo in (0, 9):
-                return None
-            return _payout(_get_odds(race_id, bet_type, combo))
-        #-----------
-        def is_sp(bet_type:str, combo:int, valid:bool) -> bool:
-
-            if not valid or combo in (0, 9): return False
-            return _get_odds(race_id, bet_type, combo) is None
-        #-----------
-        any_special = any([ is_sp("3T", c3T,  has3), is_sp("3F",  c3F,  has3),
-                            is_sp("2T", c2T,  has2), is_sp("2F",  c2F,  has2),
-                            is_sp("TT", cTT,  has1),
-                            is_sp("FF", cFF1, has1), is_sp("FF",  cFF2, has1),
-                            is_sp("KK", cKK1, has3), is_sp("KK",  cKK2, has3),
-                            is_sp("KK", cKK3, has3),                           ])
-
-        if any_special:
-            rows.append({ "label":"special",
-                            "c3T":c3T  if is_sp("3T", c3T,  has3) else 9,
-                            "c3F":c3F  if is_sp("3F", c3F,  has3) else 9,
-                            "c2T":c2T  if is_sp("2T", c2T,  has2) else 9,
-                            "c2F":c2F  if is_sp("2F", c2F,  has2) else 9,
-                            "cTT":cTT  if is_sp("TT", cTT,  has1) else 9,
-                           "cFF1":cFF1 if is_sp("FF", cFF1, has1) else 9,
-                           "cFF2":cFF2 if is_sp("FF", cFF2, has1) else 9,
-                           "cKK1":cKK1 if is_sp("KK", cKK1, has3) else 9,
-                           "cKK2":cKK2 if is_sp("KK", cKK2, has3) else 9,
-                           "cKK3":cKK3 if is_sp("KK", cKK3, has3) else 9,
-                            "p3T":70   if is_sp("3T", c3T,  has3) else None,
-                            "p3F":70   if is_sp("3F", c3F,  has3) else None,
-                            "p2T":70   if is_sp("2T", c2T,  has2) else None,
-                            "p2F":70   if is_sp("2F", c2F,  has2) else None,
-                            "pTT":70   if is_sp("TT", cTT,  has1) else None,
-                           "pFF1":70   if is_sp("FF", cFF1, has1) else None,
-                           "pFF2":70   if is_sp("FF", cFF2, has1) else None,
-                           "pKK1":70   if is_sp("KK", cKK1, has3) else None,
-                           "pKK2":70   if is_sp("KK", cKK2, has3) else None,
-                           "pKK3":70   if is_sp("KK", cKK3, has3) else None, })
-
-        rows.append({ "label":label,
-                        "c3T":c3T,   "c3F":c3F,   "c2T":c2T,   "c2F":c2F,   "cTT":cTT,
-                       "cFF1":cFF1, "cFF2":cFF2, "cKK1":cKK1, "cKK2":cKK2, "cKK3":cKK3,
-                        "p3T":po("3T", c3T,  has3),  "p3F":po("3F", c3F,  has3),
-                        "p2T":po("2T", c2T,  has2),  "p2F":po("2F", c2F,  has2),
-                        "pTT":po("TT", cTT,  has1),
-                       "pFF1":po("FF", cFF1, has1), "pFF2":po("FF", cFF2, has1),
-                       "pKK1":po("KK", cKK1, has3), "pKK2":po("KK", cKK2, has3),
-                       "pKK3":po("KK", cKK3, has3),                                     })
+    combo_sets = build_combo_sets_from_parsed(results)
 
     sql = """
             INSERT INTO Payouts( race_id, date, venue_id, race_no, status,
@@ -231,18 +223,9 @@ def upsert_payouts(d_iso:str, venue_id:int, race_no:int):
                  r["c3T"],  r["c3F"],  r["c2T"],  r["c2F"],  r["cTT"],
                  r["cFF1"], r["cFF2"], r["cKK1"], r["cKK2"], r["cKK3"],
                  r["p3T"],  r["p3F"],  r["p2T"],  r["p2F"],  r["pTT"],
-                 r["pFF1"], r["pFF2"], r["pKK1"], r["pKK2"], r["pKK3"], ) for r in rows ]
+                 r["pFF1"], r["pFF2"], r["pKK1"], r["pKK2"], r["pKK3"], ) for r in combo_sets ]
 
-    dal.executemany(sql, params)
-
-# ------------------------------------------------------------
-def build_ids(d_iso:str, venue_id:int, race_no:int):
-
-    _date    = dt.strptime(d_iso, "%Y-%m-%d")
-    ymd      = _date.strftime("%y%m%d")
-    race_id  = int(f"{ymd}{venue_id:02d}{race_no:02d}")
-
-    return race_id
+    return dal.executemany(sql, params)
 
 #=====================================================================
 def main(argv=None):

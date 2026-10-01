@@ -28,10 +28,6 @@ HEADERS = { "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:142.0) G
             "Sec-Fetch-User": "?1",
             "Connection": "keep-alive",                  }
 
-# ----------------------------
-def yyyymmdd(s: str) -> str:
-
-    return s.replace("-", "")
 # ----------------------------------------------------------
 def build_ids(d_iso:str, venue_id:int, race_no:int, frame_no:int):
 
@@ -387,8 +383,8 @@ def main():
     ap.add_argument("--ALL_venue", action="store_true")
     ap.add_argument("--ALL_race",  action="store_true")
 
-    args  = ap.parse_args()
-    hd   = yyyymmdd(args.date)
+    args = ap.parse_args()
+    hd   = args.date.replace("-", "")
 
     if not args.venue and not args.ALL_venue:
         print(f"input 'venue_id' or select 「--ALL_venue」") ;return
@@ -468,7 +464,7 @@ def main():
                     return 2
                 continue
 
-            upsert_payouts(args.date, jcd, rno)
+            upsert_payouts(args.date, jcd, rno, soup)
 
             if args.ALL_race: print(f"[JCD={jcd}  {rno} R] done.")
 

@@ -27,8 +27,7 @@ def _wid(s: str) -> str:
 
 #  ============================== グラフ表示 ===================================
 # ==============================================================================
-def framing_graph( self, frame:tk.Frame, frame_order, rows1, rows2=None, s_lane=0,
-                                                     W=248, H=266):
+def framing_graph( self, frame:tk.Frame, frame_order, rows1, rows2=None, s_lane=0, W=248, H=266):
     #---------------
     def nz(v):
         try:    return float(v)
@@ -36,24 +35,20 @@ def framing_graph( self, frame:tk.Frame, frame_order, rows1, rows2=None, s_lane=
     #---------------
     for w in frame.winfo_children(): w.destroy()
 
-    Colr1    = "#FFF4AA" ;ColrA    = "#E5EAD5"
-    Colr2    = "#33EE33" ;ColrB    = "#CCF8CC"
-    Colr3    = "#2A62FF" ;ColrC    = "#92ADFF"
+    color1   = "#f5eaa5" ;colorA   = "#e4e7db"   #FFF4AA #E5EAD5
+    color2   = "#33EE33" ;colorB   = "#CCF8CC"
+    color3   = "#2A62FF" ;colorC   = "#92ADFF"
     EDGE1    = "#000010" ;EDGE2    = "#689d9b"
-    lane_col = "#9ee7ff" ;subj_col = "#8ddde9"
+    lane_col = "#84E0FF" ;subj_col = "#8ddde9"
 
     cv     = tk.Canvas(frame, width=W, height=H) ;cv.place(x=-2, y=-2)
     lane_H = H // 6
-    s_frno = frame_order[s_lane -1]
+    s_frno = frame_order[s_lane -1] if s_lane else None
+    on_mark = getattr(self, "on_mark", False)
 
-    for lane in range(1, 7):
-        frno  = frame_order[lane -1]
-        data  = rows1[frno]["own"] if rows1[frno].get("own", None) else rows1
-        s_row = rows1[s_frno] if s_lane else None
+    for lane in range(1,7):
 
-        sL   = (lane -1) *lane_H +2;eL = sL +lane_H
-        s1   = sL +15              ;e1 = s1 +10       # ｸﾞﾗﾌ1 始端/終端(Y)
-        s2   = e1 +2               ;e2 = s2 +5        # ｸﾞﾗﾌ2 始端/終端(Y)
+        sL = (lane -1) *lane_H +2  ;eL = sL +lane_H
 
         cv.create_rectangle(0, sL, W, eL, fill=(subj_col if lane == s_lane else lane_col))
 
@@ -61,36 +56,84 @@ def framing_graph( self, frame:tk.Frame, frame_order, rows1, rows2=None, s_lane=
         cv.create_line(   1, sL,    1, eL, fill="#a8a8a8", width=1) # 始端線
         cv.create_line(W//2, sL, W//2, eL, fill="#00ceff", width=1) # 中央線
 
-        if rows1[frno].get("absn", None): continue
+        frno     = frame_order[lane -1]
+        own_rows = rows1[frno  ]["own"] if rows1[frno].get("own", None) else rows1
+        oth_rows = rows1[s_frno]["oth"] if s_lane else None
 
-        if s_lane in [0, lane]:
-            rate1  = nz(data[lane]["rate"][1])
-            rate2  = nz(data[lane]["rate"][2])
-            rate3  = nz(data[lane]["rate"][3])
+        if own_rows[frno].get("absn", None): continue
+
+        if on_mark:
+            cy  = sL +6
+            gap = 1
+
+            for oth_lane in range(1,7):
+                oth_frno = frame_order[oth_lane -1]
+                oth_rows = rows1[oth_frno]["oth"]
+
+                if oth_frno == frno:
+                    rate1 = nz(own_rows[lane]["rate"][1])
+                    rate2 = nz(own_rows[lane]["rate"][2])
+                    rate3 = nz(own_rows[lane]["rate"][3])
+
+                    c1, c2, c3 = color1, color2, color3
+                    edge = EDGE1
+                    s_y  = cy
+                    e_y  = s_y +8
+                    cy  += 8 +gap
+                else:
+                    rate1 = oth_rows[oth_lane][lane][1]
+                    rate2 = oth_rows[oth_lane][lane][2]
+                    rate3 = oth_rows[oth_lane][lane][3]
+
+                    c1, c2, c3 = colorA, colorB, colorC
+                    edge = EDGE2
+                    s_y  = cy
+                    e_y  = s_y +4
+                    cy  += 4 + gap
+
+                seg1 =        int(W * rate1)
+                seg2 = seg1 + int(W * rate2)
+                seg3 = seg2 + int(W * rate3)
+
+                if seg1 > 0:
+                    cv.create_rectangle(   0, s_y, seg1, e_y, fill=c3, outline=edge, width=1)
+                if seg2 > seg1:
+                    cv.create_rectangle(seg1, s_y, seg2, e_y, fill=c2, outline=edge, width=1)
+                if seg3 > seg2:
+                    cv.create_rectangle(seg2, s_y, seg3, e_y, fill=c1, outline=edge, width=1)
+
         else:
-            rate1 = nz(s_row["oth"][s_lane][lane][1])
-            rate2 = nz(s_row["oth"][s_lane][lane][2])
-            rate3 = nz(s_row["oth"][s_lane][lane][3])
+            s1 = sL +15 ;e1 = s1 +10       # ｸﾞﾗﾌ1 始端/終端(Y)
+            s2 = e1 +2  ;e2 = s2 +5        # ｸﾞﾗﾌ2 始端/終端(Y)
 
-        seg1 =        int(W * rate1)
-        seg2 = seg1 + int(W * rate2)
-        seg3 = seg2 + int(W * rate3)
+            if s_lane in [0, lane]:
+                rate1  = nz(own_rows[lane]["rate"][1])
+                rate2  = nz(own_rows[lane]["rate"][2])
+                rate3  = nz(own_rows[lane]["rate"][3])
+            else:
+                rate1 = nz(oth_rows[s_lane][lane][1])
+                rate2 = nz(oth_rows[s_lane][lane][2])
+                rate3 = nz(oth_rows[s_lane][lane][3])
 
-        cv.create_rectangle(       0, s1, seg1, e1, fill=Colr3, outline=EDGE1, width=1)
-        if seg2 != seg1:
-            cv.create_rectangle(seg1, s1, seg2, e1, fill=Colr2, outline=EDGE1, width=1)
-        if seg3 != seg2:
-            cv.create_rectangle(seg2, s1, seg3, e1, fill=Colr1, outline=EDGE1, width=1)
+            seg1 =       int(W * rate1)
+            seg2 = seg1 +int(W * rate2)
+            seg3 = seg2 +int(W * rate3)
 
-        if rows2:
-            rateA = nz(rows2[lane]["rate"][1]) ;segA =        int(W * rateA)
-            rateB = nz(rows2[lane]["rate"][2]) ;segB = segA + int(W * rateB)
-            rateC = nz(rows2[lane]["rate"][3]) ;segC = segB + int(W * rateC)
-            cv.create_rectangle(       0, s2, segA, e2, fill=ColrC, outline=EDGE2, width=1)
-            if segB != segA:
-                cv.create_rectangle(segA, s2, segB, e2, fill=ColrB, outline=EDGE2, width=1)
-            if segC != segB:
-                cv.create_rectangle(segB, s2, segC, e2, fill=ColrA, outline=EDGE2, width=1)
+            cv.create_rectangle(       0, s1, seg1, e1, fill=color3, outline=EDGE1, width=1)
+            if seg2 != seg1:
+                cv.create_rectangle(seg1, s1, seg2, e1, fill=color2, outline=EDGE1, width=1)
+            if seg3 != seg2:
+                cv.create_rectangle(seg2, s1, seg3, e1, fill=color1, outline=EDGE1, width=1)
+
+            if rows2:
+                rateA = nz(rows2[lane]["rate"][1]) ;segA =        int(W * rateA)
+                rateB = nz(rows2[lane]["rate"][2]) ;segB = segA + int(W * rateB)
+                rateC = nz(rows2[lane]["rate"][3]) ;segC = segB + int(W * rateC)
+                cv.create_rectangle(       0, s2, segA, e2, fill=colorC, outline=EDGE2, width=1)
+                if segB != segA:
+                    cv.create_rectangle(segA, s2, segB, e2, fill=colorB, outline=EDGE2, width=1)
+                if segC != segB:
+                    cv.create_rectangle(segB, s2, segC, e2, fill=colorA, outline=EDGE2, width=1)
 
 # =========================== スリット図表示 ===================================
 # ==============================================================================

@@ -120,7 +120,7 @@ def build_main_placeholder(self, parent:tk.Frame):
         for col in range(14):
             cells = []
             for row in range(1, 5):
-                bd= (1,RA) if row == 1 else (1,GR)
+                bd= (1,RA) if row <= 1 else (1,GR)
                 fr_cell = cFr(fr_Rgt, W=29, H=33, bg="white", Bd=bd)
                 fr_cell._grid(R=row, C=col, Stk=ALL, py=(1,0)) ;fr_cell.Pgate()
                 cells.append(fr_cell)
@@ -198,20 +198,23 @@ def build_sub_placeholder(self, parent:tk.Frame): #  1188  318
     self.bt_fly = cBtn(fr_btnB, W=7, font=(MUI,8), text="Flying")
     self.bt_nfl = cBtn(fr_btnB, W=7, font=(MUI,8), text="NotFlying")
     self.bt_exE = cBtn(fr_btnB, W=7, font=(MUI,8), text="江戸川除外")
+    self.bt_mrk = cBtn(fr_btnB, W=7, font=(MUI,8), text="全マーク")     #←新規追加ボタン
 
     self.bt_fly.config(command=lambda:_switch_btn(self, self.bt_fly, "flying"))
     self.bt_nfl.config(command=lambda:_switch_btn(self, self.bt_nfl, "not_flying"))
     self.bt_exE.config(command=lambda:_switch_btn(self, self.bt_exE, "exclude_edo"))
+    self.bt_mrk.config(command=lambda:_switch_btn(self, self.bt_mrk, "on_mark"))
 
     self.bt_ctw._grid(R=0, C=0)
     self.bt_rst._grid(R=0, C=0)
     self.bt_fly._grid(R=0, C=1, px=(5,0))
     self.bt_nfl._grid(R=0, C=2)
     self.bt_exE._grid(R=0, C=3)
+    self.bt_mrk._grid(R=0, C=4, px=(5,0))
 
-    _config_btn(self, self.bt_fly, self.flying)
-    _config_btn(self, self.bt_nfl, self.not_flying)
-    _config_btn(self, self.bt_exE, self.exclude_edo)
+    _config_btn(self, self.bt_fly, getattr(self, "flying"))
+    _config_btn(self, self.bt_nfl, getattr(self, "not_flying"))
+    _config_btn(self, self.bt_exE, getattr(self, "exclude_edo"))
 
     fr_venA.Rconf(0, W=1) ;fr_venA.Cconf(0, W=1)
     fr_venA.Rconf(1, W=1)

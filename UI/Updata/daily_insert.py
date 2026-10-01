@@ -6,9 +6,11 @@ from pathlib    import Path
 from datetime   import datetime as dt, date, timedelta
 import argparse, subprocess, sys, os
 
-import update_FLstate
+from update_FLstate import update_FLstate
 import ETL_odds_data, ETL_Before_info, ETL_K_results, import_B_txt
 import Dal as dal
+
+BASE      = Path(r"C:\boatrace")
 
 LOG_PATH  = Path(r"C:\boatrace\Archive\logs\daily_insert")
 BEF_PATH  = Path(r"C:\boatrace\UI\Updata\ETL_Before_info.py")
@@ -115,8 +117,8 @@ def main():
 
     p = argparse.ArgumentParser()
     p.add_argument("--date",      default=None,         help="対象日(yyyy)")
-    p.add_argument("--date_from",                       help="期間開始(YYYY-MM-DD)")
-    p.add_argument("--date_to",                         help="期間終了(YYYY-MM-DD)")
+    p.add_argument("--date_from",                       help="開始日(YYYY-MM-DD)")
+    p.add_argument("--date_to",                         help="終了日(YYYY-MM-DD)")
     p.add_argument("--days",                            help="直近n日間不足日補填")
     p.add_argument("--overwrite",  action="store_true", help="上書きﾓｰﾄﾞ")
     p.add_argument("--background", action="store_true", help="BGモード")
@@ -126,22 +128,22 @@ def main():
         print("date / (date_from , date_to) 両方の指定はできません")
         raise SystemExit(2)
     if (args.date_from and not args.date_to) or (args.date_to and not args.date_from):
-        print("(--date_from , --date_to) を併せて指定してください")
+        print("(date_from , date_to) を併せて指定してください")
         raise SystemExit(2)
 
     if args.days:
-        d_f = (dt.today() - timedelta(days=args.days)).strftime("%Y-%m-%d")
-        d_t = dt.today().strftime("%Y-%m-%d")
+        d_from = (dt.today() - timedelta(days=args.days)).strftime("%Y-%m-%d")
+        d_to   =  dt.today().strftime("%Y-%m-%d")
     elif args.date:
-        d_f, d_t = args.date, args.date
+        d_from, d_to = args.date, args.date
     elif args.date_from and args.date_to:
-        d_f, d_t = args.date_from, args.date_to
+        d_from, d_to = args.date_from, args.date_to
     else:
-        _today   = dt.today().strftime("%Y-%m-%d")
-        d_f, d_t = _today, _today
+        _today       = dt.today().strftime("%Y-%m-%d")
+        d_from, d_to = _today, _today
 
-    _date = d_f
-    while _date <= d_t:
+    _date = d_from
+    while _date <= d_to:
         if not args.overwrite and ensure_programs(_date):
             print(f"[{_date}] B_file is already imported")
             call_K(yesterday(_date), args.overwrite, args.background)
@@ -149,11 +151,11 @@ def main():
             call_B(_date, args.overwrite, args.background)
             call_K(yesterday(_date), args.overwrite)
 
-        _date = (dt.fromisoformat(_date) + timedelta(days=1)).strftime("%Y-%m-%d")
+        _date = (dt.fromisoformat(_date) +timedelta(days=1)).strftime("%Y-%m-%d")
 
     update_FLstate()
 
-    run_ETL(yesterday(d_f), yesterday(d_t), args.background, args.overwrite)
+    run_ETL(yesterday(d_from), yesterday(d_to), args.background, args.overwrite)
 
     sys.exit(0)
 

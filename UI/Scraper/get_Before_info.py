@@ -324,7 +324,7 @@ def upsert_Before_info_partial(d_iso:str, v_id:int, r_no:int, per_frame, w ):
     dal.executemany(sql, params)
 
 # ====================================================================
-def main(args_list=None):
+def main(argv=None):
 
     ap = argparse.ArgumentParser()
     ap.add_argument("--date",  required=True, help="YYYY-MM-DD")
@@ -333,7 +333,7 @@ def main(args_list=None):
     ap.add_argument("--ALL_venue", action="store_true")
     ap.add_argument("--ALL_race",  action="store_true")
 
-    args = ap.parse_args(args_list)
+    args = ap.parse_args(argv)
     hd   = yyyymmdd(args.date)
 
     if not args.venue and not args.ALL_venue:

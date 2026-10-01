@@ -3,10 +3,71 @@
 
 import time, sys, subprocess, argparse
 from datetime          import datetime as dt, timedelta
-from check_Before_info import check_Before_info_data
 import get_Before_info
+import Dal as dal
 
 INTERVAL_SEC  = 5
+
+#=====================================================================
+def check_Before_info_data(date_from, date_to, quiet_mode=False):
+
+    sql = """
+        SELECT r.date, 
+               r.venue_id, 
+               r.race_no,
+               r.status,
+               COUNT(d.frame_no) as record_count,
+               SUM(CASE WHEN(d.is_absent = 0 AND e.fault_code != 'K') 
+                         AND( d.exhibition IS NULL OR 
+                                d.slit_ADJ IS NULL OR 
+                                    d.tilt IS NULL)
+                        THEN 1 ELSE 0 END) as missing_val_count
+
+          FROM Races r
+    INNER JOIN Race_entries e ON     r.date = e.date 
+                             AND r.venue_id = e.venue_id 
+                             AND  r.race_no = e.race_no
+
+     LEFT JOIN Before_info d  ON     e.date = d.date 
+                             AND e.venue_id = d.venue_id 
+                             AND  e.race_no = d.race_no 
+                             AND e.frame_no = d.frame_no
+
+         WHERE r.date BETWEEN ? AND ?
+      GROUP BY r.date, r.venue_id, r.race_no, r.status
+        HAVING (r.status != 'cancelled' AND record_count < 6)
+            OR (missing_val_count > 0)
+      ORDER BY r.date, r.venue_id, r.race_no;
+                """
+    try:
+        rows = dal.fetch_all(sql, (date_from, date_to))
+
+        if quiet_mode:
+            return len(rows) > 0
+
+        if not rows:
+            print(f"指定期間 ({date_from} ～ {date_to}) に不備のあるデータは見つかりませんでした。")
+            return
+
+        print(f"{'date':<12} | {'v_id':<4} | {'r_no':<4} | {'status':<10} | {'issue'}")
+        print("-" * 65)
+        
+        for r in rows:
+            issue = ""
+            if r['record_count'] < 6:
+                issue = f"Record missing ({r['record_count']}/6)"
+            else:
+                issue = f"Value missing ({r['missing_val_count']} boats)"
+                
+            print(f"{r['date']:<12} | {r['venue_id']:<4} | {r['race_no']:<4} | {r['status']:<10} | {issue}")
+
+        print("-" * 65)
+        print(f"合計: {len(rows)} 件の不備が見つかりました。")
+
+    except sqlite3.Error as e:
+        print(f"[SQL ERR] {e}")
+    except Exception as e:
+        print(f"[ERR] {e}")
 
 #---------------------------------------------------------------------
 def ETL_run(date_from:str, date_to:str, overwrite:bool=False):

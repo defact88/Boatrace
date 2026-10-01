@@ -245,13 +245,14 @@ CREATE TABLE Payouts(
   venue_id   INTEGER NOT NULL,
   race_no    INTEGER NOT NULL,
 
-  status     TEXT,  // 特殊ケースが何も無ければ 1レースに対して1レコード(status='normal')のみ
+  status     TEXT,  // 同着が無ければ 1レースに対して1レコード(status='normal')のみ
 
-  // status = 'normal'   (通常)        対象賭式成立: combo_xx = 該当組式(nnn or nn or n), payout_xx = 該当payout
-  // status = 'normal'   (通常)      対象賭式不成立: combo_xx =  0,                       payout_xx = None 
-  // status = 'tie_x'   (同着)   発生時対象有り賭式: combo_xx = 該当組式(nnn or nn or n), payout_xx = 該当payout
-  // status = 'special' (特払い) 発生時対象有り賭式: combo_xx = 該当組式(nnn or nn or n), payout_xx = 70
-  // status in('tie_x','special')発生時対象無し賭式: combo_xx =  9,                       payout_xx = None
+  // status = 'normal'「通常」    対象賭式成立: combo_xx = 該当組式(nnn or nn or n), payout_xx = 該当payout
+  // status = 'normal'「通常」  対象賭式不成立: combo_xx =  0,                       payout_xx = None 
+  // status = 'normal'「特払い」発生時対象賭式: combo_xx =  8,                       payout_xx = 70
+  // status = 'normal'「的中無」      対象賭式: combo_xx =  8,                       payout_xx = None
+  // status = 'tie_x' 「同着」  発生時対象賭式: combo_xx = 該当組式(nnn or nn or n), payout_xx = 該当payout
+  // status = 'tie_x' 「同着」発生時対象外賭式: combo_xx =  9,                       payout_xx = None
 
   combo_3T   INTEGER NOT NULL,
   combo_3F   INTEGER NOT NULL,
@@ -277,7 +278,7 @@ CREATE TABLE Payouts(
 
   PRIMARY KEY (race_id, status)
 
-  CHECK( status IN ('normal', 'tie_1', 'tie_2', 'special') )
+  CHECK( status IN ('normal', 'tie_1', 'tie_2') )
 
 );
 

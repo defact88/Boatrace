@@ -8,8 +8,9 @@ from lhafile   import lhafile
 from curl_cffi import requests
 import argparse, sys, re, sqlite3, shutil, random, time
 # ----------------- 外部依存 ---------------------
-from parse_and_upsert    import upsert_Races, upsert_Race_entries
+from parse_and_upsert    import upsert_Races, upsert_Race_entries, upsert_Payouts_from_K
 from upsert_Grade        import upsert_Grade
+import Dal as dal
 
 # ------------------- パス -----------------------
 BASE           = Path(r"C:\boatrace")
@@ -29,22 +30,19 @@ HEADERS = { "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:142.0) G
             "Sec-Fetch-Site": "none",
             "Sec-Fetch-User": "?1",
             "Connection": "keep-alive",
-}
+          }
+
+VENUES = [ "桐  生", "戸  田", "江戸川", "平和島", "多摩川", "浜名湖", "蒲  郡", "常  滑",
+           "  津  ", "三  国", "びわこ", "住之江", "尼  崎", "鳴  門", "丸  亀", "児  島",
+           "宮  島", "徳  山", "下  関", "若  松", "芦  屋", "福  岡", "唐  津", "大  村"  ]
 
 #---------------- ユーティリティ -----------------
-def conn() -> sqlite3.Connection:
-
-    c = sqlite3.connect(str(DB_PATH))
-    c.execute("PRAGMA foreign_keys=ON;")
-
-    return c
-# ----------------------------
 def daterange(d0:dt, d1:dt):
 
     cur = d0
     while cur <= d1:
         yield cur
-        cur = cur + timedelta(days=1)
+        cur = cur +timedelta(days=1)
 #-----------------------------
 def date_from_filename(name:str):
 
@@ -145,15 +143,15 @@ def bring_from_archive(d:dt):
 def try_download(d:dt):
 
     saved:List[Path] = []
-    yyyymm = d.strftime("%Y%m")
-    yymmdd = d.strftime("%y%m%d")
-    url    = f"http://www1.mbrace.or.jp/od2/K/{yyyymm}/k{yymmdd}.lzh"
-    out    = DIR_DL / f"K{d.strftime('%y%m%d')}.lzh"
+    yyyymm           = d.strftime("%Y%m")
+    yymmdd           = d.strftime("%y%m%d")
+    url              = f"http://www1.mbrace.or.jp/od2/K/{yyyymm}/k{yymmdd}.lzh"
+    out              = DIR_DL / f"K{d.strftime('%y%m%d')}.lzh"
 
     with requests.Session(impersonate="firefox") as session:
         session.headers.update(HEADERS)
         try:
-            time.sleep(random.uniform(1.6,3.2))
+            time.sleep(random.uniform(1.6,2.2))
             res = session.get(url, timeout=15)
             if res.status_code != 200 or not res.content: return None
     
@@ -170,16 +168,17 @@ def try_download(d:dt):
 def stage_DL_to_INBOX(files:List[Path]):
 
     staged:List[Path] = []
+
     for f in files:
         lhf = None
-
         try:
-            lhf  = lhafile.Lhafile(str(f))
+            lhf = lhafile.Lhafile(str(f))
             for info in lhf.infolist():
                 nm   = Path(info.filename).name
                 data = lhf.read(info.filename)
                 outp = DIR_INBOX / nm.upper()
                 outp.write_bytes(data)
+
                 print(f"extracted: {f.name} -> K_Files")
                 staged.append(outp)
 
@@ -197,6 +196,7 @@ def archive_and_cleanup(txts:List[Path]):
         try:
             if dest.exists(): dest.unlink()
             shutil.move(str(t), str(dest))
+
             print(f"archived: {t.name} ")
             cnt_arc += 1
         except Exception as e: print(f"archive失敗: {t} ({e})")
@@ -211,27 +211,35 @@ def archive_and_cleanup(txts:List[Path]):
             except Exception: pass
 
 # --------------------- SQL Summary ------------------------
-def current_counts(c:sqlite3.Connection,dates:Optional[Set[str]]=None) -> Dict[str, int]:
+def current_counts(dates:Optional[Set[str]]=None) -> Dict[str,int]:
 
-    if dates:
-        placeholders = ",".join("?" for _ in dates)
-        q_dates      = f"AND date IN ({placeholders})"
-        params       = tuple(sorted(dates))
-    else:
-        q_dates      = ""
-        params       = ()
-    sql_txt = f"SELECT COUNT(*) FROM"
-    races   = c.execute(
-        f"{sql_txt} races WHERE 1=1 {q_dates}", params).fetchone()[0]
-    canc    = c.execute(
-        f"{sql_txt} races WHERE status='cancelled' {q_dates}",params).fetchone()[0]
-    entries = c.execute(
-        f"{sql_txt} race_entries WHERE race_id IN "
-        f"(SELECT race_id FROM races WHERE 1=1 {q_dates})",params).fetchone()[0]
+    q_dates = f"({",".join("?" for _ in dates)})" if dates else ""
+    params  = tuple(sorted(dates))                if dates else ()
 
-    c.close()
+    races   = dal.fetch_one(f"""
+                  SELECT COUNT(*)
+                    FROM races
+                   WHERE 1=1
+                     AND date IN {q_dates}
+                  """, params)[0]
 
-    return {"races": races, "cancelled": canc, "entries": entries}
+    cancel  = dal.fetch_one(f"""
+                  SELECT COUNT(*)
+                    FROM races
+                   WHERE status='cancelled'
+                     AND date IN {q_dates}
+                  """, params)[0]
+
+    entries = dal.fetch_one(f"""
+                  SELECT COUNT(*)
+                    FROM race_entries
+                   WHERE race_id IN ( SELECT race_id
+                                        FROM races
+                                       WHERE 1=1
+                                         AND date IN {q_dates} )
+                  """, params)[0]
+
+    return {"races":races, "cancelled":cancel, "entries":entries}
 
 #-----------------------------------------------------------
 def decode_sjis(path:Path) -> str:
@@ -244,65 +252,76 @@ def decode_sjis(path:Path) -> str:
     return b.decode("cp932", errors="ignore")
 
 #-----------------------------------------------------------
-def import_K_txt(paths:Iterable[Path], overwrite:bool) -> dict:
+def import_K_txt(paths:Iterable[Path], overwrite:bool, payouts_only:bool=False) -> dict:
 
     RE_BLOCK = re.compile(r"(?P<vid>\d{2})KBGN(?P<body>.*?)(?:KEND)",re.S)
-    total    = {"ins_r":0,"upd_r":0, "cnt_canc":0}; cnt_f = 0
+    total    = {"ins_r":0, "upd_r":0, "cnt_canc":0}
+    cnt_f    = 0
+
     for path in paths:
-        cnts = {"ins_r":0,"upd_r":0, "cnt_canc":0}
-        text = decode_sjis(path)
+        cnts  = {"ins_r":0, "upd_r":0, "cnt_canc":0}
+        text  = decode_sjis(path)
+        _date = date_from_filename(path.name)
+
+        if payouts_only: print(f"[{_date}]")
 
         for m in RE_BLOCK.finditer(text):
-            v_id     = int(m.group("vid"))
-            body     =     m.group("body")
-            meta     = upsert_Races(venue_id= v_id, body= body, filename= path.name,
-                                      overwrite= overwrite)
-            cnt_r = meta[1]
-            for key in cnts: cnts[key] += cnt_r[key]
+            v_id  = int(m.group("vid"))
+            body  =     m.group("body")
 
-            upsert_Race_entries(venue_id= v_id, body= body, date_iso= meta[0])
+            if not payouts_only:
+                meta  = upsert_Races(v_id, body, path.name, overwrite)
+                cnt_r = meta[1]
+                for key in cnts: cnts[key] += cnt_r[key]
+
+                upsert_Race_entries(v_id, body, meta[0])
+
+            p_cnt = upsert_Payouts_from_K(v_id, body, _date)
+            if payouts_only: print(f"[{VENUES[int(v_id-1)]}]: {p_cnt} 件 UPSERT")
 
         for key in total:
             total[key] += cnts[key]
 
-        cnt_f   += 1
+        cnt_f += 1
         print(f"import_K_txt  done: {path.name}")
 
     sums = (cnt_f, total)
 
     return sums
 
-# -------------------------- CLI ----------------------------
-def parse_args(argv=None):
-
-    ap = argparse.ArgumentParser(description="")
-    ap.add_argument("--date_from",                      help="開始日(YYYY-MM-DD)")
-    ap.add_argument("--date_to",                        help="終了日(YYYY-MM-DD)")
-    ap.add_argument("--overwrite", action="store_true", help="上書きﾓｰﾄﾞ")
-    ap.add_argument("--no_grade",  action="store_true", help="Skip grade upsert")
-    ap.add_argument("--external",  action="store_true", help="外部実行ﾓｰﾄﾞ")
-    ap.add_argument("--DL_only",   action="store_true", help="DL→展開→archiveのみ")
-
-    return ap.parse_args(argv)
-
-#=================================== Main ======================================
+#============================== Main =================================
 def main(argv=None):
 
-    args       = parse_args(argv)
-    range_mode = bool(args.date_from and args.date_to)
+    ap = argparse.ArgumentParser()
+    ap.add_argument("--date_from",                         help="開始日(YYYY-MM-DD)")
+    ap.add_argument("--date_to",                           help="終了日(YYYY-MM-DD)")
+    ap.add_argument("--overwrite",    action="store_true", help="上書きﾓｰﾄﾞ")
+    ap.add_argument("--no_grade",     action="store_true", help="Skip grade upsert")
+    ap.add_argument("--external",     action="store_true", help="外部実行ﾓｰﾄﾞ")
+    ap.add_argument("--DL_only",      action="store_true", help="DL→展開→archiveのみ")
+    ap.add_argument("--payouts_only", action="store_true", help="payouts only mode")
+    args = ap.parse_args(argv)
+
+    run_ETL( args.date_from, args.date_to, args.overwrite, args.no_grade,
+                            args.payouts_only, args.external, args.DL_only )
+
+#=====================================================================
+def run_ETL( date_from:int, date_to:int, overwrite:bool=False, no_grade:bool=False,
+                   payouts_only:bool=False, external:bool=False, DL_only:bool=False ):
+
+    range_mode = bool(date_from and date_to)
 
     if range_mode:
-        if not ensure_empty_escape(DIR_DL,  "Downloads", args.external): return 1
-        if not ensure_empty_escape(DIR_INBOX, "INBOX/K", args.external): return 1
+        if not ensure_empty_escape(DIR_DL,  "Downloads", external): return 1
+        if not ensure_empty_escape(DIR_INBOX, "INBOX/K", external): return 1
 
     total_f                = 0
     staged_txts:List[Path] = []
 
     if range_mode:
         try:
-            d0 = dt.strptime(args.date_from, "%Y-%m-%d")
-            d1 = dt.strptime(args.date_to,   "%Y-%m-%d")
-
+            d0 = dt.strptime(date_from, "%Y-%m-%d")
+            d1 = dt.strptime(date_to,   "%Y-%m-%d")
         except ValueError:
             print("日付は YYYY-MM-DD で指定してください"); return 2
 
@@ -317,7 +336,7 @@ def main(argv=None):
             total_f += 1
 
             if arc_path.exists():
-                if not args.DL_only:
+                if not DL_only:
                     moved = bring_from_archive(d)
                     if moved: staged_txts.append(moved)
                 continue
@@ -334,14 +353,13 @@ def main(argv=None):
 
     else: staged_txts = sorted(DIR_INBOX.glob("K*.TXT"))
 
-    if args.DL_only:
+    if DL_only:
         if staged_txts:
             archive_and_cleanup(staged_txts)
             print( f"[INFO] --DL_only-- : import/grade を実行せず "
                    f"DL/展開分を Archive へ移動しました。"           )
         else:
             print("[INFO] --DL_only-- : 処理対象がありません。")
-
         return 0
 
     target_dates:set[str] = set()
@@ -350,65 +368,65 @@ def main(argv=None):
         _date = date_from_filename(p.name)
         if _date: target_dates.add(_date)
 
-    with conn() as c:
-        before = current_counts(c, target_dates if target_dates else None)
+    before = current_counts(target_dates if target_dates else None)
 
     if staged_txts:
-        sums = import_K_txt(staged_txts, args.overwrite)
+        sums = import_K_txt(staged_txts, overwrite, payouts_only)
         print(f"imported {len(staged_txts)} file(s).\n")
     else:
-        print("INBOX に K*.TXT がありません")
         sums = (0, {"ins_r":0,"upd_r":0,"cnt_canc":0})
+        print("INBOX に K*.TXT がありません")
 
-    with conn() as c:
-        after = current_counts(c, target_dates if target_dates else None)
+    after = current_counts(target_dates if target_dates else None)
 
-    if staged_txts: archive_and_cleanup(staged_txts)
+    if staged_txts:
+        archive_and_cleanup(staged_txts)
 
-    # ------------ サマリ --------------
-    missing = total_f - sums[0]
-    cnts    = sums[1]
-    cancell = cnts["cnt_canc"]
-    ins_r   = cnts["ins_r"]
-    upd_r   = cnts["upd_r"]
-    mode    = "Overwrite (Upsert)" if args.overwrite else "Normal (Insert)"
+    if not payouts_only:
+        # ------------ サマリ --------------
+        missing = total_f - sums[0]
+        cnts    = sums[1]
+        cancell = cnts["cnt_canc"]
+        ins_r   = cnts["ins_r"]
+        upd_r   = cnts["upd_r"]
+        mode    = "Overwrite (Upsert)" if overwrite else "Normal (Insert)"
 
-    print( f"\n== SUMMARY ==\n"
-           f" Mode: {mode} \n"
-           f" Inport K file   total = {total_f} ( miss  {missing}) \n"
-           f"        [Races]:INSERT = {ins_r} (cancelled {cancell})/ UPDATE = {upd_r} \n"
-           f" [Race_entries]:INSERT =             / UPDATE = "                            )
+        print( f"\n== SUMMARY ==\n"
+               f" Mode: {mode} \n"
+               f" Inport K file   total = {total_f} ( miss  {missing}) \n"
+               f"        [Races]:INSERT = {ins_r} (cancelled {cancell})/ UPDATE = {upd_r} \n"
+               f" [Race_entries]:INSERT =             / UPDATE = "                            )
+ 
+        # -------- グレード補填 ------------
+        if range_mode:
+            date_from = date_from
+            date_to   = date_to
+        else:
+            dates = []
+            for p in staged_txts:
+                d = date_from_filename(p.name)
+                if d: dates.append(d)
 
-    # -------- グレード補填 ------------
-    if range_mode:
-        date_from = args.date_from
-        date_to   = args.date_to
-    else:
-        dates = []
-        for p in staged_txts:
-            d = date_from_filename(p.name)
-            if d: dates.append(d)
+            date_from = min(dates) if dates else None
+            date_to   = max(dates) if dates else None
 
-        date_from = min(dates) if dates else None
-        date_to   = max(dates) if dates else None
+        years = []
+        if date_from and date_to:
+            y_s    = int(date_from[:4])
+            y_e    = int(  date_to[:4])
+            years  = list(range(y_s, y_e +1))
 
-    years = []
-    if date_from and date_to:
-        y_s    = int(date_from[:4])
-        y_e    = int(  date_to[:4])
-        years = list(range(y_s, y_e +1))
+        elif date_from: years = [int(date_from[:4])]
+        elif date_to:   years = [int(  date_to[:4])]
 
-    elif date_from: years = [int(date_from[:4])]
-    elif date_to:   years = [int(  date_to[:4])]
+        if not no_grade:
+            for y in years:
+                print( f"\n== upsert_Grade == \n"
+                       f" year : {y} / range : ({date_from}～{date_to}) \n" )
 
-    if not args.no_grade:
-        for y in years:
-            print( f"\n== upsert_Grade == \n"
-                   f" year : {y} / range : ({date_from}～{date_to}) \n" )
-
-            upsert_Grade(year=y, date_from=date_from, date_to=date_to, overwrite=args.overwrite)
-    else:
-        print("[INFO] -- no_grade -- :skipping grade upsert. \n")
+                upsert_Grade(year=y, date_from=date_from, date_to=date_to, overwrite=overwrite)
+        else:
+            print("[INFO] -- no_grade -- :skipping grade upsert. \n")
 
     return 0
 

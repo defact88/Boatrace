@@ -50,6 +50,7 @@ ETL_K_results.py,          --overwrite,  required=False
 ETL_K_results.py,          --no_grade,   required=False
 ETL_K_results.py,          --external,   required=False
 ETL_K_results.py,          --DL_only,    required=False
+ETL_K_results.py,          --payouts_only, required=False
 
 upsert_Grade.py,           --year,       required=False
 upsert_Grade.py,           --overwrite,  required=False
@@ -102,6 +103,13 @@ ETL_odds_data.py,          --date_to,    required=True
 ETL_odds_data.py,          --venue,      required=False
 ETL_odds_data.py,          --race,       required=False
 ETL_odds_data.py,          --overwrite,  required=False
+
+ETL_payouts_data.py,       --date_from,  required=True
+ETL_payouts_data.py,       --date_to,    required=True
+ETL_payouts_data.py,       --venue,      required=False
+ETL_payouts_data.py,       --race,       required=False
+ETL_payouts_data.py,       --from_html,  required=False
+ETL_payouts_data.py,       --overwrite,  required=False
 
 get_today_info.py,          flag,        required=True
 get_today_info.py,          --date,      required=True

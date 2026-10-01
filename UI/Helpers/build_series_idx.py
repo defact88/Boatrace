@@ -389,7 +389,7 @@ def _paint_abcd(self, cells:list[tk.Frame], r_no, cour, s_adj, fin, _date, f_no:
     lbl.bind("<Button-1>", lambda e:self._reload_for(_date, self.venue_id, r_no, result=True))
     lbl.pack(expand=True, fill="both")
 
-    cLbl( cells[1], text=cour,           **col,             Anc=CT, font=(MUI,8,BD)
+    cLbl( cells[1], text=cour,           **col, Bd=(1,RD),  Anc=CT, font=(MUI,8,BD)
          )._pack(expand=True, fill="both", px=1)
     cLbl( cells[2], text=wid_txt(s_adj), fg=fg, bg="white", Anc=CT, font=(MUI,8)
          )._pack(expand=True, fill="both")

@@ -106,7 +106,7 @@ class OddsWindow(tk.Tk):
                                 ("",             30, CT),
                                 ("  予想配当",  180, CT ), ]
 
-        self._update_Players(self.date, self.venue_id, self.race_no)
+        self._fetch_Players(self.date, self.venue_id, self.race_no)
         self._build_ui()
 
         th = threading.Thread(target=self._read_stdin_loop, daemon=True)
@@ -503,23 +503,30 @@ class OddsWindow(tk.Tk):
                 self._set_check_var( self.mustin_vars, (boat_no, pos),
                                      self.mustin.get(boat_no,{}).get(pos, False) )
 
-    #==================== レース切替 =======================
+    #-------------------------------------------------------
+    def _update_race_btn_style(self):
+
+        for rno, btn in self._race_btns.items():
+            if rno == self.race_no:
+                btn.config(bg="#FFD700", fg="#222222", font=(MUI,8,BD), relief=GR)
+            else:
+                btn.config(bg="#4A6A9A", fg="#FFFFFF", font=(MUI,8,BD), relief=RA)
+
+    #-------------------- レース切替 -----------------------
     def _switch_race(self, race_no:int):
 
         if self.loading: return
-
-        self.race_no = race_no
         for w in self.grid_frame.winfo_children(): w.destroy()
 
+        self.race_no = race_no
         self.cell_refs.clear()
         self.grid_items.clear()
 
         d = dt.fromisoformat(self.date).strftime("%Y 年 %#m 月 %#d 日")
-
         self.lbl_title1.config(text=f" {d}    {VENUES[self.venue_id]}   ")
         self.lbl_title2.config(text=f"{self.race_no} R    ")
         self._update_race_btn_style()
-        self._update_Players(self.date, self.venue_id, self.race_no)
+        self._fetch_Players(self.date, self.venue_id, self.race_no)
         self.selected.clear()
         self.deadline  = self._fetch_deadline(self.date, self.venue_id, self.race_no)[0]
         self.mustin    = self._new_mustin_state()
@@ -535,16 +542,8 @@ class OddsWindow(tk.Tk):
             self.after_id = None
 
         self.fetch_state = True
+
         self._start_fetch()
-
-    #-------------------------------------------------------
-    def _update_race_btn_style(self):
-
-        for rno, btn in self._race_btns.items():
-            if rno == self.race_no:
-                btn.config(bg="#FFD700", fg="#222222", font=(MUI,8,BD), relief=GR)
-            else:
-                btn.config(bg="#4A6A9A", fg="#FFFFFF", font=(MUI,8,BD), relief=RA)
 
     #================ フェッチ & タイマー ==================
     def _start_fetch(self):
@@ -562,42 +561,55 @@ class OddsWindow(tk.Tk):
     def _fetch_worker(self):
         #-----------
         def on_prog(key):
-            self.after(0, lambda k=key: self.title(f"{k} 完了"))
+            self.after(0, lambda k=key:self.title(f"{k} 完了"))
         #-----------
         try:
             data = fetch_all_odds( self.date.replace("-", ""), self.venue_id, self.race_no,
                                                                        on_progress=on_prog  )
         except Exception as e:
-            self.after(0, lambda: self.title(f"取得失敗: {e}"))
+            self.after(0, lambda:self.title(f"取得失敗: {e}"))
             self.loading = False
             return
-        self.after(0, lambda d=data: self._on_fetched(d))
+
+        self.after(0, lambda d=data:self._on_fetched(d))
 
     #-------------------------------------------------------
     def _on_fetched(self, data:dict):
 
         self.odds_data = data
+        self.final     = data["final"]
         self.loading   = False
-        err = data.get("error")
+        err            = data.get("error")
         self.title(f" {err}" if err else "更新完了")
         self._rebuild_grids()
         self._refresh_tree()
+
         self._schedule_next()
 
-    #---------------------------------------------------------------------------
+    #-------------------------------------------------------
+    def _rebuild_grids(self):
+
+        if not self.grid_items:
+            self._build_all_grids()
+        else:
+            self._refresh_grid_cells()
+
+    #-------------------------------------------------------
     def _schedule_next(self): 
 
         if (dt.fromisoformat(self.deadline) +timedelta(minutes=10)) <= dt.now():
-            if self. final:
+            if self.final:
                 self.lbl_next.config(text=f"投票締切  確定オッズ", fg="#ff8585")
-                self.fetch_state = False
             else:
                 self.lbl_next.config(text=f"更新停止")
-                self.fetch_state = False
-        if dt.now() +timedelta(minutes=1) >= dt.fromisoformat(self.deadline):
+            self.fetch_state = False
+            return
+
+        elif dt.now() +timedelta(minutes=1) >= dt.fromisoformat(self.deadline):
             self.interval = 15
         else:
-            self.interval = self.var_int.get() * 60
+            self.interval = self.var_int.get() *60
+
         self._tick_remaining = self.interval
 
         if self.after_id is not None:
@@ -614,20 +626,12 @@ class OddsWindow(tk.Tk):
                 self.lbl_next.config(text="")
                 self._start_fetch()
                 return
-            self.lbl_next.config(text=f"次回更新 {self._tick_remaining} 秒")
+            self.lbl_next.config(text=f"次回更新 {self._tick_remaining} 秒", fg="#AADDFF")
             self._tick_remaining -= 1
 
         self.after_id = self.after(1000, self._tick)
 
     #================= オッズグリッド更新 ==================
-    def _rebuild_grids(self):
-
-        if not self.grid_items:
-            self._build_all_grids()
-        else:
-            self._refresh_grid_cells()
-
-    #-------------------------------------------------------
     def _build_all_grids(self):
 
         d = self.odds_data
@@ -656,8 +660,6 @@ class OddsWindow(tk.Tk):
         self._build_others(blk4, "単勝", "TT", d.get("TT",{}))
         self._build_others(blk4, "複勝", "FF", d.get("FF",{}))
 
-        self.final = d["final"]
-
         self._refresh_grid_cells()
 
     #---------------- ブロック共通フレーム -----------------
@@ -676,6 +678,7 @@ class OddsWindow(tk.Tk):
 
         names = getattr(self, 'players', {})
         boats = [1, 2, 3, 4, 5, 6]
+
         for col, num1 in enumerate(boats):
             bg = FRM_BG[num1]
             fg = FRM_FG[num1]
@@ -709,6 +712,7 @@ class OddsWindow(tk.Tk):
 
                     key   = (num1, num2, num3)
                     label = f"３連単 {num1}ー{num2}ー{num3}"
+
                     self._grid_data_cell(fr, "3T", 90, ROW_H, row, col*3+2, data, key, label, 1)
 
                     row += 1
@@ -724,6 +728,7 @@ class OddsWindow(tk.Tk):
 
         ii  = 4
         b_2 = boats_2[:]
+
         for col, num1 in enumerate(range(1, 5)):
             bg = FRM_BG[num1]
             fg = FRM_FG[num1]
@@ -735,6 +740,7 @@ class OddsWindow(tk.Tk):
             i   = ii
             row = 1
             b_3 = boats_3[:]
+
             for num2 in b_2:
                 fr2 = cFr(fr, W=20, H=ROW_H*i, bg=FRM_BG[num2], Rel=GR, bd=1)
                 fr2.pack_propagate(False)
@@ -749,8 +755,9 @@ class OddsWindow(tk.Tk):
                     cLbl( fr3, text=str(num3), bg=FRM_BG[num3], fg=FRM_FG[num3], font=(MUI,9,BD)
                          )._pack(expand=True)
 
-                    key      = (num1, num2, num3)
+                    key   = (num1, num2, num3)
                     label = f"３連複 {num1}={num2}={num3}"
+
                     self._grid_data_cell(fr, "3F", 90, ROW_H, row, col*3+2, data, key, label, 1)
 
                     row += 1
@@ -782,9 +789,10 @@ class OddsWindow(tk.Tk):
 
                 key   = (num1, num2)
                 label = f"拡連複 {num1} ≡ {num2} "
+
                 self._grid_data_cell(fr, "KK", 110, ROW_H, row+i2, i*3+5, kk, key, label, 2)
 
-            try: del out[0]
+            try:    del out[0]
             except: pass
 
     #----------------------- 2連単 -------------------------
@@ -809,6 +817,7 @@ class OddsWindow(tk.Tk):
 
                 key   = (num1, num2)
                 label = f"２連単  {num1} ー {num2} "
+
                 self._grid_data_cell(fr, "2T", 80, ROW_H, row*5+row2, 2, data, key, label)
 
     #------------------------ 2連複 ------------------------
@@ -835,27 +844,29 @@ class OddsWindow(tk.Tk):
 
                 key   = (num1, num2)
                 label = f"２連複 {num1} ＝ {num2} "
+
                 self._grid_data_cell(fr, "2F", 80, ROW_H, row, 2, data, key, label)
 
                 row += 1
 
-            try: del boats[0]
+            try:    del boats[0]
             except: pass
 
     #--------------------- 単勝/複勝 -----------------------
     def _build_others(self, parent, title, bet_type, data):
 
         self._block_header(parent, title)
-        fr = cFr(parent, bg=PANEL_BG) ;fr._pack(px=4, py=10)
+        frm = cFr(parent, bg=PANEL_BG) ;frm._pack(px=4, py=10)
 
         for row, num1 in enumerate(range(1, 7)):
-            fr1 = cFr(fr, W=20, H=30, bg=FRM_BG[num1], Rel=GR, bd=1)
-            fr1._grid(R=row, C=0, Stk="nsew") ;fr1.pack_propagate(False)
-            cLbl(fr1, text=num1, bg=FRM_BG[num1], fg=FRM_FG[num1], font=(MUI,9,BD))._pack(Exp=True)
+            fr = cFr(frm, W=20, H=30, bg=FRM_BG[num1], Rel=GR, bd=1)
+            fr._grid(R=row, C=0, Stk="nsew") ;fr.pack_propagate(False)
+            cLbl(fr, text=num1, bg=FRM_BG[num1], fg=FRM_FG[num1], font=(MUI,9,BD))._pack(Exp=True)
 
             key   = (num1,)
             label = f"{title}        {num1}    "
-            self._grid_data_cell(fr, bet_type, 80, ROW_H, row, 1, data,  key, label)
+
+            self._grid_data_cell(frm, bet_type, 80, ROW_H, row, 1, data,  key, label)
 
     #-------------------------------------------------------
     def _grid_data_cell(self, fr, bet_type, W, H, row, col, data, key, label, span=1):
@@ -875,54 +886,145 @@ class OddsWindow(tk.Tk):
                     Anc="e", cursor="hand2" if (odds and not cut) else ""  )
         lb._pack(fill="both", expand=True, px=3)
 
-        self._register_grid_item(bet_type, key, label, cell, lb)
+        self.grid_items[(bet_type, key)] = { "cell":cell, "label":lb, "bet_type":bet_type,
+                                              "key":key,  "title":label                    }
+
+    #-------------------------------------------------------
+    def _refresh_grid_cells(self):
+
+        self.cell_refs.clear()
+
+        for ref_key, meta in self.grid_items.items():
+            bt      = meta["bet_type"]
+            key     = meta["key"]
+            cell    = meta["cell"]
+            lb      = meta["label"]
+            odds_str = self._current_odds_str(bt, key)
+            cut      = self._is_cut(key, bt)
+
+            if odds_str == "欠場":
+                cell_bg, cell_fg = CUT_BG, "black"
+            elif cut:
+                cell_bg, cell_fg = CUT_BG, CUT_FG
+            else:
+                high    = bool(odds_str) and parse_odds_min(odds_str) >= HIGH_THRESH[bt]
+                cell_bg = NORM_BG
+                cell_fg = "#CC0000" if high else "#222222"
+
+            if any(s[0] == bt and s[1] == key for s in self.selected):
+                cell_bg = HIL_BG
+            elif self._is_linked_3T_from_3F(bt, key):
+                cell_bg = INCLUDE_BG
+
+            cell.config(bg=cell_bg)
+            lb.config( bg=cell_bg, fg=cell_fg, text=odds_str,
+                       cursor=("hand2" if (odds_str and not cut) else "") )
+
+            self._bind_grid_item(bt, key, meta["title"], cell, lb, bool(odds_str and not cut))
+
+    #-------------------------------------------------------
+    def _is_linked_3T_from_3F(self, bet_type:str, key:tuple) -> bool:
+
+        if bet_type != "3T" or len(key) != 3:
+            return False
+
+        key_set = set(key)
+
+        for s in self.selected:
+            if s[0] == "3F" and len(s[1]) == 3 and set(s[1]) == key_set:
+                return True
+
+        return False
+
+    #-------------------------------------------------------
+    def _bind_grid_item(self, bet_type:str, key:tuple, label:str, cell, lb, active:bool):
+
+        ref_key = (bet_type, key)
+        cell.unbind("<Button-1>")
+        lb.unbind("<Button-1>")
+
+        if active:
+            self.cell_refs[ref_key] = (cell, lb, NORM_BG)
+            #------------
+            def _on_click(e, bt=bet_type, k=key, lbl=label):
+                self._toggle_select(bt, k, lbl)
+            #------------
+            cell.bind("<Button-1>", _on_click)
+            lb.bind("<Button-1>", _on_click)
+
+    #-------------------------------------------------------
+    def _toggle_select(self, bet_type:str, key:tuple, label:str):
+
+        existing = [ (i, s) for i, s in enumerate(self.selected)
+                     if s[0] == bet_type and s[1] == key         ]
+
+        if existing:
+            idx, _ = existing[0]
+            self.selected.pop(idx)
+        else:
+            self.selected.append((bet_type, key, label, ""))
+
+        self._refresh_grid_cells()
+        self._refresh_tree()
 
     #-------------------------------------------------------
     def _is_cut(self, combo_key:tuple, bet_type:str) -> bool:
 
             allowed = {}
+
             for pos in (1, 2, 3):
                 if self.formation.get(7, {}).get(pos):
                     pos_allowed = list(range(1, 7))
                 else:
                     pos_allowed = [b for b in range(1, 7) if self.formation.get(b, {}).get(pos)]
                 allowed[pos] = pos_allowed if pos_allowed else list(range(1, 7))
+
             is_formation_ok = False
 
             if   bet_type == "3T":
-                r1, r2, r3 = combo_key
-                is_formation_ok = (r1 in allowed[1] and r2 in allowed[2] and r3 in allowed[3])
+                r1, r2, r3      = combo_key
+                is_formation_ok = ( r1 in allowed[1] and
+                                    r2 in allowed[2] and
+                                    r3 in allowed[3]     )
             elif bet_type == "2T":
-                r1, r2 = combo_key
-                is_formation_ok = (r1 in allowed[1] and r2 in allowed[2])
+                r1,          r2 = combo_key
+                is_formation_ok = ( r1 in allowed[1] and
+                                    r2 in allowed[2]     )
             elif bet_type == "TT":
                 is_formation_ok = (combo_key[0] in allowed[1])
+
             elif bet_type == "3F":
                 from itertools import permutations
-                is_formation_ok = any(p[0] in allowed[1] and p[1] in allowed[2] and p[2] in allowed[3] 
-                                     for p in permutations(combo_key))
+                is_formation_ok = any( p[0] in allowed[1] and
+                                       p[1] in allowed[2] and
+                                       p[2] in allowed[3] for p in permutations(combo_key) )
             elif bet_type == "2F":
-                r1, r2 = combo_key
-                is_formation_ok = (r1 in allowed[1] and r2 in allowed[2]) or (r2 in allowed[1] and r1 in allowed[2])
+                r1, r2          = combo_key
+                is_formation_ok = ( (r1 in allowed[1] and r2 in allowed[2]) or
+                                    (r2 in allowed[1] and r1 in allowed[2])    )
             elif bet_type == "KK":
-                r1, r2 = combo_key
-                patterns = [(1,2), (2,1), (1,3), (3,1), (2,3), (3,2)]
-                is_formation_ok = any(r1 in allowed[p[0]] and r2 in allowed[p[1]] for p in patterns)
+                r1, r2          = combo_key
+                patterns        = [(1,2), (2,1), (1,3), (3,1), (2,3), (3,2)]
+                is_formation_ok = any( r1 in allowed[p[0]] and
+                                       r2 in allowed[p[1]] for p in patterns )
             elif bet_type == "FF":
-                r1 = combo_key[0]
-                is_formation_ok = (r1 in allowed[1] or r1 in allowed[2] or r1 in allowed[3])
+                r1              = combo_key[0]
+                is_formation_ok = ( r1 in allowed[1] or
+                                    r1 in allowed[2] or
+                                    r1 in allowed[3]    )
 
             if not is_formation_ok: return True
 
-            combo_set       = set(combo_key)
-            remaining_slots = 3 -len(combo_set)
-
+            combo_set        = set(combo_key)
+            remaining_slots  = 3 -len(combo_set)
             must_and_targets = {b for b in range(1, 7) if self.mustin.get(b, {}).get(1)}
             needed_and       = must_and_targets - combo_set
+
             if len(needed_and) > remaining_slots:
                 return True
 
             must_or_targets = {b for b in range(1, 7) if self.mustin.get(b, {}).get(2)}
+
             if must_or_targets and not (must_or_targets & combo_set):
                 return True
 
@@ -940,30 +1042,28 @@ class OddsWindow(tk.Tk):
             bt, key, label = row_data[0], row_data[1], row_data[2]
             alloc_str      = row_data[3] if len(row_data) > 3 else ""
             odds_str       = self._current_odds_str(bt, key)
+            v              = parse_odds_min(odds_str)
 
-            v = parse_odds_min(odds_str)
             if v > 0: valid_odds.append(v)
 
             row_bg = TBL_BG if ri % 2 == 0 else ALT_BG
-
-            sep = cFr(self._tbl_inner, bg=SEP_C, H=1)
-            sep._grid(R=ri*2, C=0, Cspan=6, Stk="ew")
-
+            sep    = cFr(self._tbl_inner, bg=SEP_C, H=1)
             row_fr = cFr(self._tbl_inner, bg=row_bg, H=CELL_H)
+            sep._grid(R=ri*2, C=0, Cspan=6, Stk="ew")
             row_fr._grid(R=ri*2+1, C=0, Stk="ew") ;row_fr.grid_propagate(False)
 
             for ci, (_, w, _) in enumerate(self._COL_DEF):
                 row_fr.Cconf(ci, minsize=w, W=0)
 
-            cBtn( row_fr, text="×", font=(GUI,8,BD), fg="#CC2222", bg=row_bg, Rel=GR, bd=1,
-                  command=lambda bt_=bt, key_=key:self._delete_row(bt_, key_) 
+            cBtn( row_fr, text="×", font=(GUI,8,BD), fg="#CC2222", bg=row_bg, Bd=(1,GR),
+                  Com=lambda b=bt, k=key:self._delete_row(b, k) 
                  )._grid(R=0, C=0, Stk=ALL)
 
             cLbl( row_fr, text=self._type_label(bt), bg=row_bg, font=(MUI,9), Anc=CT
                  )._grid(R=0, C=1, Stk=ALL)
 
-            combo_txt = label.split(" ",1)[1] if " " in label else label
-            cLbl( row_fr, text=combo_txt, bg=row_bg, font=(MUI,9), Anc=CT
+            txt = label.split(" ",1)[1] if " " in label else label
+            cLbl( row_fr, text=txt, bg=row_bg, font=(MUI,9), Anc=CT
                  )._grid(R=0, C=2, Stk=ALL)
 
             cLbl( row_fr, text=f"{odds_str}      x", bg=row_bg, font=(MUI,10), Anc=CT, px=4
@@ -1004,7 +1104,7 @@ class OddsWindow(tk.Tk):
 
         if self.selected:
             cFr( self._tbl_inner, bg=SEP_C, H=1
-                )._grid(row=len(self.selected)*2, C=0, Cspan=6, Stk="ew")
+                )._grid(R=len(self.selected)*2, C=0, Cspan=6, Stk="ew")
 
         self._tbl_inner.grid_columnconfigure(0, minsize=sum(w for _, w, _ in self._COL_DEF))
 
@@ -1012,7 +1112,7 @@ class OddsWindow(tk.Tk):
         self._update_total_bet()
 
         if valid_odds:
-            sv = synthetic_odds(valid_odds)
+            sv    = synthetic_odds(valid_odds)
             color = "red" if sv <= 1.0 else ("#FFD700" if sv <= 1.5 else "#00DD88")
             self.lbl_synth.config(text=f"{sv:.1f}", fg=color, font=(MUI,11))
         else:
@@ -1034,8 +1134,8 @@ class OddsWindow(tk.Tk):
         for alloc_var, ret_lbl, bt, key, odds_str in self.tbl_rows:
             raw = alloc_var.get()
             try:
-                amt = int(raw) *100
-                total += amt
+                amt     = int(raw) *100
+                total  += amt
                 ret_val = round(amt * parse_odds_min(odds_str))
                 divids.append(ret_val)
             except: pass
@@ -1047,8 +1147,8 @@ class OddsWindow(tk.Tk):
             lo = min(divids)
             self.high_divid.config(text=f"{hi:,} 円")
             self.low_divid.config( text=f"{lo:,} 円")
-            hi_m = hi - total
-            lo_m = lo - total
+            hi_m  = hi - total
+            lo_m  = lo - total
             hi_fg = "#00DD88" if hi_m >= 0 else "#FF6666"
             lo_fg = "#00DD88" if lo_m >= 0 else "#FF6666"
             self.high_marjin.config(text=f"{hi_m:+,} 円", fg=hi_fg)
@@ -1060,115 +1160,28 @@ class OddsWindow(tk.Tk):
             self.low_marjin.config( text="", fg=HDR_FG)
 
     #-------------------------------------------------------
-    def _refresh_grid_cells(self):
-
-        self.cell_refs.clear()
-
-        for ref_key, meta in self.grid_items.items():
-            bt      = meta["bet_type"]
-            key     = meta["key"]
-            cell    = meta["cell"]
-            lb      = meta["label"]
-            odds_str = self._current_odds_str(bt, key)
-            cut      = self._is_cut(key, bt)
-
-            if odds_str == "欠場":
-                cell_bg, cell_fg = CUT_BG, "black"
-            elif cut:
-                cell_bg, cell_fg = CUT_BG, CUT_FG
-            else:
-                high    = bool(odds_str) and parse_odds_min(odds_str) >= HIGH_THRESH[bt]
-                cell_bg = NORM_BG
-                cell_fg = "#CC0000" if high else "#222222"
-
-            if any(s[0] == bt and s[1] == key for s in self.selected):
-                cell_bg = HIL_BG
-            elif self._is_linked_3T_from_3F(bt, key):
-                cell_bg = INCLUDE_BG
-
-            cell.config(bg=cell_bg)
-            lb.config( bg=cell_bg, fg=cell_fg, text=odds_str,
-                       cursor=("hand2" if (odds_str and not cut) else "") )
-            self._bind_grid_item(bt, key, meta["title"], cell, lb, bool(odds_str and not cut))
-
-    #-------------------------------------------------------
-    def _bind_grid_item(self, bet_type:str, key:tuple, label:str, cell, lb, active:bool):
-
-        ref_key = (bet_type, key)
-        cell.unbind("<Button-1>")
-        lb.unbind("<Button-1>")
-
-        if active:
-            self.cell_refs[ref_key] = (cell, lb, NORM_BG)
-            #------------
-            def _on_click(e, bt=bet_type, k=key, lbl=label):
-                self._toggle_select(bt, k, lbl)
-            #------------
-            cell.bind("<Button-1>", _on_click)
-            lb.bind("<Button-1>", _on_click)
-
-    #-------------------------------------------------------
-    def _toggle_select(self, bet_type:str, key:tuple, label:str):
-
-        existing = [ (i, s) for i, s in enumerate(self.selected)
-                     if s[0] == bet_type and s[1] == key ]
-
-        if existing:
-            idx, _ = existing[0]
-            self.selected.pop(idx)
-        else:
-            self.selected.append((bet_type, key, label, ""))
-
-        self._refresh_grid_cells()
-        self._refresh_tree()
-
-    #-------------------------------------------------------
-    def _normalize_key(self, bet_type:str, key:tuple):
-
-        if bet_type in ("2F", "3F", "KK"):
-            return tuple(sorted(key))
-
-        return tuple(key)
-
-    #-------------------------------------------------------
     def _current_odds_str(self, bet_type:str, key:tuple) -> str:
 
-        key_n = self._normalize_key(bet_type, key)
+        if bet_type in ("2F", "3F", "KK"):
+            key_n = tuple(sorted(key))
+        else:
+            key_n = tuple(key)
 
         if bet_type in ("TT", "FF"):
             v = self.odds_data.get(bet_type, {}).get(key_n[0], "")
             return v.replace("-", " - ") if isinstance(v, str) else ""
 
         src = self.odds_data.get(bet_type, {})
-        if key in src:                    v = src.get(key, "")
+
+        if   key   in src:                v = src.get(key, "")
         elif key_n in src:                v = src.get(key_n, "")
         elif tuple(reversed(key)) in src: v = src.get(tuple(reversed(key)), "")
         else:                             v = ""
 
         return v if isinstance(v, str) else ""
 
-    #-------------------------------------------------------
-    def _is_linked_3T_from_3F(self, bet_type:str, key:tuple) -> bool:
-
-        if bet_type != "3T" or len(key) != 3:
-            return False
-
-        key_set = set(key)
-
-        for s in self.selected:
-            if s[0] == "3F" and len(s[1]) == 3 and set(s[1]) == key_set:
-                return True
-
-        return False
-
-    #-------------------------------------------------------
-    def _register_grid_item(self, bet_type:str, key:tuple, label:str, cell, lb):
-
-        self.grid_items[(bet_type, key)] = { "cell":cell, "label":lb, "bet_type":bet_type,
-                                              "key":key,  "title":label                    }
-
     # ----------------------------------
-    def _update_Players(self, date:str, venue_id:int, race_no:int):
+    def _fetch_Players(self, date:str, venue_id:int, race_no:int):
 
         c             = sqlite3.connect(DB)
         c.row_factory = sqlite3.Row
@@ -1202,6 +1215,7 @@ class OddsWindow(tk.Tk):
                AND race_no  =?
              """
         out = c.execute(sql, (date, venue_id, race_no)).fetchone()
+
         c.close()
 
         return out
