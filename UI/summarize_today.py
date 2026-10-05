@@ -371,38 +371,38 @@ class SummarizeTodayInfo:
                 if t.kind   == "before":
                     if self._is_cancelled(t.d, t.venue_id, t.race_no):
                         t.disabled = True
-                        self._log( f"[    info    ] 【before 】[{VENUES[t.venue_id-1]}"
+                        self._log( f"[    info    ] 【 before 】[{VENUES[t.venue_id-1]}"
                                    f" {t.race_no:02}R]  is cancelled (skip)"              )
                         return
                     ok = self._exec_before(t)
                     if not ok:
                         t.next_try_at = now + timedelta(seconds=RETRY_BEF)
-                        print( f"[    info    ] 【before 】[{VENUES[t.venue_id-1]} {t.race_no:02}R]"
+                        print( f"[    info    ] 【 before 】[{VENUES[t.venue_id-1]} {t.race_no:02}R]"
                                f"  retry at [{t.next_try_at.strftime('%H:%M:%S')}]"                   )
                 #-------------
                 elif t.kind == "result":
                     if self._is_cancelled(t.d, t.venue_id, t.race_no):
                         t.disabled = True
-                        self._log( f"[    info    ] 【result】{VENUES[t.venue_id-1]}"
+                        self._log( f"[    info    ] 【 result  】{VENUES[t.venue_id-1]}"
                                    f" {t.race_no:02}R]  is cancelled (skip)"          )
                         return
                     ok = self._exec_result(t)
                     if not ok: 
                         t.next_try_at = now + timedelta(seconds=RETRY_RES)
-                        print( f"[    info    ] 【result】[{VENUES[t.venue_id-1]}{t.race_no:02}R]"
+                        print( f"[    info    ] 【 result  】[{VENUES[t.venue_id-1]}{t.race_no:02}R]"
                                f"  retry at [{t.next_try_at.strftime('%H:%M:%S')}]"                )
                 #-------------
                 elif t.kind == "odds":
                     if self._is_cancelled(t.d, t.venue_id, t.race_no):
                         t.disabled = True
-                        print( f"[    info    ] 【  odds  】[{VENUES[t.venue_id-1]}"
+                        print( f"[    info    ] 【  oddｓ 】[{VENUES[t.venue_id-1]}"
                                f" {t.race_no:02}R]  is cancelled (skip)")
                         return
                     ok = self._exec_odds(t)
                     if not ok:
                         interval = self._calc_odds_interval(t, now)
                         t.next_try_at = now + timedelta(seconds=interval)
-                        print( f"[    info    ] 【  odds  】[{VENUES[t.venue_id-1]}"
+                        print( f"[    info    ] 【  oddｓ 】[{VENUES[t.venue_id-1]}"
                                f" {t.race_no:02}R] retry at [{t.next_try_at.strftime('%H:%M:%S')}]" )
                 #-------------
                 elif t.kind == "change":
@@ -490,7 +490,7 @@ class SummarizeTodayInfo:
     # ------------------------------------------------------
     def _exec_before(self, t:Task) -> bool:
 
-        task_name = f"【before 】[{VENUES[t.venue_id-1]} {t.race_no:02}R] "
+        task_name = f"【 before 】[{VENUES[t.venue_id-1]} {t.race_no:02}R] "
         self._log(f"{task_name} start")
 
         rc, out, err = self._call_py( SP_BEFORE, [  "--date", t.d.strftime("%Y-%m-%d"),
@@ -529,7 +529,7 @@ class SummarizeTodayInfo:
     # ------------------------------------------------------
     def _exec_change(self, t:Task) -> bool:
 
-        task_name = f"【change】[{VENUES[t.venue_id-1]}       ] "
+        task_name = f"【change 】[{VENUES[t.venue_id-1]}      ] "
         self._log(f"{task_name} start")
 
         _args = ["A", "--date", t.d.strftime("%Y-%m-%d"), "--venue", str(t.venue_id)]
@@ -571,7 +571,7 @@ class SummarizeTodayInfo:
     # ------------------------------------------------------
     def _exec_cancel(self, t:Task):
 
-        task_name = f"【cancel 】[    {t.d.strftime('%m-%d')}    ] "
+        task_name = f"【 cancel 】[    {t.d.strftime('%m-%d')}   ] "
         self._log(f"{task_name} start")
         rc, out, err = self._call_py( SP_INFO, ["B", "--date", t.d.strftime("%Y-%m-%d"),] )
         if rc != 0:
@@ -602,7 +602,7 @@ class SummarizeTodayInfo:
     # ------------------------------------------------------
     def _exec_odds(self, t:Task) -> bool:
 
-        task_name = f"【  odds  】[{VENUES[t.venue_id-1]} {t.race_no:02}R] "
+        task_name = f"【  oddｓ 】[{VENUES[t.venue_id-1]} {t.race_no:02}R] "
         self._log(f"{task_name} called")
 
         try:
@@ -620,16 +620,16 @@ class SummarizeTodayInfo:
         if hits: self._log(f"{task_name} EV hit: {len(hits)} 件")
 
         if data.get("final"):
-            result = insert_odds_snapshot(data, t.d, t.venue_id, t.race_no, hits=hits)
-            if result == 0:
-                self._log(f"{task_name} fetch data error")
+            result, d = insert_odds_snapshot(data, t.d, t.venue_id, t.race_no, hits=hits)
+            if result == 2:
+                self._log(f"{task_name} fetch data error: {d}")
                 return False
-            if result == 1:
+            if result == 0:
                 self._log(f"{task_name} Done insert.")
                 return True
-            if result == 2:
-                self._log(f"[WARN]] {task_name} insert but count !== 212")
-            return True
+            if result == 1:
+                self._log(f"[WARN]] {task_name} insert but count={d}")
+                return True
 
         else: return False
 
@@ -687,27 +687,21 @@ class SummarizeTodayInfo:
     def _exists_odds(self, d:date, venue_id:int, race_no:int) -> dict:
 
         d_iso = d.strftime("%Y-%m-%d") if hasattr(d, "strftime") else str(d)
+        cnt   = 0
 
         with self._connect_ro() as conn:
-            rows = conn.execute("""
-                SELECT captured_at,
-                       COUNT(*) AS cnt
-                  FROM Odds
-                 WHERE date=? AND venue_id=? AND race_no=?
-              GROUP BY captured_at
-                """,
-               (d_iso, venue_id, race_no)).fetchall()
+            for bt in ("3T", "3F", "2T", "2F", "TT", "FF", "KK"):
+                row = conn.execute(f"""
+                          SELECT COUNT(*) AS cnt
+                            FROM Odds_{bt}
+                           WHERE date=? AND venue_id=? AND race_no=?
+                          """,
+                          (d_iso, venue_id, race_no) ).fetchone()
 
-        set_count = 0
+                cnt += row[0] if row else 0
 
-        if not rows: return False
-
-        for r in rows:
-            if r["cnt"] == 212:
-                set_count += 1
-
-        if set_count == 0: return False
-        if set_count != 0: return True
+        if cnt == 7: return True
+        else:        return False
 
     # ユーティリティ ---------------------------------------
     def _connect_ro(self) -> sqlite3.Connection:

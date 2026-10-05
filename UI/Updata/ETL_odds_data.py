@@ -3,7 +3,7 @@
 
 import argparse, time, os, sys
 import Dal as dal
-from datetime import datetime as dt, timedelta
+from datetime import datetime as dt, date, timedelta
 
 from scraper_odds import fetch_all_odds
 from ev_scanner   import insert_odds_snapshot
@@ -11,6 +11,34 @@ from ev_scanner   import insert_odds_snapshot
 VENUES = [ "桐  生", "戸  田", "江戸川", "平和島", "多摩川", "浜名湖", "蒲  郡", "常  滑",
            "  津  ", "三  国", "びわこ", "住之江", "尼  崎", "鳴  門", "丸  亀", "児  島",
            "宮  島", "徳  山", "下  関", "若  松", "芦  屋", "福  岡", "唐  津", "大  村"  ]
+
+# ===========  共通ヘルパー  ===========
+def today_iso() -> str:
+
+    JST = timezone(timedelta(hours=9))
+    return dt.now(JST).date().strftime("%Y-%m-%d")
+
+#-------------------
+def yesterday(x) -> date:
+
+    if isinstance(x, date): return x -timedelta(days=1)
+    if isinstance(x,  str): return to_date(x) -timedelta(days=1)
+
+# ------------------
+def to_str(x) -> str:
+
+    if isinstance(x,  str): return x
+    if isinstance(x, date): return x.strftime("%Y-%m-%d")
+
+    raise ValueError("str conv error")
+
+# ------------------
+def to_date(x) -> date:
+
+    if isinstance(x, date): return x
+    if isinstance(x,  str): return date.fromisoformat(x)
+
+    raise ValueError("date conv error")
 
 #=====================================================================
 def get_target_races(d_iso:str, venue_id:int|None, race_no:int|None) -> list:
@@ -33,70 +61,83 @@ def get_target_races(d_iso:str, venue_id:int|None, race_no:int|None) -> list:
 #-------------------------------------------------
 def check_odds_exists(d_iso:str, venue_id:int, race_no:int) -> bool:
 
-    rows = dal.fetch_all("""
-        SELECT captured_at,
-               COUNT(*) AS cnt
-          FROM Odds
-         WHERE date     =?
-           AND venue_id =?
-           AND race_no  =?
-      GROUP BY captured_at
-    """,
-    (d_iso, venue_id, race_no))
+    cnt = 0
+    for bt in ("3T", "3F", "2T", "2F", "KK", "TT", "FF"):
+        
+        row = dal.fetch_one(f"""
+            SELECT COUNT(*)
+              FROM Odds_{bt}
+             WHERE date     =?
+               AND venue_id =?
+               AND race_no  =?
+        """,
+        (d_iso, venue_id, race_no) )
 
-    for r in rows:
-        if r["cnt"] >= 212:
-            return True
+        cnt += row[0] if row else 0
+
+    if cnt == 7:
+        return True
 
     return False
 #-------------------------------------------------
 def delete_existing_odds(d_iso:str, venue_id:int, race_no:int):
 
-    dal.execute("""
-        DELETE
-          FROM Odds
-         WHERE date     =?
-           AND venue_id =?
-           AND race_no  =?
-    """,
-    (d_iso, venue_id, race_no))
+    for bt in ("3T", "3F", "2T", "2F", "KK", "TT", "FF"):
+
+        dal.execute(f"""
+            DELETE
+              FROM Odds_{bt}
+             WHERE date     =?
+               AND venue_id =?
+               AND race_no  =?
+        """,
+        (d_iso, venue_id, race_no))
 
 #=====================================================================
 def main(argv=None):
 
     p = argparse.ArgumentParser()
-    p.add_argument("--date_from", required=True,  help="開始日 (YYYY-MM-DD)")
-    p.add_argument("--date_to",   required=True,  help="終了日 (YYYY-MM-DD)")
-    p.add_argument("--venue",     required=False, help="場指定")
-    p.add_argument("--race",      required=False, help="レース指定")
+    p.add_argument("--date",       type=date.fromisoformat, help="対象日(yyyy)")
+    p.add_argument("--date_from",  type=date.fromisoformat, help="開始日(YYYY-MM-DD)")
+    p.add_argument("--date_to",    type=date.fromisoformat, help="終了日(YYYY-MM-DD)")
+    p.add_argument("--days",       type=int,                help="直近n日間不足日補填")
+    p.add_argument("--venue",      type=int,                help="場指定")
+    p.add_argument("--race",       type=int,                help="レース指定")
     p.add_argument("--overwrite", action="store_true", help="既存データを上書き")
-    
     args = p.parse_args(argv)
-    
-    try:
-        date_from = dt.strptime(args.date_from, "%Y-%m-%d").date()
-        date_to   = dt.strptime(args.date_to,   "%Y-%m-%d").date()
 
-    except ValueError:
-        print("[Error] 日付フォーマットは YYYY-MM-DD で指定してください。")
-        return
+    if args.date and (args.date_from or args.date_to):
+        print("date / (date_from , date_to) 両方の指定はできません")
+        raise SystemExit(2)
+    if (args.date_from and not args.date_to) or (args.date_to and not args.date_from):
+        print("(date_from , date_to) を併せて指定してください")
+        raise SystemExit(2)
 
-    if date_from > date_to:
-        print("[Error] --date_from は --date_to と同じか、以前の日付を指定してください。")
-        return
+    if args.days:
+        date_from = dt.today() -timedelta(days=args.days)
+        date_to   = dt.today()
+    elif args.date:
+        date_from = args.date
+        date_to   = args.date
+    elif args.date_from and args.date_to:
+        date_from = args.date_from
+        date_to   = args.date_to
+    else:
+        date_from = dt.today()
+        date_to   = dt.today()
 
-    current_date = date_from
+    _date = date_from
+    while _date <= date_to:
 
-    while current_date <= date_to:
+        d_iso = to_str(_date)
+        d_str = _date.strftime("%Y%m%d")
 
-        d_iso = current_date.strftime("%Y-%m-%d")
-        d_str = current_date.strftime("%Y%m%d")
         print(f"\n[{d_iso}] 対象レースの確認中...")
 
         target_races = get_target_races(d_iso, args.venue, args.race)
         if not target_races:
             print(f"  -> 対象レースが見つかりません。")
-            current_date += timedelta(days=1)
+            _date += timedelta(days=1)
             continue
 
         for row in target_races:
@@ -123,11 +164,11 @@ def main(argv=None):
                 if data.get("error"):
                     print(f"    [WARN] ページ取得エラー: {data['error']}")
 
-                res = insert_odds_snapshot(data, current_date, venue_id, race_no, hits=[])
-                if res == 1:
-                    print(f"    -> 取得成功 (212件)")
-                elif res == 2:
-                    print(f"    -> 取得完了 (インサート件数 212件未満)")
+                res, _ = insert_odds_snapshot(data, _date, venue_id, race_no, hits=[])
+                if res == 0:
+                    print(f"    -> 取得成功 (7 bet_type)")
+                elif res == 1:
+                    print(f"    -> 取得完了 (7 bet_ryoe未満)")
                 else:
                     print(f"    -> 取得失敗 (保存対象データなし)")
 
@@ -136,7 +177,7 @@ def main(argv=None):
             except Exception as e:
                 print(f"    [Error] 処理中に例外発生: {e}")
 
-        current_date += timedelta(days=1)
+        _date += timedelta(days=1)
 
     print("\n全期間の処理が完了しました。")
 

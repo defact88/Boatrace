@@ -22,23 +22,6 @@ class ProbabilityProvider:
         該当データが無ければ空dict
         """
         return {}
-#-----------------------------
-def _build_race_id(d:date, venue_id:int, race_no:int) -> int:
-
-    ymd = d.strftime("%y%m%d")
-
-    return int(f"{ymd}{venue_id:02d}{race_no:02d}")
-
-#-----------------------------
-def _parse_odds_value(raw:str):
-
-    if not raw:       return None, None
-    if "欠場" in raw: return None, "K"
-
-    s = raw.replace(" ", "").split("-")
-
-    try:              return float(s[0]), raw
-    except Exception: return None, None
 
 #-----------------------------------------------------------
 def evaluate_ev( data:dict, d:date, venue_id:int, race_no:int,
@@ -75,37 +58,68 @@ def evaluate_ev( data:dict, d:date, venue_id:int, race_no:int,
     return hits
 
 #-----------------------------------------------------------
+def _build_race_id(d:date, venue_id:int, race_no:int) -> int:
+
+    ymd = d.strftime("%y%m%d")
+
+    return int(f"{ymd}{venue_id:02d}{race_no:02d}")
+
+#-----------------------------------------------------------
+def _parse_odds_value(raw:str):
+
+    if not raw:       return None, None
+    if "欠場" in raw: return None, "K"
+
+    s = raw.replace(" ", "").split("-")
+
+    try:              return float(s[0]), raw
+    except Exception: return None, None
+
+#-----------------------------------------------------------
 def insert_odds_snapshot(data:dict, d:date, venue_id:int, race_no:int, hits:list):
 
-    now      = dt.now().strftime("%Y-%m-%d %H:%M:%S")
     race_id  = _build_race_id(d, venue_id, race_no)
+    date_str = d.isoformat()
     hit_keys = {(bt, key) for bt, key, *_ in hits} if hits else set()
-    rows     = []
+    cnt      = 0
 
-    for bet_type in BET_TYPES_PERSISTED:
-        for key, raw in data.get(bet_type, {}).items():
+    with dal.transaction() as c:
 
-            hit            = 1 if (bet_type, key) in hit_keys else 0 # ①未実装の為常に0
-            key            = [key] if isinstance(key, int) else list(key)
-            combo          = int("".join(str(x) for x in key))
-            odds, raw_odds = _parse_odds_value(raw)
+        for bet_type in BET_TYPES_PERSISTED:
+            bet_data = data.get(bet_type, {})
+            if not bet_data:
+                continue
+            record = { "race_id": race_id,
+                          "date": date_str,
+                      "venue_id": venue_id,
+                       "race_no": race_no   }
 
-            rows.append( ( race_id, d.isoformat(), venue_id, race_no,
-                           bet_type, combo, odds, raw_odds, hit, now  ) )
+            for key, raw in bet_data.items():
+                hit              = 1 if (bet_type, key) in hit_keys else 0 # ①未実装の為 常に0
+                key_list         = [key] if isinstance(key, int) else list(key)
+                combo_num        = "".join(str(x) for x in key_list)
+                col_name         = f"combo_{combo_num}"
+                odds, raw_odds   = _parse_odds_value(raw)
+                record[col_name] = raw_odds if bet_type in ("FF", "KK") else odds
+            try:
 
-    if not rows: return 0
+                table_name     = f"Odds_{bet_type}"
+                columns        = list(record.keys())
+                placeholders   = ", ".join(["?"] * len(columns))
+                update_columns = columns[4:]
+                update_stmt    = ", ".join([f"{col} = excluded.{col}" for col in update_columns])
 
-    cnt = dal.executemany("""
-        INSERT INTO Odds( race_id, date, venue_id, race_no,
-                          bet_type, combo, odds, raw_odds, hit, captured_at )
-             VALUES (?,?,?,?,?,?,?,?,?,?)
-        ON CONFLICT (race_id, bet_type, combo)
-                 DO UPDATE SET odds        = excluded.odds,
-                               raw_odds    = excluded.raw_odds,
-                               hit         = excluded.hit,
-                               captured_at = excluded.captured_at
-        """, rows)
+                sql = f"""
+                    INSERT INTO {table_name} ({', '.join(columns)}) 
+                         VALUES ({placeholders})
+                    ON CONFLICT(race_id) 
+                     DO UPDATE SET {update_stmt};
+                """
 
-    if cnt == 212: return 1
-    else:          return 2
+                cnt += c.execute(sql, list(record.values())).rowcount
+            except Exception as e:
+                return 2, str(e)
+
+    if cnt == 7: return 0, cnt
+    else:        return 1, cnt
 

@@ -389,12 +389,8 @@ class ResultsWindow(tk.Tk):
             fr1.Cconf(col, Min=SUM_COL_W)
             fr2.Cconf(col, Min=SUM_COL_W)
 
-        cLbl(fr1, text="", **HDR_COLOR, Bd=(1,RA))._grid(R=0, C=0, Stk=ALL)
-        for course in range(1, 7):
-            cLbl( fr1, text=f"{course} コース", **HDR_COLOR, font=(MUI,9,BD), Anc=CT, Bd=(1,RD)
-                 )._grid(R=0, C=course, Stk=ALL)
-
         n_races = self.finished_races
+        rate3 = {1:0.0, 2:0.0, 3:0.0, 4:0.0, 5:0.0, 6:0.0}
 
         for rank in range(1, 7):
             if rank <= 3: fr1.Rconf(rank,   Min=SUM_ROW_H)
@@ -409,6 +405,14 @@ class ResultsWindow(tk.Tk):
                 cnt = self.course_rank_cnt.get((course, rank), 0)
                 pct = (cnt / n_races * 100.0) if n_races else 0.0
                 self._render_pct_cell(frame, row, course, pct)
+
+                if rank <= 3: rate3[course] += pct
+
+        cLbl(fr1, text="", **HDR_COLOR, Bd=(1,RA))._grid(R=0, C=0, Stk=ALL)
+        for course in range(1, 7):
+            r = rate3[course]
+            cLbl( fr1, text=f"{course} コース     {r:.0f} % ", **HDR_COLOR, font=(MUI,9,BD), Anc=CT, Bd=(1,RD)
+                 )._grid(R=0, C=course, Stk=ALL)
 
     # ------------------------------------------------------
     def _render_pct_cell(self, parent, row, col, pct):

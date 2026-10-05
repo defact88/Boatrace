@@ -24,20 +24,19 @@
 #   * 同日内で 7R 以上が中止 (status=='cancelled') の日は「順延」とみなし、
 #     開催日数カウントから除外する。
 #   * series_title が exclude_list に含まれるシリーズは準優検査をスキップ（OK 扱い）
-# ------------------------------------------------------------
+
 from __future__ import annotations
 
-import argparse
-import re
-import sqlite3
+import argparse, re, sqlite3
+from pathlib     import Path
 from collections import defaultdict
-from datetime import datetime, timedelta
-from typing import Dict, List, Tuple
+from datetime    import datetime, timedelta
+from typing      import Dict, List, Tuple
 
 from wcwidth import wcswidth
 
 # ====== 設定 =========================================================
-DB_PATH: str = r"C:\boatrace\boatrace.db"
+DB_PATH: Path(r"C:\boatrace\boatrace.db")
 DATEFMT: str = "%Y-%m-%d"
 MAX_SPAN_DAYS: int = 10          # シリーズを 1 グループとみなす最大カレンダー幅
 CANCELLED_DAY_THRESHOLD: int = 7 # 同日 cancel が 7R 以上なら順延日

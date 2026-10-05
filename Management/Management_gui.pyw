@@ -11,7 +11,8 @@ import tkinter as tk
 BASE_DIR     = Path(r"C:\boatrace\Management")
 CSV_FILEMAP  = BASE_DIR / "file_map.csv"
 CSV_ARGSTBL  = BASE_DIR / "args_table.csv"
-ICON_PATH    = BASE_DIR / r"Icon\GUI.ico"
+ICON_GUI     = BASE_DIR / r"Icon\GUI.ico"
+ICON_SERCH   = BASE_DIR / r"Icon\HP-Projector.ico"
 TERAPAD_PATH = r"C:\Program Files (x86)\TeraPad\TeraPad.exe"
 BACKUP_ROOT  = Path(r"C:\boatrace\BACKUP")
 UPLOAD_DIR   = Path(r"C:\boatrace\Management\UPLOAD")
@@ -105,19 +106,20 @@ class FileManagementGUI(tk.Tk):
 
         #====== 左カラム =====
 
-        MNG_PATH     = r"C:\boatrace\Management\Management_gui.pyw"
-        MNG_DIR      = r"C:\boatrace\Management"
+        MNG_PATH     = Path(r"C:\boatrace\Management\Management_gui.pyw")
         BR_GUI_PATH  = Path(r"C:\boatrace\UI\boatrace_gui.py")
+        SCHEMA_PATH  = Path(r"C:\boatrace\Schema\schema_all.sql")
+        FILEMAP_PATH = Path(r"C:\boatrace\Management\file_map.csv")
+        ARGLIST_PATH = Path(r"C:\boatrace\Management\args_table.csv")
+        SERCH_PATH   = Path(r"C:\boatrace\Checker\Tools\word_replacer.py")
+        MNG_DIR      = r"C:\boatrace\Management"
         BR_GUI_DIR   = r"C:\boatrace\UI"
-        SCHEMA_PATH  = r"C:\boatrace\Schema\schema_all.sql"
         SCHEMA_DIR   = r"C:\boatrace\Schema"
-        FILEMAP_PATH = r"C:\boatrace\Management\file_map.csv"
-        ARGLIST_PATH = r"C:\boatrace\Management\args_table.csv"
         MAIN_DIR     = r"C:\boatrace"
         BACKUP_DIR   = r"C:\boatrace\Backup"
 
         BAT_COMMIT   = Path(r"C:\boatrace\BR\Gitcommit.bat")
-        DAILY_PATH   = Path(r"C:\boatrace\Import\daily_insert.py")
+        DAILY_PATH   = Path(r"C:\boatrace\UI\Updata\daily_insert.py")
 
         base_size    = (1760, 950, 800, 500)
 
@@ -210,7 +212,8 @@ class FileManagementGUI(tk.Tk):
 
         btn_opt = dict(bg="#444444", fg="#FFFFFF",font=(MUI,10), width=8)
 
-        self.icon_gui    = ImageTk.PhotoImage(Image.open(ICON_PATH).resize((40, 40)))
+        self.icon_gui    = ImageTk.PhotoImage(Image.open(ICON_GUI).resize((40, 40)))
+        self.icon_serch  = ImageTk.PhotoImage(Image.open(ICON_SERCH).resize((40, 40)))
 
         self.btn_ui      = tk.Button( self.frame_cat, text="ＵＩ",    **btn_opt,
                                       command=lambda: self.on_select_category("UI")      )
@@ -220,11 +223,15 @@ class FileManagementGUI(tk.Tk):
                                       command=lambda: self.on_select_category("Checker") )
         self.boot_gui    = tk.Button( self.frame_cat, image=self.icon_gui, relief="flat",
                                       command=lambda: self.on_launch(BR_GUI_PATH)        )
+        self.boot_serch  = tk.Button( self.frame_cat, image=self.icon_serch, relief="flat",
+                                      command=lambda: self.on_launch(SERCH_PATH)        )
 
-        self.btn_ui.grid(     row=0, column=0, padx=(0,5),  sticky="w")
-        self.btn_import.grid( row=0, column=1, padx=(0,5),  sticky="w")
-        self.btn_checker.grid(row=0, column=2, padx=(0,5),  sticky="w")
-        self.boot_gui.grid(   row=0, column=3, padx=(0,0),  sticky="w")
+
+        self.btn_ui.grid(     row=0, column=0, padx=( 0,5),  sticky="w")
+        self.btn_import.grid( row=0, column=1, padx=( 0,5),  sticky="w")
+        self.btn_checker.grid(row=0, column=2, padx=( 0,5),  sticky="w")
+        self.boot_gui.grid(   row=0, column=3, padx=( 0,0),  sticky="w")
+        self.boot_serch.grid( row=0, column=4, padx=(10,0),  sticky="w")
 
         # アクションボタン
         self.frame_act = tk.Frame(self.frame_right, bg="#222222")

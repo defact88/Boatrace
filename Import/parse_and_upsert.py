@@ -78,7 +78,7 @@ def to_upsert(c:dal.transaction, r:Dict):
                                    status       = excluded.status  
                       """,r)
 
-    return 1 if c.total_changes() > pre_cnt else 0
+    return 1 if c.total_changes > pre_cnt else 0
 
 #-------------------------------------------------
 def to_insert(c:dal.transaction, r:Dict):
@@ -291,7 +291,7 @@ def _parse_fin_head(head:str):
     return None, None, None
 
 #-------------------------------------------------
-def _not_all_ladies(c:sqlite3.Connection, race_id:int) -> bool:
+def _not_all_ladies(c:dal.transaction, race_id:int) -> bool:
 
     row = c.execute("""
         SELECT 1
@@ -306,7 +306,7 @@ def _not_all_ladies(c:sqlite3.Connection, race_id:int) -> bool:
     return bool(row)
 
 #-------------------------------------------------
-def _update_all_ladies_day(c:sqlite3.Connection, date_iso:str, venue_id:int):
+def _update_all_ladies_day(c:dal.transaction, date_iso:str, venue_id:int):
 
     rows = c.execute("""
         SELECT race_no, race_id
@@ -315,7 +315,8 @@ def _update_all_ladies_day(c:sqlite3.Connection, date_iso:str, venue_id:int):
            AND venue_id = ?
            AND status   = 'held'
       ORDER BY race_no
-        """, (date_iso, venue_id)).fetchall()
+        """,
+        (date_iso, venue_id) ).fetchall()
 
     for race_no, race_id in rows:
         is_ladies = not _not_all_ladies(c, race_id)
@@ -323,34 +324,38 @@ def _update_all_ladies_day(c:sqlite3.Connection, date_iso:str, venue_id:int):
         c.execute("""
             UPDATE Races
                SET all_ladies = ?
-             WHERE date     = ?
-               AND venue_id = ?
-               AND race_no  = ?
-            """, (1 if is_ladies else 0, date_iso, venue_id, race_no))
+             WHERE date       = ?
+               AND venue_id   = ?
+               AND race_no    = ?
+            """,
+            (1 if is_ladies else 0, date_iso, venue_id, race_no) )
 
 #-------------------------------------------------
-def upsert_entry(c:sqlite3.Connection, race_id:int, venue_id:int, e:Dict):
+def upsert_entry(c:dal.transaction, race_id:int, venue_id:int, e:Dict):
 
     e = {"race_id":race_id, "venue_id":venue_id, **e}
 
     c.execute("""
-        INSERT INTO Race_entries(
-            race_id,    entry_id,    venue_id, race_no,  date, 
-            frame_no,   player_id,   course,   win_move, finish_rank,
-            fault_code, fault_level, motor_no, boat_no,  slit_ADJ,   race_time )
+        INSERT INTO Race_entries( race_id,    entry_id, venue_id,  race_no,  date, frame_no,
+                                  player_id,  course,    win_move, finish_rank, fault_code,
+                                  fault_level, motor_no, boat_no,  slit_ADJ,  race_time      )
 
-        VALUES(
-            :race_id,    :entry_id,    :venue_id, :race_no,  :date, 
-            :frame_no,   :player_id,   :course,   :win_move, :finish_rank,
-            :fault_code, :fault_level, :motor_no, :boat_no,  :slit_ADJ,    :race_time )
+             VALUES( :race_id,    :entry_id,    :venue_id, :race_no,  :date, 
+                     :frame_no,   :player_id,   :course,   :win_move, :finish_rank,
+                     :fault_code, :fault_level, :motor_no, :boat_no,  :slit_ADJ,    :race_time )
 
-        ON CONFLICT(entry_id) DO UPDATE SET
-            date       = excluded.date,        boat_no    = excluded.boat_no,
-            motor_no   = excluded.motor_no,    course     = excluded.course,
-            win_move   = excluded.win_move,    slit_ADJ   = excluded.slit_ADJ,
-           finish_rank = excluded.finish_rank, fault_code = excluded.fault_code,
-           fault_level = excluded.fault_level, race_time  = excluded.race_time
-        """, e)
+            ON CONFLICT(entry_id) DO UPDATE SET
+                date       = excluded.date,
+                boat_no    = excluded.boat_no,
+                motor_no   = excluded.motor_no,
+                course     = excluded.course,
+                win_move   = excluded.win_move,
+                slit_ADJ   = excluded.slit_ADJ,
+               finish_rank = excluded.finish_rank,
+                fault_code = excluded.fault_code,
+               fault_level = excluded.fault_level,
+                race_time  = excluded.race_time
+              """, e)
 
 #=================== Entry =======================
 def upsert_Race_entries(venue_id:int, body:str, date_iso:str):
@@ -358,72 +363,73 @@ def upsert_Race_entries(venue_id:int, body:str, date_iso:str):
     total     = 0
     subblocks = _subblocks_by_race(body)
 
-    for race_no, start, end in subblocks:
+    with dal.transaction() as c:
+        for race_no, start, end in subblocks:
 
-        row = dal.fetch_one("""
-                  SELECT race_id,
-                         status
-                    FROM races
-                   WHERE date     =?
-                     AND venue_id =?
-                     AND race_no  =?
-                  """,
-                  (date_iso, venue_id, race_no))
+            row = dal.fetch_one("""
+                      SELECT race_id,
+                             status
+                        FROM races
+                       WHERE date     =?
+                         AND venue_id =?
+                         AND race_no  =?
+                      """,
+                      (date_iso, venue_id, race_no) )
 
-        if not row: continue
+            if not row: continue
 
-        race_id, status = row
-        if status == 'cancelled': continue
+            race_id, status = row
+            if status == 'cancelled': continue
 
-        sub = body[start:end]
-        mh  = RE_RESULT_HEAD.search(sub)
-        if not mh: continue
+            sub = body[start:end]
+            mh  = RE_RESULT_HEAD.search(sub)
+            if not mh: continue
 
-        tail = sub[mh.end():]
-        rows = list(RE_ROW_LINE.finditer(tail))[:6]
-        if not rows: continue
+            tail = sub[mh.end():]
+            rows = list(RE_ROW_LINE.finditer(tail))[:6]
+            if not rows: continue
 
-        w_mov = None
-        WM    = RE_WIN_MOVE.search(body[start:end])
-        if WM: w_mov = WM.group(1).strip()
+            w_mov = None
+            WM    = RE_WIN_MOVE.search(body[start:end])
+            if WM: w_mov = WM.group(1).strip()
 
-        for r in rows:
-            frame_no   = int(r.group("frame_no"))
-            entry_id   = race_id*10 + frame_no
-            player_id  = int(r.group("player_id"))
-            head       =     r.group("head").strip()
-            course     = _parse_course(r.group("course"))
-            motor_no   = int(r.group("motor_no"))
-            boat_no    = int(r.group("boat_no"))
-            finish_rank, fault_code, fault_level = _parse_fin_head(head)
+            for r in rows:
+                frame_no   = int(r.group("frame_no"))
+                entry_id   = race_id*10 + frame_no
+                player_id  = int(r.group("player_id"))
+                head       =     r.group("head").strip()
+                course     = _parse_course(r.group("course"))
+                motor_no   = int(r.group("motor_no"))
+                boat_no    = int(r.group("boat_no"))
+                finish_rank, fault_code, fault_level = _parse_fin_head(head)
 
-            if   fault_code in ('L','K'): slit_ADJ = None
-            elif fault_code == 'F':       slit_ADJ = _parse_time(r.group("st")) *-1
-            else:                         slit_ADJ = _parse_time(r.group("st"))
+                if   fault_code in ('L','K'): slit_ADJ = None
+                elif fault_code == 'F':       slit_ADJ = _parse_time(r.group("st")) *-1
+                else:                         slit_ADJ = _parse_time(r.group("st"))
 
-            RT_raw    = r.group("race_time")
-            race_time = RT_raw.strip() if RT_raw and any(ch.isdigit() for ch in RT_raw) else None
-            win_move  = w_mov if finish_rank == 1 else None
+                RT_raw    = r.group("race_time")
+                race_time = RT_raw.strip() if RT_raw and any(ch.isdigit() for ch in RT_raw) else None
+                win_move  = w_mov if finish_rank == 1 else None
 
-            upsert_entry(c, race_id, venue_id,
-                         dict( entry_id    = entry_id,
-                               race_no     = race_no,
-                               date        = date_iso,
-                               frame_no    = frame_no,
-                               player_id   = player_id,
-                               course      = course,
-                               win_move    = win_move,
-                               finish_rank = finish_rank,
-                               fault_code  = fault_code,
-                               fault_level = fault_level,
-                               motor_no    = motor_no,
-                               boat_no     = boat_no,
-                               slit_ADJ    = slit_ADJ,
-                               race_time   = race_time    ) )
+                upsert_entry(c, race_id, venue_id,
+                             dict( entry_id    = entry_id,
+                                   race_no     = race_no,
+                                   date        = date_iso,
+                                   frame_no    = frame_no,
+                                   player_id   = player_id,
+                                   course      = course,
+                                   win_move    = win_move,
+                                   finish_rank = finish_rank,
+                                   fault_code  = fault_code,
+                                   fault_level = fault_level,
+                                   motor_no    = motor_no,
+                                   boat_no     = boat_no,
+                                   slit_ADJ    = slit_ADJ,
+                                   race_time   = race_time    ) )
 
-            total += 1
+                total += 1
 
-    _update_all_ladies_day(c, date_iso, venue_id)
+        _update_all_ladies_day(c, date_iso, venue_id)
 
     return total
 

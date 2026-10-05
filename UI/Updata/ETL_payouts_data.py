@@ -12,6 +12,28 @@ VENUES = [ "桐  生", "戸  田", "江戸川", "平和島", "多摩川", "浜�
            "  津  ", "三  国", "びわこ", "住之江", "尼  崎", "鳴  門", "丸  亀", "児  島",
            "宮  島", "徳  山", "下  関", "若  松", "芦  屋", "福  岡", "唐  津", "大  村"  ]
 
+# ===========  共通ヘルパー  ===========
+def today_iso() -> str:
+
+    JST = timezone(timedelta(hours=9))
+    return dt.now(JST).date().strftime("%Y-%m-%d")
+
+# ------------------
+def to_str(x) -> str:
+
+    if isinstance(x,  str): return x
+    if isinstance(x, date): return x.strftime("%Y-%m-%d")
+
+    raise ValueError("str conv error")
+\
+# ------------------
+def to_date(x) -> date:
+
+    if isinstance(x, date): return x
+    if isinstance(x,  str): return date.fromisoformat(x)
+
+    raise ValueError("date conv error")
+
 #=====================================================================
 def get_target_races(d_iso:str, venue_id:int|None, race_no:int|None) -> list:
 
@@ -80,23 +102,25 @@ def main(argv=None):
         print("(date_from , date_to) を併せて指定してください")
         raise SystemExit()
 
-    if args.date:
-        d_from, d_to = args.date, args.date
+    elif args.date:
+        date_from = args.date
+        date_to   = args.date
     elif args.date_from and args.date_to:
-        d_from, d_to = args.date_from, args.date_to
+        date_from = args.date_from
+        date_to   = args.date_to
     else:
-        _today       = dt.today().strftime("%Y-%m-%d")
-        d_from, d_to = _today, _today
+        date_from = today_iso()
+        date_to   = today_iso()
 
     if not args.from_html:
-        ETL_K_results.run_ETL(d_from, d_to, overwrite=args.overwrite, payouts_only=True)
+        ETL_K_results.run_ETL(date_from, date_to, overwrite=args.overwrite, payouts_only=True)
         return
 
-    current_date = dt.strptime(d_from, "%Y-%m-%d").date()
+    current_date = to_date(date_from)
 
-    while current_date <= dt.strptime(d_to, "%Y-%m-%d").date():
+    while current_date <= to_date(date_to):
 
-        d_iso = current_date.strftime("%Y-%m-%d")
+        d_iso = to_str(current_date)
 
         print(f"\n[{d_iso}] 対象レースの確認中...")
         target_races = get_target_races(d_iso, args.venue, args.race)

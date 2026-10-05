@@ -325,9 +325,9 @@ class VenueAnalysisScreen(tk.Toplevel):
                 opt_dict[opt] = param
                 opt_dict |= dict(exclude_venue=3) if self.venue_id != 3 else {}
 
-        query1 = Query( self.date_from, self.date_to, query1=True, grade=self.grade_key,
+        query1 = Query( self.date_from, self.date_to, query_results=True, grade=self.grade_key,
                           venue_id=self.venue_id, exclude_rookie=[True,False], **opt_dict )
-        query2 = Query( self.date_from, self.date_to, query1=True, grade=self.grade_key,
+        query2 = Query( self.date_from, self.date_to, query_results=True, grade=self.grade_key,
                                                   exclude_rookie=[True,False], **opt_dict )
 
         self.rows1 = query1._pack(by_course=True)

@@ -2,7 +2,7 @@
 # C:\boatrace\UI\Placeholder\placeholder.py
 
 import tkinter as tk
-from Helpers.Custum_func import cFr, cLbl, cBtn
+from Helpers.Custum_func import cFr, cLbl, cBtn, cCvs
 from Widgets.widgets     import framing_graph, framing_figure
 
 GUI, MUI, HNH, CBR     = "Yu Gothic UI", "Meiryo UI", "Helvetica Neue Heavy", "Cambria"
@@ -159,9 +159,6 @@ def build_sub_placeholder(self, parent:tk.Frame): #  1188  318
             fr_figA.reset_figure()
     #---------------
     self.s_lane      = 0
-    self.flying      = False
-    self.not_flying  = False
-    self.exclude_edo = False if self.venue_id != 3 else True
 
     fr_Hedr  = cFr(parent, W=1200, H= 45)
     fr_body  = cFr(parent, W=1200, H=266)
@@ -195,14 +192,16 @@ def build_sub_placeholder(self, parent:tk.Frame): #  1188  318
     self.bt_rst = cBtn( fr_btnB, W=8, font=(MUI,8), text="Reset",
                         Bd=(1,RA), bg="#e1f2ff", Com=reset_figure )
 
-    self.bt_fly = cBtn(fr_btnB, W=7, font=(MUI,8), text="Flying")
+    self.bt_fly = cBtn(fr_btnB, W=6, font=(MUI,8), text="Flying")
     self.bt_nfl = cBtn(fr_btnB, W=7, font=(MUI,8), text="NotFlying")
     self.bt_exE = cBtn(fr_btnB, W=7, font=(MUI,8), text="江戸川除外")
-    self.bt_mrk = cBtn(fr_btnB, W=7, font=(MUI,8), text="全マーク")     #←新規追加ボタン
+    self.bt_grd = cBtn(fr_btnB, W=7, font=(MUI,8), text="一般戦除外")
+    self.bt_mrk = cBtn(fr_btnB, W=6, font=(MUI,8), text="全マーク")
 
     self.bt_fly.config(command=lambda:_switch_btn(self, self.bt_fly, "flying"))
     self.bt_nfl.config(command=lambda:_switch_btn(self, self.bt_nfl, "not_flying"))
     self.bt_exE.config(command=lambda:_switch_btn(self, self.bt_exE, "exclude_edo"))
+    self.bt_grd.config(command=lambda:_switch_btn(self, self.bt_grd, "limited_grade"))
     self.bt_mrk.config(command=lambda:_switch_btn(self, self.bt_mrk, "on_mark"))
 
     self.bt_ctw._grid(R=0, C=0)
@@ -210,11 +209,14 @@ def build_sub_placeholder(self, parent:tk.Frame): #  1188  318
     self.bt_fly._grid(R=0, C=1, px=(5,0))
     self.bt_nfl._grid(R=0, C=2)
     self.bt_exE._grid(R=0, C=3)
-    self.bt_mrk._grid(R=0, C=4, px=(5,0))
+    self.bt_grd._grid(R=0, C=4)
+    self.bt_mrk._grid(R=0, C=5, px=(5,0))
 
     _config_btn(self, self.bt_fly, getattr(self, "flying"))
     _config_btn(self, self.bt_nfl, getattr(self, "not_flying"))
     _config_btn(self, self.bt_exE, getattr(self, "exclude_edo"))
+    _config_btn(self, self.bt_grd, getattr(self, "limited_grade"))
+    _config_btn(self, self.bt_mrk, getattr(self, "on_mark"))
 
     fr_venA.Rconf(0, W=1) ;fr_venA.Cconf(0, W=1)
     fr_venA.Rconf(1, W=1)
@@ -319,9 +321,9 @@ def build_sub_placeholder(self, parent:tk.Frame): #  1188  318
         lb_tilt = cLbl(fr_lanD, Anc=CT, font=(MUI, 8,BD), bg="white",           Bd=(1,RD))
         lb_exhi = cLbl(fr_exhi, Anc=CT, font=(MUI, 8,BD), bg=SCOL)
         lb_cnt  = cLbl(fr_lanF, Anc=CT, font=(GUI, 8,BD), bg="#f9f9f9",         Bd=(1,GR))
-        lb_rpr1 = cLbl(fr_repr, Anc=CT, font=(MUI, 8   ), bg="#f9f9f9"                   )
-        lb_rpr2 = cLbl(fr_repr, Anc=CT, font=(MUI, 8   ), bg="#f9f9f9"                   )
-        lb_rpr3 = cLbl(fr_repr, Anc=CT, font=(MUI, 8   ), bg="#f9f9f9"                   )
+        cv_rpr1 = cCvs(fr_repr, width=138, height=14, bg="white", highlightthickness=0)
+        cv_rpr2 = cCvs(fr_repr, width=138, height=16, bg="white", highlightthickness=0)
+        cv_rpr3 = cCvs(fr_repr, width=138, height=14, bg="white", highlightthickness=0)
 
         lb_frno._grid(          Stk=ALL)
         lb_name._grid(          Stk=ALL)
@@ -329,9 +331,9 @@ def build_sub_placeholder(self, parent:tk.Frame): #  1188  318
         lb_tilt._grid(          Stk=ALL)
         lb_exhi._grid(          Stk=ALL)
         lb_cnt._grid(           Stk=ALL)
-        lb_rpr1._grid(R=0, C=0, Stk=ALL)
-        lb_rpr2._grid(R=1, C=0, Stk=ALL)
-        lb_rpr3._grid(R=2, C=0, Stk=ALL)
+        cv_rpr1._grid(R=0, C=0, Stk=ALL)
+        cv_rpr2._grid(R=1, C=0, Stk=ALL)
+        cv_rpr3._grid(R=2, C=0, Stk=ALL)
 
         bt_sbj = cBtn( fr_botn, text= "", font=(MUI,8,BD), Rel=RA, bg="#dfdfdf",
                                   Com=lambda L=ln:_graph(self, fr_grph, L) )
@@ -363,7 +365,7 @@ def build_sub_placeholder(self, parent:tk.Frame): #  1188  318
 
         self._widgets_sub[ln] ={ "frno":lb_frno,   "name":lb_name, "flyg":lb_flyg,
                                  "tilt":lb_tilt,   "exhi":lb_exhi,  "cnt" :lb_cnt,
-                                 "rpr1":lb_rpr1,   "rpr2":lb_rpr2,  "rpr3":lb_rpr3,
+                                 "rpr1":cv_rpr1,   "rpr2":cv_rpr2,  "rpr3":cv_rpr3,
                                  "bt_sbj":bt_sbj,                                   }
 
     self._widgets_sub[0]  ={ "Graph":fr_grph,   "Fig_A":fr_figA,   "Fig_B":fr_figB,

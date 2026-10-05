@@ -500,14 +500,13 @@ class PlayerAnalysisScreen(tk.Toplevel):
                 (opt, param) = self.filter_dict[key]
                 opts[opt]    = param
 
-        self.query = Query( self.date_from.isoformat(),
-                            self.date_to.isoformat(),
-                                    query1= True,
-                                    query2= True,
-                                 player_id= self.player_id,
-                                     grade= self.grade_key,
-                            exclude_rookie= [False,True],
-                                    **opts                  )
+        self.query = Query( self.date_from.isoformat(), self.date_to.isoformat(),
+                                 query_results= True,
+                             query_self_others= True,
+                                     player_id= self.player_id,
+                                         grade= self.grade_key,
+                                exclude_rookie= [False,True],
+                                        **opts                  )
         self.data_rows  = self.query._pack(for_distribute=True)
 
         self._render_distribute_table()

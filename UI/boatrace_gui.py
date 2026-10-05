@@ -575,25 +575,26 @@ class RaceWindow(tk.Toplevel):
         self.entry_prg   = {}
         self.clock_id    = None
         self.is_absent   = []
-        self.flying      = True
-        self.not_flying  = True
+
+        self.flying      = False
+        self.not_flying  = False
         self.exclude_edo = True if venue_id != 3 else False
-        self.on_mark     = False
+        self.on_mark     = True
+        self.limited_grade = False
+
         self._odds_proc    = None
         self._results_proc = None
 
         self.protocol("WM_DELETE_WINDOW", self._on_rw_close)
 
-        self.overall = Query( self.date_from, self.date_to, query1=True, exclude_rookie=[True,False],
-                              exclude_venue=3 if self.venue_id != 3 else None
-                             )._pack(by_course=True)
+        self.overall = self._from_json(self.date, excld=self.exclude_edo)
 
         root = cFr(self, width=1220, height=1400, padx=10,)
         root._grid(R=0, C=0) ;root.Pgate()
 
         if sub_window: self._start_odds_proc()
 
-        #==================== Header =======================
+        # Header =======================
         hdr1   = cFr(root,  W=1130, H=30, px=10) ;hdr1._grid(  R=0, C=0,          Stk="w") ;hdr1.Pgate()
         hdr2   = cFr(root,  W=1130, H=30, px=10) ;hdr2._grid(  R=1, C=0,          Stk="w") ;hdr2.Pgate()
         btns   = cFr(root,  W= 70,  H=60)        ;btns._grid(  R=0, C=1, Rspan=2, Stk="e") ;btns.Pgate()
@@ -636,7 +637,7 @@ class RaceWindow(tk.Toplevel):
         self.bt_change_sub._grid(R=0, C=0, py=(0,3), Stk="e")
         self.bt_toggle_sub._grid(R=1, C=0, py=(2,0), Stk="e")
 
-        #================ Body(Main/Sub) ===================
+        # Body(Main/Sub) ===============
         body = cFr(root, W=1200, H=1340); body._grid(R=2, C=0, Cspan=2); body.Pgate()
 
         self.frm_main = cFr(body, W=1200, H=1002)
@@ -655,7 +656,7 @@ class RaceWindow(tk.Toplevel):
         self._reload_for(self.date, self.venue_id, self.race_no)
         self.app.bind_all("<Button-4>", self._assaign_button)
 
-    #================== 日程切替 ボタン ====================
+    #----------------- 日程切替 ボタン ---------------------
     def _mk_day_buttons(self, parent:tk.Frame):
 
         for child in parent.winfo_children(): child.destroy()
@@ -681,7 +682,7 @@ class RaceWindow(tk.Toplevel):
 
         self._highright_D_btn(d)
 
-    # ================ レース切替ボタン ====================
+    #----------------- レース切替ボタン --------------------
     def _mk_race_buttons(self, parent:ttk.Frame):
 
         self._race_btns = []
@@ -694,8 +695,24 @@ class RaceWindow(tk.Toplevel):
             self._race_btns.append(btn)
 
         self._highright_R_btn(1)
+    # ----------------------------------
+    def _highright_D_btn(self, _date:str):
 
-    # ============== サブ表示/非表示 ボタン ================
+        for key, btn in self._day_btns.items():
+            if key == _date : btn.state(['pressed'])
+            else:             btn.state(['!pressed'])
+    # ----------------------------------
+    def _highright_R_btn(self, on:int):
+    
+        for idx, btn in enumerate(self._race_btns, start=1):
+            if on == idx: btn.state(['pressed'])
+            else:         btn.state(['!pressed'])
+    # ----------------------------------
+    def _assaign_button(self, event):
+
+        self._reload_for(self.last_date, self.venue_id, self.last_race)
+
+    #------------- サブ画面表示/非表示 ボタン --------------
     def _toggle_sub_window(self, _date:date, venue_id:int, race_no:int):
 
         if self.sub_window[0] == False:
@@ -730,7 +747,7 @@ class RaceWindow(tk.Toplevel):
                 if self._results_proc and self._results_proc.poll() is None:
                     self._send_results_command({"state":"withdraw"})
 
-    # --------------- odds subprocess 起動 -----------------
+    #---------------- odds subprocess 起動 -----------------
     def _start_odds_proc(self):
 
         try:
@@ -755,7 +772,7 @@ class RaceWindow(tk.Toplevel):
             self.bt_toggle_sub.config(bg="#ececec", relief=RA)
             return
 
-    # -------------- 標準入力へコマンドを送信 --------------
+    #--------------- 標準入力へコマンド送信 ----------------
     def _send_odds_command(self, cmd:dict):
 
         if self._odds_proc and self._odds_proc.poll() is None:
@@ -767,7 +784,7 @@ class RaceWindow(tk.Toplevel):
             except Exception as e:
                 print(f"[WARN] _send_odds_command: {e}")
 
-    # --------------- results subprocess 起動 -----------------
+    #--------------- results subprocess 起動 ---------------
     def _start_results_proc(self):
 
         try:
@@ -790,7 +807,7 @@ class RaceWindow(tk.Toplevel):
             self.bt_toggle_sub.config(bg="#ececec", relief=RA)
             return
 
-    # -------------- 標準入力へコマンドを送信 --------------
+    #-------------- 標準入力へコマンド送信 -----------------
     def _send_results_command(self, cmd:dict):
 
         if self._results_proc and self._results_proc.poll() is None:
@@ -802,7 +819,7 @@ class RaceWindow(tk.Toplevel):
             except Exception as e:
                 print(f"[WARN] _send_results_command: {e}")
 
-    # ============== オッズ/結果 切替ボタン ================
+    #--------------- オッズ/結果 切替ボタン ----------------
     def _change_sub_window(self, date, venue_id, race_no):
 
         if self.sub_window[1] == 0:
@@ -818,7 +835,19 @@ class RaceWindow(tk.Toplevel):
                 self._stop_results_proc()
                 self._start_odds_proc()
 
-    # ==================== 表示/更新 エントリー ======================
+    #-------------------- 並び変更API ----------------------
+    def _frame_at_lane(self, lane:int, frame_no:int, upd:bool=True):
+
+        if lane not in (1,2,3,4,5,6) or frame_no not in (1,2,3,4,5,6): return
+
+        src_idx = self.frame_order.index(frame_no)
+        dst_idx = lane - 1
+        self.frame_order.pop(src_idx)
+        self.frame_order.insert(dst_idx, frame_no)
+
+        if upd: self._update(0)
+
+    #--------------- 表示/更新 エントリー ------------------
     def _reload_for(self, _date:date, venue_id:int, race_no:int, result:bool=False):
 
         self._highright_D_btn(_date)
@@ -840,7 +869,8 @@ class RaceWindow(tk.Toplevel):
             self._send_results_command({"date":to_str(_date), "venue":venue_id})
 
         self._update(result)
-    # ---------------------------------
+
+    #-------------------------------------------------------
     def _update(self, result:bool):
 
         clear_all_lanes(self)
@@ -859,7 +889,7 @@ class RaceWindow(tk.Toplevel):
             is_abs = bool(self.entry_rows[frn]["absn"])
             if is_abs: apply_absent_bg(self._widgets_main[lane]["Lane"])
 
-    # ---------------------------------
+    #-------------------------------------------------------
     def _set_absent(self):
 
         for frn in reversed(range(1, 7)):
@@ -867,61 +897,33 @@ class RaceWindow(tk.Toplevel):
                  self._frame_at_lane(6-len(self.is_absent), frn, upd=False)
                  self.is_absent.append(frn)
 
-    # 並び変更API ----------------------
-    def _frame_at_lane(self, lane:int, frame_no:int, upd:bool=True):
-
-        if lane not in (1,2,3,4,5,6) or frame_no not in (1,2,3,4,5,6): return
-
-        src_idx = self.frame_order.index(frame_no)
-        dst_idx = lane - 1
-        self.frame_order.pop(src_idx)
-        self.frame_order.insert(dst_idx, frame_no)
-
-        if upd: self._update(0)
-
-    # ----------------------------------
-    def _highright_D_btn(self, _date:str):
-
-        for key, btn in self._day_btns.items():
-            if key == _date : btn.state(['pressed'])
-            else:             btn.state(['!pressed'])
-    # ----------------------------------
-    def _highright_R_btn(self, on:int):
-    
-        for idx, btn in enumerate(self._race_btns, start=1):
-            if on == idx: btn.state(['pressed'])
-            else:         btn.state(['!pressed'])
-    # ----------------------------------
-    def _assaign_button(self, event):
-
-        self._reload_for(self.last_date, self.venue_id, self.last_race)
-
-    #===================== Header: 表示/更新 =========================
+    #----------------- Header 表示/更新 --------------------
     def _update_header(self):
 
         prg   = self.entry_prg
-        _date = date.fromisoformat(prg['date'])
+        _date = to_date(prg['date'])
 
-        self.lb_1LA.config(text= f" {GRADE_IDX.get(prg["grade"])}" if prg["grade"] or not 1 else "")
-        self.lb_1LB.config(text= f"{prg['series_title']}")
-        self.lb_1LC.config(text= f"{prg['day_no']}日目")
-        self.lb_2LA.config(text= f"{_date.month} 月 {_date.day} 日")
-        self.lb_2LB.config(text= f"  {prg['vname']}")
-        self.lb_2LC.config(text= f"{self.race_no}R")
-        self.lb_2LD.config(text= f"{prg['race_title'].strip()}")
-        self.lb_2LE.config(text= f"締切  {prg['deadline'].strftime('%H：%M')}")
+        self.lb_1LA.config(text=f" {GRADE_IDX.get(prg["grade"])}" if prg["grade"] or not 1 else "")
+        self.lb_1LB.config(text=f"{prg['series_title']}")
+        self.lb_1LC.config(text=f"{prg['day_no']}日目")
+        self.lb_2LA.config(text=f"{_date.month} 月 {_date.day} 日")
+        self.lb_2LB.config(text=f"  {prg['vname']}")
+        self.lb_2LC.config(text=f"{self.race_no}R")
+        self.lb_2LD.config(text=f"{prg['race_title'].strip()}")
+        self.lb_2LE.config(text=f"締切  {prg['deadline'].strftime('%H：%M')}")
 
-    #==================== widgets_Main: 表示/更新 ====================
+    #-------------- widgets_Main 表示/更新 -----------------
     def _update_main_entries(self):
 
         for lane in range(1, 7):
+
             wdg_m = self._widgets_main.get(lane)
             wdg_s = self._widgets_sub.get( lane)
             frn   = self.frame_order[lane-1]
             row   = self.entry_rows[frn]
             d_row = self.data_rows[frn]
 
-            home     = 1 if self.entry_prg['h_reg'] == row['rgns'] else 0
+            home     = bool(self.entry_prg['h_reg'] == row['rgns'])
             regn_opt = dict(font=(MUI,9,BD), fill="blue") if home else dict(font=(MUI,9))
             flyg_opt = FAULT_OPT[row['flyg']]
             late_opt = FAULT_OPT[row['late']]
@@ -942,41 +944,41 @@ class RaceWindow(tk.Toplevel):
             elif row["rate3"] <= 30:        rate3_opt = RATE_OPT[2]
             else:                           rate3_opt = RATE_OPT[0]
 
-            wdg_m["frno"].config( text= str(frn),                  **FRM_COLOR[frn] )
-            wdg_m["name"].config( text= f"{row['name']}"          )
+            wdg_m["frno" ].config(text= str(frn),             **FRM_COLOR[frn])
+            wdg_m["name" ].config(text= f"{row['name']}"                      )
             wdg_m["rate1"].config(text= f"{row['rate1']:.1f}",     **rate1_opt)
             wdg_m["rate2"].config(text= f"{row['rate2']:.1f}",     **rate2_opt)
             wdg_m["rate3"].config(text= f"{row['rate3']:.1f}",     **rate3_opt)
-            wdg_m["late"].config( text= f"L{row['late']}",         **late_opt )
-            wdg_m["flyg"].config( text= f"F{row['flyg']}",         **flyg_opt )
-            wdg_m["stav"].config( text= f"{wid_txt(row['stav'])}", **stav_opt )
-            wdg_m["mo_av"].config(text= f"{wid_txt(row['mo_av'])}")
-            wdg_m["bo_av"].config(text= f"{wid_txt(row['bo_av'])}")
+            wdg_m["late" ].config(text= f"L{row['late']}",         **late_opt )
+            wdg_m["flyg" ].config(text= f"F{row['flyg']}",         **flyg_opt )
+            wdg_m["stav" ].config(text= f"{wid_txt(row['stav'])}", **stav_opt )
+            wdg_m["mo_av"].config(text= f"{wid_txt(row['mo_av'])}"            )
+            wdg_m["bo_av"].config(text= f"{wid_txt(row['bo_av'])}"            )
             set_player_image(wdg_m["photo"], row.get("pid"), (112, 160))
             wdg_m["photo"].bind( "<Button-1>",lambda e, p=row["pid"], c=lane:
-                                  self.app.open_p_analys(p, self.venue_id, self.date, c) )
+                                 self.app.open_p_analys(p, self.venue_id, self.date, c) )
 
-            wdg_m["mo_av"].bind( "<Button-1>",lambda e, m=row["mo_no"], upd=self.entry_prg["upd_m"]: 
-                                  self.app.open_m_analys(m, self.venue_id, upd)                      )
+            wdg_m["mo_av"].bind( "<Button-1>",lambda e, m=row["mo_no"], um=self.entry_prg["upd_m"]: 
+                                 self.app.open_m_analys(m, self.venue_id, um)                      )
 
             wdg_m['cv1'].delete("all") ;wdg_m['cv2'].delete("all") ;wdg_m['cv3'].delete("all")
 
             for x, y in [(-1, 0), (1, 0), (0, -1), (0, 1)]:
                wdg_m['cv1'].create_text(23+x, 13+y, text=row['clss'], font=(CBR,12,BD), fill="white")
             wdg_m['cv1'].create_rectangle(8, 12, 42, 18, width=0, **CLS_COLOR[row['clss']])
-            wdg_m['cv1'].create_text(23,  13, text=row['clss'],  font=(CBR,12,BD), fill="Black")
-            wdg_m['cv1'].create_text(72,  14, text=row['scav'],  font=(MUI,9,BD),  fill="Black")
-            wdg_m['cv1'].create_text(132, 15, text=row['v_ave'], font=(MUI,8,BD),  fill="Black")
+            wdg_m['cv1'].create_text( 23, 13, text=row['clss' ], font=(CBR,12,BD), fill="Black")
+            wdg_m['cv1'].create_text( 72, 14, text=row['scav' ], font=(MUI, 9,BD), fill="Black")
+            wdg_m['cv1'].create_text(132, 15, text=row['v_ave'], font=(MUI, 8,BD), fill="Black")
             wdg_m['cv1'].create_text(161, 15, text=f"/ {row['v_cnt']}",              **vcnt_opt)
-            wdg_m['cv2'].create_text(23,  18, text=row['regp'],  font=(MUI,9),     fill="Black")
-            wdg_m['cv2'].create_text(92,  17, text=row['pid'],   font=(MUI,9),     fill="Black")
-            wdg_m['cv2'].create_text(160, 16, text=row['rgns'],                      **regn_opt)
-            wdg_m['cv3'].create_text(23,  20, text=row['age'],   font=(MUI,9),     fill="Black")
-            wdg_m['cv3'].create_text(88,  20, text=row['heig'],  font=(MUI,8),     fill="Black")
-            wdg_m['cv3'].create_text(151, 20, text=row['wkg'],   font=(MUI,8),     fill="Black")
+            wdg_m['cv2'].create_text( 23, 18, text=row['regp' ], font=(MUI, 9),    fill="Black")
+            wdg_m['cv2'].create_text( 92, 17, text=row['pid'  ], font=(MUI, 9),    fill="Black")
+            wdg_m['cv2'].create_text(160, 16, text=row['rgns' ],                      **regn_opt)
+            wdg_m['cv3'].create_text( 23, 20, text=row['age'  ], font=(MUI, 9),    fill="Black")
+            wdg_m['cv3'].create_text( 88, 20, text=row['heig' ], font=(MUI, 8),    fill="Black")
+            wdg_m['cv3'].create_text(151, 20, text=row['wkg'  ], font=(MUI, 8),    fill="Black")
 
-            f_l      = int(row['flyg'] or 0) + int(row['late'] or 0)
-            cnt_opt  = dict(fg="red") if row["cnt"][lane] < 10 else dict(fg="black")
+            f_l     = int(row['flyg'] or 0) + int(row['late'] or 0)
+            cnt_opt = dict(fg="red" if row["cnt"][lane] < 10 else "black")
 
             wdg_s["frno"].config(text= str(frn), **FRM_COLOR[frn]        )
             wdg_s["name"].config(text= f"{row.get('name')}"              )
@@ -985,7 +987,7 @@ class RaceWindow(tk.Toplevel):
 
             framing_center_widgets(self, wdg_m["fr_Ctr"], lane, d_row, wdgt_no=self.wno)
 
-    #==================== widgets_Sub: 表示/更新 =====================
+    #--------------- widgets_Sub 表示/更新 -----------------
     def _update_sub_entries(self, result:bool):
 
         self.sub_rows = make_sub_rows(self)
@@ -1001,18 +1003,32 @@ class RaceWindow(tk.Toplevel):
         for lane in range(1,7):
 
             frn  = self.frame_order[lane-1]
-            wdg  = self._widgets_sub.get(lane, {})
+            wdg  = self._widgets_sub[lane]
             tilt = row[frn]['tilt'] if row[frn]['tilt'] != -0.5 else "-"
 
-            if   float(row[frn].get('exhi', 0) or 0) <= fast_ex:       e_opt={"fg":"blue"}
-            elif float(row[frn].get('exhi', 0) or 0) >= fast_ex +0.15: e_opt={"fg":"red"} 
-            else: e_opt={"fg":"black"}
+            if   float(row[frn].get('exhi',0) or 0) <= fast_ex:       e_opt={"fg":"blue" }
+            elif float(row[frn].get('exhi',0) or 0) >= fast_ex +0.15: e_opt={"fg":"red"  } 
+            else:                                                     e_opt={"fg":"black"}
 
-            wdg["tilt"].config(text= f"{tilt}"                 )
-            wdg["exhi"].config(text= wid_txt(f"{row[frn].get('exhi', "")}"), **e_opt)
-            wdg["rpr1"].config(text= f"{row[frn].get('rpr1')}" )
-            wdg["rpr2"].config(text= f"{row[frn].get('rpr2')}" )
-            wdg["rpr3"].config(text= f"{row[frn].get('rpr3')}" )
+            g_p           = ("プロペラ","キャリボ","シャフト")
+            sp1, sp2, sp3 = 35, 25, 35
+            wdg['rpr1'].delete("all") ;wdg['rpr2'].delete("all") ;wdg['rpr3'].delete("all")
+
+            for cnt, p in enumerate(row[frn]['repr']):
+                p_opt = {"fill":"red"} if p in g_p else {"fill":"black"}
+
+                if cnt <= 1:
+                    wdg["rpr2"].create_text(sp2, 6, text=f"{p}", font=(MUI,8), **p_opt)
+                    sp2 += 60
+                elif cnt <= 3:
+                    wdg["rpr1"].create_text(sp1, 8, text=f"{p}", font=(MUI,8), **p_opt)
+                    sp1 += 60
+                elif cnt <= 5:
+                    wdg["rpr3"].create_text(sp3, 7, text=f"{p}", font=(MUI,8), **p_opt)
+                    sp3 += 60
+
+            wdg["tilt"].config(text=f"{tilt}" )
+            wdg["exhi"].config(text=wid_txt(f"{row[frn]['exhi'] or ''}"), **e_opt)
 
             absn               = row[frn]["absn"] or 0
             st_ave             = self.data_rows[frn]["own"][lane]["st_ave"]
@@ -1028,17 +1044,17 @@ class RaceWindow(tk.Toplevel):
         b_pas = ( self.date.month -int(prg["upd_b"]) )%12
         vname = "　 ".join(prg["vname"]) if len(prg["vname"]) < 3 else  prg["vname"]
 
-        self._widgets_sub[0]["vname"].config(text= f"BR  {vname}" )
-        self._widgets_sub[0]["w_typ"].config(text= f"{'　'.join(prg['w_typ'])} " )
-        self._widgets_sub[0]["upd_m"].config(text= f" {m_pas}  ヶ月 ")
-        self._widgets_sub[0]["upd_b"].config(text= f" {b_pas}  ヶ月 ")
-        self._widgets_sub[0]["wspd" ].config(text= f"風 速  {wspd}  m" )
-        self._widgets_sub[0]["wave" ].config(text= f"波 高  {wave} cm" )
-        self._widgets_sub[0]["stab" ].config(text= "安 定 版 装 着" if stab else "",
-                                               bg="yellow" if stab else "white"     )
-        self._widgets_sub[0]["shlp" ].config(text= "周 回 短 縮 1200 m" if lap else "",
-                                               bg="yellow" if lap else "white"      )
-        self._widgets_sub[0]["deadl"].config(text= f"  {prg['deadline'].strftime('%H：%M')}  ")
+        self._widgets_sub[0]["vname"].config(text=f"BR  {vname}" )
+        self._widgets_sub[0]["w_typ"].config(text=f"{'　'.join(prg['w_typ'])} ")
+        self._widgets_sub[0]["upd_m"].config(text=f" {m_pas}  ヶ月 ")
+        self._widgets_sub[0]["upd_b"].config(text=f" {b_pas}  ヶ月 ")
+        self._widgets_sub[0]["wspd" ].config(text=f"風 速  {wspd}  m")
+        self._widgets_sub[0]["wave" ].config(text=f"波 高  {wave} cm")
+        self._widgets_sub[0]["stab" ].config(text="安 定 版 装 着"     if stab else "",
+                                               bg="yellow" if stab else "white"        )
+        self._widgets_sub[0]["shlp" ].config(text="周 回 短 縮 1200 m" if  lap else "",
+                                               bg="yellow" if  lap else "white"        )
+        self._widgets_sub[0]["deadl"].config(text=f"  {prg['deadline'].strftime('%H：%M')}  ")
         # --------------
         def _update_clock():
 
@@ -1063,9 +1079,10 @@ class RaceWindow(tk.Toplevel):
             self.clock_id = self._widgets_sub[0]["now"].after(1000, _update_clock)
         # --------------
         _update_clock()
+
         self._update_figure(result)
 
-    #=================================================================
+    #-------------------------------------------------------
     def _update_figure(self, result:bool):
 
             row       = self.sub_rows["rslt"] if result else self.sub_rows["dspl"]
@@ -1100,7 +1117,7 @@ class RaceWindow(tk.Toplevel):
             framing_figure(self, self._widgets_sub[0]["Fig_B"], fig_order, B=fig_row)
             framing_weather(self, self._widgets_sub[0]["wthr"], self._widgets_sub[0]["wdir"], row)
 
-    # ==================== ウィンドウ終了処理 =====================
+    # --------------- ウィンドウ終了処理 -------------------
     def _on_rw_close(self):
 
         self._stop_odds_proc()
@@ -1135,6 +1152,31 @@ class RaceWindow(tk.Toplevel):
                 pass
             finally:
                 self._results_proc = None
+
+    #-----------------------------------
+    def _from_json(self, d_iso:str, excld:bool=False):
+        #---------------
+        def convert_keys_to_int(d:dict):
+            return {int(k) if k.isdigit() else k:v for k, v in d.items()}
+        #---------------
+        col = "excld_edo" if excld else "all_venue"
+
+        row = dal.fetch_one(f"""
+                      SELECT {col}
+                        FROM Daily_Overall
+                       WHERE date = ?
+                      """,
+                      (d_iso,) )
+
+        if row:
+            json_txt = row[0]
+            try:
+                return json.loads(json_txt, object_hook=convert_keys_to_int)
+            except json.JSONDecodeError as e:
+                print(f"JSON復元エラー: {e}")
+                return {}
+        else:
+            return {}
 
 # -----------------------------------------------------------------------------
 if __name__ == "__main__":

@@ -18,26 +18,30 @@ P_SG_FIN   = [0, 13, 11, 9, 8, 6, 5]
 BT_KEY = "ファン感謝３Ｄａｙｓボートレースバトルトーナメント"
 # ====================================================================
 class Query():
-    def __init__(self, date_from, date_to, query1:bool=False, query2:bool=False,
-                           grade:Optional[list] = None,
-                       player_id:Optional[int]  = None,
-                        venue_id:Optional[int]  = None,
-                      all_ladies:Optional[int]  = None,
-                      stabilizer:Optional[int]  = None,
-                         weather:Optional[str]  = None,
-                        wind_spd:Optional[int]  = None,
-                        wind_dir:Optional[int]  = None,
-                        wave_hgt:Optional[int]  = None,
-                          course:Optional[int]  = None,
-                     finish_rank:Optional[int]  = None,
-                      fault_code:Optional[str]  = None,
-                     fault_level:Optional[int]  = None,
-                        slit_ADJ:Optional[int]  = None,
-                      water_type:Optional[int]  = None,
-                   exclude_venue:Optional[int]  = None,
-                          flying:Optional[bool] = False,
-                      not_flying:Optional[bool] = False,
-                  exclude_rookie:Optional[list] = [False, False]                  ):
+    def __init__( self, date_from, date_to,
+                   query_results:bool=False,
+               query_self_others:bool=False,
+
+                       player_id:Optional[int]=None,
+                           grade:Optional[list]=None,
+                        venue_id:Optional[int]=None,
+                      all_ladies:Optional[int]=None,
+                      stabilizer:Optional[int]=None,
+                         weather:Optional[str]=None,
+                        wind_spd:Optional[int]=None,
+                        wind_dir:Optional[int]=None,
+                        wave_hgt:Optional[int]=None,
+                          course:Optional[int]=None,
+                     finish_rank:Optional[int]=None,
+                      fault_code:Optional[str]=None,
+                     fault_level:Optional[int]=None,
+                        slit_ADJ:Optional[int]=None,
+                      water_type:Optional[int]=None,
+
+                   exclude_venue:Optional[int]=None,
+                          flying:Optional[bool]=False,
+                      not_flying:Optional[bool]=False,
+                  exclude_rookie:Optional[list]=[False,False] ):
 
         super().__init__()
 
@@ -64,12 +68,12 @@ class Query():
                         "fault_code":(" AND e.fault_code  = ?", lambda s:[fault_code]),
                        "fault_level":(" AND e.fault_level = ?", lambda s:[fault_level]),
                           "slit_ADJ":(" AND e.slit_ADJ    = ?", lambda s:[slit_ADJ]),
-                     "exclude_venue":(" AND r.venue_id   != ?", lambda s:[exclude_venue]),                   }
+                     "exclude_venue":(" AND r.venue_id   != ?", lambda s:[exclude_venue]),      }
 
-        if query1: self.rows1 = self._query_results()
-        if query2: self.rows2 = self._query_self_others()
+        if query_results:     self.rows1 = self._q_statistics_results()
+        if query_self_others: self.rows2 = self._q_relative_others()
 
-    # ------------------------------------------------------
+    #=================================================================
     def _pack( self,  by_grade:bool=False,
                      by_course:bool=False,
                      by_series:bool=False,
@@ -97,7 +101,7 @@ class Query():
         return out
 
     # ------------------------------------------------------
-    def _query_results(self):
+    def _q_statistics_results(self):
 
         sql = """
             SELECT r.date,
@@ -130,10 +134,11 @@ class Query():
         return dal.fetch_all(sql, tuple(params)) or []
 
     # ------------------------------------------------------
-    def _query_self_others(self):
+    def _q_relative_others(self):
 
-        sql_own1 = """
-                  WITH base AS (  SELECT e.course,
+        sql_base= """
+                  WITH base AS (  SELECT e.race_id,
+                                         e.course,
                                          e.slit_adj,
                                          e.finish_rank,
                                          e.fault_code,
@@ -150,7 +155,7 @@ class Query():
                                  AND NOT (     e.fault_code  = 'S'
                                            AND e.fault_level =  0 )
                    """
-        sql_own2 = """
+        sql_own = """
               ) SELECT course,
                  COUNT(*) AS starts,
                    SUM(CASE WHEN finish_rank = 1 THEN 1 ELSE 0 END) AS win1,
@@ -162,25 +167,8 @@ class Query():
                    SUM(slit_adj)                                    AS st_sum
                   FROM base
               GROUP BY course
-                   """
-        sql_oths1 = """
-                   WITH my_races AS ( SELECT e.race_id,
-                                             e.finish_rank,
-                                             e.fault_code,
-                                             e.fault_level
-                                        FROM Race_entries e
-                                        JOIN Races r
-                                          ON e.race_id = r.race_id
-                                        JOIN Venues v
-                                          ON e.venue_id = v.venue_id
-                                       WHERE e.date BETWEEN ? AND ?
-                                         AND r.status       = 'held'
-                                         AND e.finish_rank != 0
-                                     AND NOT e.fault_code  IN ('F','L','K')
-                                     AND NOT (     e.fault_code  = 'S'
-                                               AND e.fault_level =  0 )
-                    """
-        sql_oths2 = """
+                  """
+        sql_oths = """
                ) SELECT e.race_id,
                         e.player_id,
                         e.course,
@@ -189,16 +177,15 @@ class Query():
                         e.fault_level,
                         e.win_move
                    FROM Race_entries e
-                   JOIN my_races mr
+                   JOIN base mr
                      ON mr.race_id = e.race_id
                     """
 
         add_sql, add_param = self._build_filter_clause(False)
-        sql_own     = (sql_own1 +add_sql +sql_own2)
-        rk_sql      = self._build_exclude_rookie_clause() if self.exclude_rookie[1] else ""
-        sql_oths    = sql_oths1 +add_sql +sql_oths2 +rk_sql +" ORDER BY e.race_id, e.course"
-
-        params      = [self.date_from, self.date_to] +add_param
+        sql_own   = (sql_base +add_sql +sql_own)
+        rk_sql    = self._build_exclude_rookie_clause() if self.exclude_rookie[1] else ""
+        sql_oths  = sql_base +add_sql +sql_oths +rk_sql +" ORDER BY e.race_id, e.course"
+        params    = [self.date_from, self.date_to] +add_param
 
         own_rows  = dal.fetch_all(sql_own,  tuple(params))
         oths_rows = dal.fetch_all(sql_oths, tuple(params))

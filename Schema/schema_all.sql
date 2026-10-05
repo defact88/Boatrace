@@ -206,36 +206,23 @@ CREATE INDEX IF NOT EXISTS idx_before_info_player_id
                         ON Before_info(player_id);
 
 /*-------------------------------------------------------------------------------------*/
-CREATE TABLE Odds(
 
-  odds_id      INTEGER PRIMARY KEY AUTOINCREMENT,
-  race_id      INTEGER NOT NULL,
-  date         DATE    NOT NULL,
-  venue_id     INTEGER NOT NULL,
-  race_no      INTEGER NOT NULL,
+COMBOS = { "3T":[f"combo_{''.join(n)} REAL" for n in itertools.permutations('123456', 3)],
+           "3F":[f"combo_{''.join(n)} REAL" for n in itertools.combinations('123456', 3)],
+           "2T":[f"combo_{''.join(n)} REAL" for n in itertools.permutations('123456', 2)],
+           "2F":[f"combo_{''.join(n)} REAL" for n in itertools.combinations('123456', 2)],
+           "TT":[f"combo_{n} REAL" for n in '123456'],
+           "FF":[f"combo_{n} TEXT" for n in '123456'],
+           "KK":[f"combo_{''.join(n)} TEXT" for n in itertools.combinations('123456', 2)], }
 
-  bet_type     TEXT    NOT NULL,
-  combo        INTEGER NOT NULL,
+CREATE TABLE Odds_{bet_type}(
 
-  odds         REAL,
-  raw_odds     TEXT,
-
-  hit          INTEGER NOT NULL DEFAULT 0,
-
-  captured_at  DATETIME NOT NULL,
-
-  UNIQUE(race_id, bet_type, combo)
-
-  CHECK(bet_type IN ('3T','3F','2T','2F','KK','TT','FF')),
-  CHECK(combo BETWEEN 0 AND 666)
-
+  race_id  INTEGER PRIMARY KEY,
+  date     DATE    NOT NULL,
+  venue_id INTEGER NOT NULL,
+  race_no  INTEGER NOT NULL,
+  ',\n  '.join(COMBOS[bet_type])
 );
-
-CREATE UNIQUE INDEX IF NOT EXISTS uq_odds
-                               ON Odds(date, venue_id, race_no, bet_type, combo);
-
-CREATE INDEX IF NOT EXISTS idx_odds_race
-                        ON Odds(date, venue_id, race_no, bet_type);
 
 /*-------------------------------------------------------------------------------------*/
 CREATE TABLE Payouts(
@@ -284,6 +271,14 @@ CREATE TABLE Payouts(
 
 CREATE UNIQUE INDEX IF NOT EXISTS payouts_race_id
     ON Payouts(race_id, status);
+
+/*-------------------------------------------------------------------------------------*/
+CREATE TABLE Daily_Overall(
+
+    date      DATE PRIMARY KEY,
+    all_venue TEXT,
+    excld_edo TEXT
+);
 
 /*-------------------------------------------------------------------------------------*/
 CREATE VIEW V_daily_schedule

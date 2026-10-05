@@ -290,7 +290,7 @@ def fetch_all_odds( date_str:str, venue_id:int, race_no:int, on_progress=None,
 def _parse_into(htmls:dict, result:dict):
 
     if "3T" in htmls:
-        result["final"] = "tab4_time" in htmls["3T"]
+        result["final"] = "締切時オッズ" in htmls["3T"]
         tbl = _find_table(htmls["3T"], "3連単オッズ")
         result["3T"] = parse_3T(tbl)
 

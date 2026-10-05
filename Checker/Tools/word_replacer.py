@@ -99,20 +99,20 @@ class WordReplacerGUI(tk.Tk):
         def toggle_match_mode():
             if self.match_mode.get() == "部分一致":
                 self.match_mode.set("単語")
-                self.btn_toggle.config(text="一致条件: 単語\n(スペース等で独立)", bg="#779977")
+                self.btn_toggle.config(text="一致条件: 単語", bg="#779977")
             else:
                 self.match_mode.set("部分一致")
-                self.btn_toggle.config(text="一致条件: 部分一致\n(文字の一部でも対象)", bg="#555555")
+                self.btn_toggle.config(text="一致条件: 部分一致", bg="#555555")
 
         self.btn_toggle = tk.Button(
-            fr_words, text="一致条件: 部分一致\n(文字の一部でも対象)", bg="#555555", fg=FG_COLOR,
+            fr_words, text="一致条件: 部分一致", bg="#555555", fg=FG_COLOR,
             command=toggle_match_mode, width=17, font=(MUI,9)
         )
         self.btn_toggle.grid(row=0, column=2, rowspan=2, padx=(10, 5), pady=3, sticky="nsew")
 
         # 一括置換実行ボタン
         self.btn_exec = tk.Button(
-            fr_words, text="一括置換実行\n(自動バックアップ付)", 
+            fr_words, text="一括置換実行", 
             font=(MUI,10,BD), bg=EXEC_BTN_BG, fg="#000000",
             width=18, height=2, command=self.on_execute_replace
         )
@@ -120,7 +120,7 @@ class WordReplacerGUI(tk.Tk):
 
         # 検索(カウント)ボタン
         self.btn_search = tk.Button(
-            fr_words, text="検索\n(カウントのみ)", 
+            fr_words, text="検索", 
             font=(MUI,10,BD), bg="#FFEEAA", fg="#000000",
             width=14, height=2, command=self.on_search_word
         )
@@ -167,7 +167,7 @@ class WordReplacerGUI(tk.Tk):
         fr_log = tk.Frame(frame_bottom, bg=BG_COLOR)
         fr_log.pack(fill="both", expand=True, padx=5, pady=5)
 
-        self.txt_log = tk.Text(fr_log, bg=TEXT_BG, fg=FG_COLOR, height=12, font=(MUI,9), relief="flat", wrap="none")
+        self.txt_log = tk.Text(fr_log, bg=TEXT_BG, fg=FG_COLOR, height=15, font=(MUI,10), relief="flat", wrap="none")
         log_scroll_y = ttk.Scrollbar(fr_log, orient="vertical", command=self.txt_log.yview)
         self.txt_log.configure(yscrollcommand=log_scroll_y.set)
 
@@ -180,7 +180,7 @@ class WordReplacerGUI(tk.Tk):
         self.txt_log.tag_config("INFO",    foreground=LOG_FG)
 
     #-------------------------------------------------------
-    def log(self, text: str, tag: str = None):
+    def log(self, text:str, tag:str=None):
 
         self.txt_log.insert("end", text + "\n", tag)
         self.txt_log.see("end")

@@ -20,10 +20,9 @@ check_finals.py,           --year,       required=True
 check_Before_info.py,      --date_from,  required=True
 check_Before_info.py,      --date_to,    required=True
 
-odds_data_audit.py,        --thin,       required=False
-odds_data_audit.py,        --date_from,  required=False
-odds_data_audit.py,        --date_to,    required=False
-odds_data_audit.py,        --detail,     required=False
+check_odds_data.py,        --date_from,  required=False
+check_odds_data.py,        --date_to,    required=False
+check_odds_data.py,        --detail,     required=False
 
 scraper_odds,              html,         required=True
 

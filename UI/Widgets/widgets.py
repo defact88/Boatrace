@@ -39,7 +39,7 @@ def framing_graph( self, frame:tk.Frame, frame_order, rows1, rows2=None, s_lane=
     color2   = "#33EE33" ;colorB   = "#CCF8CC"
     color3   = "#2A62FF" ;colorC   = "#92ADFF"
     EDGE1    = "#000010" ;EDGE2    = "#689d9b"
-    lane_col = "#84E0FF" ;subj_col = "#8ddde9"
+    lane_col = "#7dd8f6" ;subj_col = "#8ddde9"
 
     cv     = tk.Canvas(frame, width=W, height=H) ;cv.place(x=-2, y=-2)
     lane_H = H // 6
@@ -52,9 +52,9 @@ def framing_graph( self, frame:tk.Frame, frame_order, rows1, rows2=None, s_lane=
 
         cv.create_rectangle(0, sL, W, eL, fill=(subj_col if lane == s_lane else lane_col))
 
-        cv.create_line(   1, sL,  W+1, sL, fill="#a4b7cb", width=1) # lane区切り 
+        cv.create_line(   1, sL,  W+1, sL, fill="#8e9cab", width=1) # lane区切り 
         cv.create_line(   1, sL,    1, eL, fill="#a8a8a8", width=1) # 始端線
-        cv.create_line(W//2, sL, W//2, eL, fill="#00ceff", width=1) # 中央線
+        cv.create_line(W//2, sL, W//2, eL, fill="#03b5e2", width=1) # 中央線
 
         frno     = frame_order[lane -1]
         own_rows = rows1[frno  ]["own"] if rows1[frno].get("own", None) else rows1
@@ -461,15 +461,6 @@ def apply_absent_bg(lane_frame:tk.Misc, gray:str = "#cfcfcf"):
 def clear_all_lanes(self):
 
     for lane in range(1, 7):
-        m = self._widgets_main.get(lane, {})
-        s = self._widgets_sub.get( lane, {})
-
-        for key in ("regp", "pid",  "rgns", "name", "age", "wkg", "clss", "scav",
-                    "late", "flyg", "stav", "mo_av", "mo_pr", "ve_av", "ve_ac"):
-            if key in m: m[key].config(text="")
-
-        for key in ("frno", "name",  "flyg", "tilt", "exib", "cnt", "repr"):
-            if key in s: s[key].config(text="")
         #-----------
         def _walk(w):
             yield w
@@ -480,13 +471,35 @@ def clear_all_lanes(self):
                 try: w.configure(bg="white")
                 except Exception: pass
 
-        for cell in m.get("R_hdr"):
-            for ch in cell.winfo_children(): ch.destroy()
-        for cels in m.get("R_bdy"):
-            for cell in cels:
-                for ch in cell.winfo_children(): ch.destroy()
-        for cell in m.get("R_idx"):
-            for ch in cell.winfo_children(): ch.destroy()
+        if lane in self._widgets_main:
+            wdg_m = self._widgets_main[lane]
+            
+            if "fr_Ctr" in wdg_m:
+                for child in wdg_m["fr_Ctr"].winfo_children():
+                    child.destroy()
+            
+            if "R_hdr" in wdg_m:
+                for fr_hdr in wdg_m["R_hdr"]:
+                    for child in fr_hdr.winfo_children():
+                        child.destroy()
+                    
+            if "R_bdy" in wdg_m:
+                for row_cells in wdg_m["R_bdy"]:
+                    for fr_cell in row_cells:
+                        for child in fr_cell.winfo_children():
+                            child.destroy()
+                        
+            if "R_idx" in wdg_m:
+                for fr_idx in wdg_m["R_idx"]:
+                    for child in fr_idx.winfo_children():
+                        child.destroy()
+
+    if 0 in self._widgets_sub:
+        wdg_s = self._widgets_sub[0]
+        for key in ["Graph", "Fig_A", "Fig_B", "wthr", "wdir"]:
+            if key in wdg_s:
+                for child in wdg_s[key].winfo_children():
+                    child.destroy()
 
 # ============================ 開催種アイコン表示 ==============================
 # ==============================================================================

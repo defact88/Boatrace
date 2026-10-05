@@ -52,7 +52,7 @@ def close_shared():
         _shared_conn = None
 
 #---------------------------------------
-def _connect(db_path:str = DB_PATH) -> sqlite3.Connection:
+def _connect(db_path:str=DB_PATH) -> sqlite3.Connection:
 
     c             = sqlite3.connect(db_path, timeout=30.0)
     c.row_factory = sqlite3.Row
@@ -62,7 +62,7 @@ def _connect(db_path:str = DB_PATH) -> sqlite3.Connection:
 
 #---------------------------------------
 @contextmanager
-def connection(db_path:str= DB_PATH) -> Iterator[sqlite3.Connection]:
+def connection(db_path:str=DB_PATH) -> Iterator[sqlite3.Connection]:
 
     c = _connect(db_path)
     try:
@@ -72,7 +72,7 @@ def connection(db_path:str= DB_PATH) -> Iterator[sqlite3.Connection]:
 
 #---------------------------------------
 @contextmanager
-def transaction(db_path:str = DB_PATH) -> Iterator[sqlite3.Connection]:
+def transaction(db_path:str=DB_PATH) -> Iterator[sqlite3.Connection]:
 
     with connection(db_path) as c:
         c.execute("BEGIN IMMEDIATE;")
@@ -100,8 +100,8 @@ def fetch_all(sql:str, params:Sequence[Any] = (), *, conn:Optional[sqlite3.Conne
 
 #---------------------------------------
 def execute(sql:str, params:Sequence[Any] = (), *, conn:Optional[sqlite3.Connection]=None):
-    global _total_changes
 
+    global _total_changes
     if conn is not None:
         count = conn.execute(sql, params).rowcount
         _total_changes += max(0, count)
@@ -115,8 +115,8 @@ def execute(sql:str, params:Sequence[Any] = (), *, conn:Optional[sqlite3.Connect
 #---------------------------------------
 def executemany( sql:str, seq_params:Iterable[Sequence[Any]],
                     *, conn:Optional[sqlite3.Connection]=None ):
-    global _total_changes
 
+    global _total_changes
     if conn is not None:
         count = conn.executemany(sql, seq_params).rowcount
         _total_changes += max(0, count)

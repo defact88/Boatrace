@@ -13,6 +13,7 @@ def to_str(x) -> str:
     if isinstance(x, date): return x.strftime("%Y-%m-%d")
 
     raise ValueError("str conv error")
+
 # ------------------
 def to_date(x) -> date:
 
@@ -20,38 +21,42 @@ def to_date(x) -> date:
     if isinstance(x,  str): return date.fromisoformat(x)
 
     raise ValueError("date conv error")
+
 #================== entry:make_rows ============================
 def make_rows(self):
 
-    date_to    = to_date(self.date_to)
-    date_from  = to_date(self.date_from)
+    date_to    = to_str(self.date_to)
+    date_from  = to_str(self.date_from)
     lineup     = query_players(self.date, self.venue_id, self.race_no)
     date_frm_v = self.date -timedelta(days=int(self.range_v))
-    entry_rows = [None] * 7
-    data_rows  = [None] * 7
+    entry_rows = [None] *7
+    data_rows  = [None] *7
 
     for row in lineup:
-        frn = row["frame_no"]
-        pid = row["player_id"]
+        frn       = row["frame_no"]
+        pid       = row["player_id"]
         query_opt = {}
 
         if row['flying_st'] or row['late_st']:
             if self.flying:
                 query_opt = dict(flying=True)
-                date_from = date_to -timedelta(days=730)  
+                date_from = self.date_to -timedelta(days=730)  
         elif self.not_flying:
-            query_opt = dict(not_flying=True)
+            query_opt |= dict(not_flying=True)
         if self.exclude_edo:
             query_opt |= dict(exclude_venue=3)
+        if self.limited_grade:
+            query_opt |= dict(grade=[5, 4, 3, 2])
 
-        query1 = Query(date_from, date_to, query1=True, query2=True, player_id=pid, **query_opt)
-
-        ave      = query1._pack(by_course=True)
-        rate     = query1._pack(for_graph=True)
+        query    = Query( date_from, date_to,  query_results=True, query_self_others=True,
+                          player_id=pid, **query_opt                                       )
+        query_v  = Query( date_frm_v, date_to, query_results=True,
+                          player_id=pid, venue_id=self.venue_id        )
+        ave      = query._pack(by_course=True)
+        rate     = query._pack(for_graph=True)
+        dist     = query._pack(for_distribute=True)
+        v_ave    = query_v._pack(by_course=True)
         own_rate = rate["own"][0]["rate"]
-        dist     = query1._pack(for_distribute=True)
-        query2   = Query(date_frm_v, date_to, query1=True, player_id=pid, venue_id=self.venue_id)
-        v_ave    = query2._pack(by_course=True)
 
         entry_rows[frn] = { "frno":row["frame_no"],
                              "pid":row["player_id"],
@@ -102,7 +107,7 @@ def make_sub_rows(self):
         disp  = query_before_info(frn, self.date, self.venue_id, self.race_no)
         rslt  = query_result(     frn, self.date, self.venue_id, self.race_no)
         rpr   = disp.get("repr", "") if disp.get('repr') else  ""
-        parts = ([s.strip() for s in rpr.split(",") if s] + [""] * 9)[:9]
+        parts = [s.strip() for s in rpr.split(",") if s]
         d_cou = 6 if disp.get("absn", None) and not disp.get("cour", frn) else disp.get("cour", frn) or frn
         tilt  = disp.get('tilt') if disp.get('tilt') != 0 else "0"
         exhi  = f"{disp.get('exhi'):.2f}" if disp.get('exhi') else ""
@@ -117,9 +122,7 @@ def make_sub_rows(self):
                                 "exhi":exhi,
                                "s_adj":adj_d,
                                 "tilt":tilt if tilt else "" ,
-                                "rpr1":"  ".join(parts[2:5]),
-                                "rpr2":"  ".join(parts[0:2]),
-                                "rpr3":"  ".join(parts[5:9]),
+                                "repr":parts,
                                 "absn":disp.get("absn", None) }
 
         rows["rslt"][frn] = {   "cour":r_cou,
@@ -176,6 +179,7 @@ def query_program(self):
             for k in row.keys() } if row else {}
 
     return row
+
 # ======================= 選手基本ﾃﾞｰﾀ取得 ===========================
 def query_players(_date:date, venue_id:int, race_no:int):
 
@@ -209,7 +213,7 @@ def query_players(_date:date, venue_id:int, race_no:int):
     return dal.fetch_all(sql, (to_str(_date), venue_id, race_no))
 
 # ======================== 展示ﾃﾞｰﾀ取得 ==============================
-def query_before_info(fr_no:int, date:date, venue_id:int, race_no:int):
+def query_before_info(fr_no:int, _date:date, venue_id:int, race_no:int):
 
     row = dal.fetch_one(
         """
@@ -235,7 +239,7 @@ def query_before_info(fr_no:int, date:date, venue_id:int, race_no:int):
       ORDER BY frame_no
          LIMIT 1
         """,
-        (to_str(date), venue_id, fr_no, race_no) )
+        (to_str(_date), venue_id, fr_no, race_no) )
 
     row = {k:row[k] for k in row.keys()} if row else {}
 
@@ -244,41 +248,32 @@ def query_before_info(fr_no:int, date:date, venue_id:int, race_no:int):
 # ====================================================================
 def query_result(fn:int, d:date, v:int, r:int):
 
-    row1 = dal.fetch_one(
-        """
-        SELECT weather      AS wthr,
-               wind_dir     AS wdir,
-               wind_spd     AS wspd,
-               wave_hgt     AS wave
-          FROM Races
-         WHERE     date= ?
-           AND venue_id= ?
-           AND  race_no= ?
-        """,
-        (to_str(d), v, r)                    )
+    row = dal.fetch_one("""
+        SELECT r.weather      AS wthr,
+               r.wind_dir     AS wdir,
+               r.wind_spd     AS wspd,
+               r.wave_hgt     AS wave,
 
-    row2 = dal.fetch_one(
-        """
-        SELECT frame_no    AS frame_no,
-               course      AS cour,
-               finish_rank AS f_rank,
-               fault_code  AS f_code,
-               slit_ADJ    AS s_adj,
-               win_move    AS w_move
-          FROM Race_entries
-         WHERE      date= ?
-           AND venue_id = ?
-           AND   race_no= ?
-           AND  frame_no= ?
+               e.frame_no    AS frame_no,
+               e.course      AS cour,
+               e.finish_rank AS f_rank,
+               e.fault_code  AS f_code,
+               e.slit_ADJ    AS s_adj,
+               e.win_move    AS w_move
+
+          FROM Race_entries e
+          JOIN Races r ON e.race_id = r.race_id
+         WHERE     e.date = ?
+           AND e.venue_id = ?
+           AND  e.race_no = ?
+           AND e.frame_no = ?
       ORDER BY frame_no
         """,
         (to_str(d), v, r, fn)                    )
 
-    row1 = {k:row1[k] for k in row1.keys()} if row1 else {}
-    row2 = {k:row2[k] for k in row2.keys()} if row2 else {}
-    row1.update(row2) 
+    row = {k:row[k] for k in row.keys()} if row else {}
 
-    return row1
+    return row
 # --------------------------------------------------------------------
 if __name__ == "__main__":
     sys.exit(main())
