@@ -1383,7 +1383,7 @@ class OddsWindow(tk.Tk):
             else:
                 lines.append(f"購入 成功  {len(suc)} 件")
 
-            lines += [f"   {x}" for x in s]
+            lines += [f"   {x}" for x in suc]
         if ttl:
             lines.append(ttl)
         if fai:

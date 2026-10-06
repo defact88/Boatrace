@@ -1,4 +1,4 @@
-ファイル名,引数,required
+﻿ファイル名,引数,required
 check_score_ave.py,        year,         required=True
 check_score_ave.py,        season,       required=True
 check_score_ave.py,        player_id,    required=True
@@ -91,6 +91,10 @@ get_results_today.py,      --venue,      required=False
 get_results_today.py,      --race,       required=False
 get_results_today.py,      --ALL_venue,  required=False
 get_results_today.py,      --ALL_race,   required=False
+
+import_original_info.py,   --date,       required=True
+import_original_info.py,   --venue,      required=True
+import_original_info.py,   --race,       required=True
 
 ETL_Before_info.py,        --date,       required=False
 ETL_Before_info.py,        --date_from,  required=False

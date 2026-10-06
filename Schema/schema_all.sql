@@ -224,6 +224,9 @@ CREATE TABLE Odds_{bet_type}(
   ',\n  '.join(COMBOS[bet_type])
 );
 
+CREATE UNIQUE INDEX IF NOT EXISTS odds_{bet_type}_race_id
+    ON Odds_{bet_type}(race_id);
+
 /*-------------------------------------------------------------------------------------*/
 CREATE TABLE Payouts(
 
@@ -271,6 +274,24 @@ CREATE TABLE Payouts(
 
 CREATE UNIQUE INDEX IF NOT EXISTS payouts_race_id
     ON Payouts(race_id, status);
+
+/*-------------------------------------------------------------------------------------*/
+CREATE TABLE IF NOT EXISTS Oriten(
+
+  entry_id          INTEGER PRIMARY KEY,
+  date              DATE    NOT NULL,
+  venue_id          INTEGER NOT NULL,
+  race_no           INTEGER NOT NULL,
+  frame_no          INTEGER NOT NULL,
+
+  time_turning      REAL,
+  time_acceleration REAL,
+  time_lap          REAL
+
+);
+
+CREATE UNIQUE INDEX IF NOT EXISTS oriten_entry_id
+    ON Oriten(entry_id);
 
 /*-------------------------------------------------------------------------------------*/
 CREATE TABLE Daily_Overall(

@@ -7,6 +7,7 @@ from datetime    import datetime, timedelta, timezone, date
 from typing      import Dict, List, Optional, Tuple
 from pathlib     import Path
 from Scraper.scraper_odds import fetch_all_odds
+from Scraper.scrape_original_info import SUPPORTED as ORI_VENUES
 from Helpers.ev_scanner   import evaluate_ev, insert_odds_snapshot, ProbabilityProvider
 
 import sqlite3, subprocess, threading, time, sys, os, signal, argparse, re, json, ctypes
@@ -21,6 +22,7 @@ DB_PATH        = Path(r"C:\boatrace\boatrace.db")
 SP_INFO        = Path(r"C:\boatrace\UI\Scraper\get_today_info.py")
 SP_BEFORE      = Path(r"C:\boatrace\UI\Scraper\get_Before_info.py")
 SP_RESULT      = Path(r"C:\boatrace\UI\Scraper\get_results_today.py")
+SP_ORI         = Path(r"C:\boatrace\UI\Scraper\import_original_info.py")
 LOCK_PATH      = Path(r"C:\boatrace\tmp\json\summarizer.lock")
 # 定数
 CHANGE_INTERVAL = 300  #   変更: n秒 間隔で巡回
@@ -28,6 +30,9 @@ CANCEL_INTERVAL = 15   #   中止: n分 間隔で巡回
 OFFSET_BEFORE   = 12   #   展示:   前レース締切から n分後 に実行
 OFFSET_RESULT   = 20   #   結果: 当該レース締切から n分後 に実行
 RETRY_BEF       = 60   #   展示: 未反映なら n秒後に再試行
+OFFSET_ORI      = 17   #  オリ展: 前レース締切から n分後 に実行
+OFFSET_ORI_1R   = 10   #  オリ展: 1R は締切の n分前 に実行
+RETRY_ORI       = 60   #  オリ展: 未反映なら n秒後に再試行
 RETRY_RES       = 180  #   結果: 未反映なら n秒後に再試行
 RETRY_NUM       = 10   #   展示/結果: リトライ回数
 ODDS_SET_SIZE   = 212  #   オッズ総数(3T:120 + 3F:20 + 2T:30 + 2F:15 + KK:15 + TT:6 + FF:6)
@@ -58,8 +63,8 @@ class SummarizeTodayInfo:
         self.conn.row_factory  = sqlite3.Row
         self._stop             = False
         self._lock             = threading.Lock()
-        self.running           = {"before":0, "result":0, "change":0, "cancel":0, "odds":0}
-        self.run_limit         = {"before":3, "result":3, "change":2, "cancel":1, "odds":3}
+        self.running           = {"before":0, "result":0, "change":0, "cancel":0, "odds":0, "oriten":0}
+        self.run_limit         = {"before":3, "result":3, "change":2, "cancel":1, "odds":3, "oriten":2}
         self._threads          = set()
         self._ctl_prev_mute    = None
         self.tasks:      List[Task] = []
@@ -115,6 +120,16 @@ class SummarizeTodayInfo:
                         if rno == 1: run_d =      deadline -timedelta(minutes=15)
                         else:        run_d = prev_deadline +timedelta(minutes=OFFSET_BEFORE)
                         new_tasks.append( Task( kind="before", run_at=run_d, d=d,
+                                                venue_id=v_id, race_no=rno, meta={"prio":1} ) )
+                #-------------
+                if v_id in ORI_VENUES and not self._exists_oriten(d, v_id, rno):
+                    if now > deadline:
+                        late_tasks.append( Task( kind="oriten", run_at=now, d=d,
+                                                 venue_id=v_id, race_no=rno, meta={"prio":0} ) )
+                    else:
+                        if rno == 1: run_ori =      deadline -timedelta(minutes=OFFSET_ORI_1R)
+                        else:        run_ori = prev_deadline +timedelta(minutes=OFFSET_ORI)
+                        new_tasks.append( Task( kind="oriten", run_at=run_ori, d=d,
                                                 venue_id=v_id, race_no=rno, meta={"prio":1} ) )
                 #-------------
                 if not self._exists_result(d, v_id, rno):
@@ -185,7 +200,7 @@ class SummarizeTodayInfo:
         with self._lock:
             self.tasks = [ t for t in self.tasks
                            if not ( t.d==d and     t.venue_id ==  v_id
-                                           and     t.kind     in ("before","result","odds")
+                                           and     t.kind     in ("before","result","odds","oriten")
                                            and not t.inflight
                                            and not t.disabled                                ) ]
 
@@ -209,6 +224,18 @@ class SummarizeTodayInfo:
                     if rno == 1: run_d =      deadline -timedelta(minutes=15)
                     else:        run_d = prev_deadline +timedelta(minutes=OFFSET_BEFORE)
                     new_tasks.append( Task( kind="before", run_at=run_d, d=d,
+                                            venue_id=v_id, race_no=rno, meta={"prio":1} ) )
+            #-----------------
+            if ( v_id in ORI_VENUES and not self._exists_oriten(d, v_id, rno)
+                                    and not self._has_task("oriten", d, v_id, rno) ):
+
+                if now > deadline:
+                    late_tasks.append( Task( kind="oriten", run_at=now, d=d,
+                                             venue_id=v_id, race_no=rno, meta={"prio":0} ) )
+                else:
+                    if rno == 1: run_ori =      deadline -timedelta(minutes=OFFSET_ORI_1R)
+                    else:        run_ori = prev_deadline +timedelta(minutes=OFFSET_ORI)
+                    new_tasks.append( Task( kind="oriten", run_at=run_ori, d=d,
                                             venue_id=v_id, race_no=rno, meta={"prio":1} ) )
             #-----------------
             if not self._exists_result(d, v_id, rno) and not self._has_task("result", d, v_id, rno):
@@ -254,7 +281,7 @@ class SummarizeTodayInfo:
             while not self._stop:
                 now     = self._now()
                 due     = self._collect_due(now)
-                started = {"before":0, "result":0, "change":0, "cancel":0, "odds":0}
+                started = {"before":0, "result":0, "change":0, "cancel":0, "odds":0, "oriten":0}
 
                 for t in due:
                     k = t.kind
@@ -380,6 +407,18 @@ class SummarizeTodayInfo:
                         print( f"[    info    ] 【 before 】[{VENUES[t.venue_id-1]} {t.race_no:02}R]"
                                f"  retry at [{t.next_try_at.strftime('%H:%M:%S')}]"                   )
                 #-------------
+                elif t.kind == "oriten":
+                    if self._is_cancelled(t.d, t.venue_id, t.race_no):
+                        t.disabled = True
+                        self._log( f"[    info    ] 【 oriten  】[{VENUES[t.venue_id-1]}"
+                                   f" {t.race_no:02}R]  is cancelled (skip)"              )
+                        return
+                    ok = self._exec_oriten(t)
+                    if not ok:
+                        t.next_try_at = now + timedelta(seconds=RETRY_ORI)
+                        print( f"[    info    ] 【 oriten  】[{VENUES[t.venue_id-1]} {t.race_no:02}R]"
+                               f"  retry at [{t.next_try_at.strftime('%H:%M:%S')}]"                   )
+                #-------------
                 elif t.kind == "result":
                     if self._is_cancelled(t.d, t.venue_id, t.race_no):
                         t.disabled = True
@@ -426,9 +465,9 @@ class SummarizeTodayInfo:
             t.tries += 1
 
             if err: t.last_error = err
-            if ok and t.kind in ("before", "result", "odds"):
+            if ok and t.kind in ("before", "result", "odds", "oriten"):
                 t.disabled = True
-            elif t.tries >= RETRY_NUM and t.kind in ("before","result"): 
+            elif t.tries >= RETRY_NUM and t.kind in ("before","result","oriten"): 
                 t.disabled = True
                 self._log(f"【{t.kind}】 リトライオーバー (タスク破棄)")
 
@@ -443,10 +482,10 @@ class SummarizeTodayInfo:
         with self._lock:
             n = 0
             for t in self.tasks:
-                if t.disabled or t.inflight:                          continue
-                if t.d != d   or t.venue_id != venue_id:              continue
-                if t.kind not in ("before","result","change","odds"): continue
-                if t.race_no is None or t.race_no < from_rno:         continue
+                if t.disabled or t.inflight:                                   continue
+                if t.d != d   or t.venue_id != venue_id:                       continue
+                if t.kind not in ("before","result","change","odds","oriten"): continue
+                if t.race_no is None or t.race_no < from_rno:                  continue
 
                 t.disabled = True
                 n += 1
@@ -502,6 +541,31 @@ class SummarizeTodayInfo:
             return False
 
         ok = self._exists_before(t.d, t.venue_id, t.race_no)
+        if ok: self._log(f"{task_name} Done update.")
+        else:  self._log(f"{task_name} Not updated yet.")
+
+        return ok
+
+    # ------------------------------------------------------
+    def _exec_oriten(self, t:Task) -> bool:
+
+        task_name = f"【 oriten  】[{VENUES[t.venue_id-1]} {t.race_no:02}R] "
+        self._log(f"{task_name} start")
+
+        rc, out, err = self._call_py( SP_ORI, [  "--date", t.d.strftime("%Y-%m-%d"),
+                                                "--venue", str(t.venue_id),
+                                                 "--race", str(t.race_no),           ] )
+
+        if rc == 3:   # 対象外/当日分のみ(再試行しても無駄)
+            self._log(f"{task_name} {out.strip() or 'skip'}")
+            t.disabled = True
+            return False
+
+        if rc != 0:
+            self._log(f"{task_name} {err.strip() or out.strip() or f'ExitCode={rc}'}")
+            return False
+
+        ok = self._exists_oriten(t.d, t.venue_id, t.race_no)
         if ok: self._log(f"{task_name} Done update.")
         else:  self._log(f"{task_name} Not updated yet.")
 
@@ -662,6 +726,28 @@ class SummarizeTodayInfo:
         ng = int((row[0] if row else 0) or 0)
 
         return (ng == 0)
+
+    # ------------------------------------------------------
+    def _exists_oriten(self, d:date, venue_id:int, race_no:int) -> bool:
+
+        if self._is_cancelled(d, venue_id, race_no):
+            return True
+
+        d_iso = d.strftime("%Y-%m-%d") if hasattr(d, "strftime") else str(d)
+
+        with sqlite3.connect(str(DB_PATH), timeout=30) as conn:
+            row = conn.execute("""
+                SELECT SUM( CASE WHEN o.entry_id  IS NOT NULL THEN 0
+                                 WHEN be.is_absent         = 1 THEN 0
+                                 ELSE 1
+                             END                                  ) AS ng_count
+                  FROM Race_programs rp
+             LEFT JOIN Oriten        o  ON o.entry_id  = rp.program_id
+             LEFT JOIN Before_info   be ON be.entry_id = rp.program_id
+                 WHERE rp.date= ? AND rp.venue_id= ? AND rp.race_no= ?
+                """, (d_iso, venue_id, race_no)).fetchone()
+
+        return int((row[0] if row else 0) or 0) == 0
 
     # ------------------------------------------------------
     def _exists_result(self, d:date, venue_id:int, race_no:int) -> bool:

@@ -32,6 +32,9 @@ UI,Scraper,get_results_today.py,        C:\boatrace\UI\Scraper\get_results_today
 UI,Scraper,scraper_odds,                C:\boatrace\UI\Scraper\scraper_odds.py,0
 UI,Scraper,selenium_buyer,              C:\boatrace\UI\Scraper\selenium_buyer.py,1
 UI,Scraper,get_payouts.py,              C:\boatrace\UI\Scraper\get_payouts.py,0
+UI,Scraper,import_original_info.py,     C:\boatrace\UI\Scraper\import_original_info.py
+UI,Scraper,scrape_original_info.py,     C:\boatrace\UI\Scraper\scrape_original_info.py
+UI,Scraper,__init__, 
 
 UI,Helpers,build_rows,                  C:\boatrace\UI\Helpers\build_rows.py,1
 UI,Helpers,build_series_idx,            C:\boatrace\UI\Helpers\build_series_idx.py,1

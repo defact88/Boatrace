@@ -514,6 +514,7 @@ class SeleniumBuyer:
                 except Exception:
                     pass
             self._driver.switch_to.window(main)
+
     #-----------------------------------------------------------------
     def _wait(self, time:int):
         return WebDriverWait(self._driver, time)
