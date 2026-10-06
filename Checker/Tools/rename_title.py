@@ -1,6 +1,4 @@
-﻿# -*- coding: utf-8 -*-
-# C:\boatrace\Checker\Tools\rename_title.py
-
+﻿
 import sqlite3, sys, argparse
 from pathlib import Path
 
@@ -8,7 +6,7 @@ DB_PATH = Path(r"C:\boatrace\boatrace.db")
 #-----------------------------------------------------------
 def parse_args():
 
-    p = argparse.ArgumentParser(description="series_titleの先頭のグレード表記を削除")
+    p = argparse.ArgumentParser(description="rename_title.py")
     p.add_argument("--date_from", help="期間開始(YYYY-MM-DD)")
     p.add_argument("--date_to",   help="期間終了(YYYY-MM-DD)")
 

@@ -85,6 +85,13 @@ def transaction(db_path:str=DB_PATH) -> Iterator[sqlite3.Connection]:
             raise
 
 #---------------------------------------
+def _cursor(*, conn:Optional[sqlite3.Connection]=None) -> sqlite3.Cursor:
+
+    c = conn if conn is not None else _get_shared_conn()
+
+    return c.cursor()
+
+#---------------------------------------
 def fetch_one(sql:str, params:Sequence[Any] = (), *, conn:Optional[sqlite3.Connection]=None):
 
     c = conn if conn is not None else _get_shared_conn()

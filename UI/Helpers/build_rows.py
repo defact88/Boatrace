@@ -100,50 +100,50 @@ def make_rows(self):
 def make_sub_rows(self):
 
     prg  = self.entry_prg
-    rows = {"dspl":{}, "rslt":{},}
+    rows = {"befr":{}, "rslt":{},}
 
     for frn in range(1, 7):
 
-        disp  = query_before_info(frn, self.date, self.venue_id, self.race_no)
+        befr  = query_before_info(frn, self.date, self.venue_id, self.race_no)
         rslt  = query_result(     frn, self.date, self.venue_id, self.race_no)
-        rpr   = disp.get("repr", "") if disp.get('repr') else  ""
-        parts = [s.strip() for s in rpr.split(",") if s]
-        d_cou = 6 if disp.get("absn", None) and not disp.get("cour", frn) else disp.get("cour", frn) or frn
-        tilt  = disp.get('tilt') if disp.get('tilt') != 0 else "0"
-        exhi  = f"{disp.get('exhi'):.2f}" if disp.get('exhi') else ""
-        adj_d = disp.get('s_adj', None)
-        adj_r = rslt.get('s_adj', None)
-        r_cou = 6 if rslt.get("f_code", "") == "K" else rslt.get("cour", frn)
-        if not rslt.get("f_rank", None):
-            fin = rslt.get("f_code", None) if rslt.get("f_code", None) else ""
-        else: fin = rslt.get("f_rank")
+        repr  = [s.strip() for s in (befr["repr"] or "").split(",") if s]
+        d_cou = 6 if befr["absn"] and not bef["cour"] else befr["cour"] or frn
+        tilt  = befr["tilt"] if befr["tilt"] != 0 else "0"
+        exhi  = f"{befr['exhi']:.2f}" if befr["exhi"] else ""
+        adj_d = befr["s_adj"]
+        adj_r = rslt["s_adj"]
+        r_cou = 6 if rslt["f_code"] == "K" else rslt["cour"]
+        if not rslt["f_rank"]:
+            fin = rslt["f_code"] if rslt["f_code"] else ""
+        else: 
+            fin = rslt["f_rank"]
 
-        rows["dspl"][frn] = {   "cour":d_cou,
+        rows["befr"][frn] = {   "cour":d_cou,
                                 "exhi":exhi,
                                "s_adj":adj_d,
-                                "tilt":tilt if tilt else "" ,
-                                "repr":parts,
-                                "absn":disp.get("absn", None) }
+                                "tilt":tilt if tilt else "",
+                                "repr":repr,
+                                "absn":befr["absn"],         }
 
         rows["rslt"][frn] = {   "cour":r_cou,
                               "finish":fin,
-                              "f_code":rslt.get("f_code", None),
+                              "f_code":rslt["f_code"],
                                "s_adj":adj_r,
-                              "w_move":rslt.get("w_move", None),
-                                "absn":disp.get("absn",   None)  }
+                              "w_move":rslt["w_move"],
+                                "absn":befr["absn"],         }
 
         if frn == 1:
-            rows["dspl"][0] = { "wdir":disp.get("wdir",  None),
-                                "wthr":disp.get("wthr",  None),
-                                "wspd":disp.get("wspd",  ""  ),
-                                "wave":disp.get("wave",  ""  ),
-                                "stab":disp.get("stab",  ""  ),
-                                "shlp":disp.get("shlp",  ""  )  }
+            rows["befr"][0] = { "wdir":befr["wdir"],
+                                "wthr":befr["wthr"],
+                                "wspd":befr["wspd"] or "",
+                                "wave":befr["wave"] or "",
+                                "stab":befr["stab"] or "",
+                                "shlp":befr["shlp"] or "",   }
 
-            rows["rslt"][0] = { "wdir":rslt.get("wdir", None),
-                                "wthr":rslt.get("wthr", None),
-                                "wspd":rslt.get("wspd", ""  ),
-                                "wave":rslt.get("wave", ""  )  }
+            rows["rslt"][0] = { "wdir":rslt["wdir"],
+                                "wthr":rslt["wthr"],
+                                "wspd":rslt["wspd"] or "",
+                                "wave":rslt["wave"] or "",   }
 
     return rows
 
@@ -215,7 +215,8 @@ def query_players(_date:date, venue_id:int, race_no:int):
 # ======================== 展示ﾃﾞｰﾀ取得 ==============================
 def query_before_info(fr_no:int, _date:date, venue_id:int, race_no:int):
 
-    row = dal.fetch_one(
+    cur = dal._cursor()
+    row = cur.execute(
         """
         SELECT weather     AS wthr,
                wind_dir    AS wdir,
@@ -239,16 +240,17 @@ def query_before_info(fr_no:int, _date:date, venue_id:int, race_no:int):
       ORDER BY frame_no
          LIMIT 1
         """,
-        (to_str(_date), venue_id, fr_no, race_no) )
+        (to_str(_date), venue_id, fr_no, race_no) ).fetchone()
 
-    row = {k:row[k] for k in row.keys()} if row else {}
+    row = dict(row) if row else dict.fromkeys([d[0] for d in cur.description]) 
 
     return row
 
 # ====================================================================
 def query_result(fn:int, d:date, v:int, r:int):
 
-    row = dal.fetch_one("""
+    cur = dal._cursor()
+    row = cur.execute("""
         SELECT r.weather      AS wthr,
                r.wind_dir     AS wdir,
                r.wind_spd     AS wspd,
@@ -269,9 +271,9 @@ def query_result(fn:int, d:date, v:int, r:int):
            AND e.frame_no = ?
       ORDER BY frame_no
         """,
-        (to_str(d), v, r, fn)                    )
+        (to_str(d), v, r, fn) ).fetchone()
 
-    row = {k:row[k] for k in row.keys()} if row else {}
+    row = dict(row) if row else dict.fromkeys([d[0] for d in cur.description])
 
     return row
 # --------------------------------------------------------------------

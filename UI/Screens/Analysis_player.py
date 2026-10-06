@@ -249,17 +249,12 @@ class PlayerAnalysisScreen(tk.Toplevel):
 
         self.ach_window = self.ach_canvs.create_window((0, 0), window=self.ach_list, anchor="nw")
         #-----------
-        def _ach_mw(e):
-            self.ach_canvs.yview_scroll(int(-1 *(e.delta / 120)), "units")
-        #-----------
         def _ach_on_conf(event=None):
             self.ach_canvs.config(scrollregion=self.ach_canvs.bbox("all"))
             self.ach_canvs.itemconfig(self.ach_window, width=self.ach_canvs.winfo_width())
         #-----------
         self.ach_list.bind( "<Configure>", _ach_on_conf)
         self.ach_canvs.bind("<Configure>", _ach_on_conf)
-        self.ach_canvs.bind("<Enter>", lambda e:self.ach_canvs.bind_all("<MouseWheel>", _ach_mw))
-        self.ach_canvs.bind("<Leave>", lambda e:self.ach_canvs.unbind_all("<MouseWheel>"))
 
         # グラフ -------------
         self.cv_trend_graph  = tk.Canvas(fr_trnd, width=480, height=260)
@@ -415,9 +410,6 @@ class PlayerAnalysisScreen(tk.Toplevel):
 
         self.window = self.canvs.create_window((0, 0), window=self.body, anchor="nw")
         #-----------
-        def _mw(e):
-            self.canvs.yview_scroll(int(-1 *(e.delta / 120)), "units")
-        #-----------
         def _on_close():
            self.destroy()
         #-----------
@@ -427,9 +419,18 @@ class PlayerAnalysisScreen(tk.Toplevel):
         #-----------
         self.body.bind( "<Configure>", _on_conf)
         self.canvs.bind("<Configure>", _on_conf)
-        self.canvs.bind("<Enter>", lambda e:self.canvs.bind_all("<MouseWheel>", _mw))
-        self.canvs.bind("<Leave>", lambda e:self.canvs.unbind_all("<MouseWheel>"))
         self.protocol("WM_DELETE_WINDOW", _on_close)
+        #-----------
+        def _on_mousewheel(e):
+            hovered_widget = e.widget.winfo_containing(e.x_root, e.y_root)
+            if hovered_widget:
+                if str(hovered_widget).startswith(str(self.ach_canvs)):
+                    self.ach_canvs.yview_scroll(int(-1 *(e.delta / 120)), "units")
+
+                elif str(hovered_widget).startswith(str(self.canvs)):
+                    self.canvs.yview_scroll(int(-1 *(e.delta / 120)), "units")
+        #-----------
+        self.bind("<MouseWheel>", _on_mousewheel)
 
         self._update_radio_btn_state( 0, "9M")
         self._update_toggle_btn_state(1, self.grade_state)

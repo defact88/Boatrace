@@ -321,9 +321,7 @@ def build_sub_placeholder(self, parent:tk.Frame): #  1188  318
         lb_tilt = cLbl(fr_lanD, Anc=CT, font=(MUI, 8,BD), bg="white",           Bd=(1,RD))
         lb_exhi = cLbl(fr_exhi, Anc=CT, font=(MUI, 8,BD), bg=SCOL)
         lb_cnt  = cLbl(fr_lanF, Anc=CT, font=(GUI, 8,BD), bg="#f9f9f9",         Bd=(1,GR))
-        cv_rpr1 = cCvs(fr_repr, width=138, height=14, bg="white", highlightthickness=0)
-        cv_rpr2 = cCvs(fr_repr, width=138, height=16, bg="white", highlightthickness=0)
-        cv_rpr3 = cCvs(fr_repr, width=138, height=14, bg="white", highlightthickness=0)
+        cv_repr = cCvs(fr_repr, width=138, height=44, bg="white", highlightthickness=0)
 
         lb_frno._grid(          Stk=ALL)
         lb_name._grid(          Stk=ALL)
@@ -331,9 +329,7 @@ def build_sub_placeholder(self, parent:tk.Frame): #  1188  318
         lb_tilt._grid(          Stk=ALL)
         lb_exhi._grid(          Stk=ALL)
         lb_cnt._grid(           Stk=ALL)
-        cv_rpr1._grid(R=0, C=0, Stk=ALL)
-        cv_rpr2._grid(R=1, C=0, Stk=ALL)
-        cv_rpr3._grid(R=2, C=0, Stk=ALL)
+        cv_repr._grid(R=0, C=0, Stk=ALL)
 
         bt_sbj = cBtn( fr_botn, text= "", font=(MUI,8,BD), Rel=RA, bg="#dfdfdf",
                                   Com=lambda L=ln:_graph(self, fr_grph, L) )
@@ -365,8 +361,7 @@ def build_sub_placeholder(self, parent:tk.Frame): #  1188  318
 
         self._widgets_sub[ln] ={ "frno":lb_frno,   "name":lb_name, "flyg":lb_flyg,
                                  "tilt":lb_tilt,   "exhi":lb_exhi,  "cnt" :lb_cnt,
-                                 "rpr1":cv_rpr1,   "rpr2":cv_rpr2,  "rpr3":cv_rpr3,
-                                 "bt_sbj":bt_sbj,                                   }
+                                 "repr":cv_repr, "bt_sbj":bt_sbj,                  }
 
     self._widgets_sub[0]  ={ "Graph":fr_grph,   "Fig_A":fr_figA,   "Fig_B":fr_figB,
                               "wthr":fr_wthr,    "wdir":fr_wdir,    "wspd":lb_wspd,

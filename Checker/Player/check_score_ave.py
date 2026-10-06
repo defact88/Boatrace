@@ -1,9 +1,8 @@
 ﻿# -*- coding: utf-8 -*-
-# compare_score_rate.py
+# "C:\boatrace\Checker\Player\check_score_ave.py"
+
 # 指定年期で指定選手の得点率を算出し Season_result.score_ave(公式値)と照合
 # 出走数: S/K/L かつ fault_level=0 は出走に含めない。F は出走扱い。finish_rank=0 除外。
-# サマリ: 優勝戦出走、SG出走、G1/G2/PG1出走、B/T出走、1～6着の総数を表示。
-#   表示: 三位四捨五入(=小数第2位)、公式との一致判定(OK/NG)
 
 import argparse, sqlite3, re
 from decimal  import Decimal, ROUND_HALF_UP
@@ -19,16 +18,18 @@ P_G12_FIN  = [0, 12, 10, 8, 7, 5, 4]
 P_SG_PRE   = [0, 12, 10, 8, 6, 4, 3]
 P_SG_FIN   = [0, 13, 11, 9, 8, 6, 5]
 
-BT_KEY = re.compile(r"ファン感謝３Ｄａｙｓボートレースバトルトーナメント"
-                    r"|ファン感謝３ｄａｙｓボートレースバトルトーナメント"
-                    r"|ボートレースバトルトーナメント",re.I)
+BT_KEY = re.compile( r"ファン感謝３Ｄａｙｓボートレースバトルトーナメント"
+                     r"|ファン感謝３ｄａｙｓボートレースバトルトーナメント"
+                     r"|ボートレースバトルトーナメント",re.I                )
+
 #-----------------------------------------------------------
 def is_bt_series(series_title:Union[str, None]) -> bool:
     s = (series_title or "").strip()
+
     return True if BT_KEY.search(s) else False
+
 #-----------------------------------------------------------
-def point_for(grade:Union[int, None], final:Union[int, None],
-              rank:Union[int, None], *, force_g12:bool=False) -> float:
+def point_for(grade:int|None, final:int|None, rank:int|None, *, force_g12:bool=False) -> float:
 
     if rank is None or not (1 <= rank <= 6): return 0.0
 
@@ -41,13 +42,14 @@ def point_for(grade:Union[int, None], final:Union[int, None],
     return tbl[rank or 0]
 
 #-----------------------------------------------------------
-def is_countable_start(fault_code:Union[int, None], fault_level:Union[int, None], finish_rank):
+def is_countable_start(fault_code:int|None, fault_level:int|None, finish_rank:int|None):
 
     fc = (fault_code or 'N').upper()
     if fc in ('K', 'L', 'S') and (fault_level == 0): return False
     if finish_rank == 0:                             return False
 
     return True
+
 #-----------------------------------------------------------
 def fetch_official_score(c:sqlite3.Connection, player_id:int, year:int, season:int):
 
@@ -55,9 +57,11 @@ def fetch_official_score(c:sqlite3.Connection, player_id:int, year:int, season:i
         SELECT score_ave
           FROM Season_result
          WHERE player_id=? AND year=? AND season=?
-    """, (player_id, year, season)).fetchone()
+        """,
+        (player_id, year, season) ).fetchone()
 
     return int(row[0]) if row and row[0] is not None else None
+
 #-----------------------------------------------------------
 def calc_score_rate(c:sqlite3.Connection, player_id:int, date_fr:str, date_to:str):
 
@@ -66,13 +70,12 @@ def calc_score_rate(c:sqlite3.Connection, player_id:int, date_fr:str, date_to:st
         SELECT e.finish_rank, e.fault_code, e.fault_level,
                r.grade,       r.is_final,   r.series_title, r.date
           FROM Race_entries e
-          JOIN Races r 
-            ON r.race_id   = e.race_id
-         WHERE e.player_id = ?
-           AND r.status    = 'held'
-           AND r.date      BETWEEN ? AND ?
+          JOIN        Races r ON r.race_id = e.race_id
+         WHERE r.status    = 'held'
+           AND e.player_id = ?
+           AND r.date BETWEEN ? AND ?
         """,
-               (player_id, date_fr, date_to)).fetchall()
+        (player_id, date_fr, date_to) ).fetchall()
 
     starts       = 0
     total_p      = Decimal('0')
@@ -108,13 +111,14 @@ def calc_score_rate(c:sqlite3.Connection, player_id:int, date_fr:str, date_to:st
 
     rate = (total_p / starts) if starts > 0 else 0
 
-    summary = { "final_starts": final_starts,
-                   "sg_starts":    sg_starts,
-                  "g12_starts":   g12_starts,
-                   "bt_starts":    bt_starts,
-                 "rank_counts":  rank_counts,  }
+    summary = { "final_starts":final_starts,
+                   "sg_starts":sg_starts,
+                  "g12_starts":g12_starts,
+                   "bt_starts":bt_starts,
+                 "rank_counts":rank_counts,  }
 
     return starts, total_p, rate, summary, fault_cnt, final, g12_starts, sg_starts
+
 #===============================================================================
 def main():
 
@@ -132,7 +136,6 @@ def main():
         starts, total, rate, summ, f, fin, g1, sg = calc_score_rate(c, args.player_id, date_f, date_t)
         official_x100 = fetch_official_score(c, args.player_id, args.year, args.season)
 
-    # 三位四捨五入
     rate_rounded = Decimal(str(rate)).quantize(Decimal('0.00'), rounding=ROUND_HALF_UP)
     rate_x100    = (rate * Decimal(100)).quantize(Decimal('1'), rounding=ROUND_HALF_UP)
 
@@ -159,6 +162,7 @@ def main():
         official_decimal = (Decimal(official_x100) / Decimal(100)).quantize(Decimal('0.00'))
         print(f"公式 score_ave: {official_decimal}")
         print(f"一致判定      : {verdict}")
+
 #-------------------------------------------------------------------------------
 if __name__ == "__main__":
     main()

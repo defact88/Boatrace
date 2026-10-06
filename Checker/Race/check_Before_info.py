@@ -1,8 +1,8 @@
 ﻿# -*- coding: utf-8 -*-
+
 import sqlite3, argparse
 from pathlib import Path
 
-# --- 設定 ---
 BASE_DIR = Path(r"C:\boatrace")
 DB_PATH  = BASE_DIR / "boatrace.db"
 
@@ -74,12 +74,13 @@ def check_Before_info_data(date_from, date_to, quiet_mode=False):
         print(f"[SQL ERR] {e}")
     except Exception as e:
         print(f"[ERR] {e}")
+
 #=====================================================================
 if __name__ == "__main__":
 
     parser = argparse.ArgumentParser(description="Before_info データ検査ツール")
     parser.add_argument("--date_from", required=True, help="開始日 (YYYY-MM-DD)")
     parser.add_argument("--date_to",   required=True, help="終了日 (YYYY-MM-DD)")
-
     args = parser.parse_args()
+
     check_Before_info_data(args.date_from, args.date_to)

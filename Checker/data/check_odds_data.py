@@ -1,5 +1,5 @@
 ﻿# -*- coding: utf-8 -*-
-# C:\boatrace\Tools\odds_data_audit.py
+# C:\boatrace\Checker\data\check_odds_data.py
 
 from __future__ import annotations
 from datetime   import datetime as dt, timedelta

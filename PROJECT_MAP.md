@@ -95,7 +95,7 @@ boatrace/
 
   Checker/
     data/
-      odds_data_audit.py             # テーブルOddsの重複・過剰データの検査/削除スクリプト
+      check_odds_data.py             # テーブルOdds_xxデータの検査スクリプト
     Player/
       check_score_ave.py             # 期単位で指定選手の公式得点率とDBデータ算出得点率の整合性をチェック
       check_score_ave_ALL.py         # check_score_ave.pyを全選手対象で実行

@@ -53,8 +53,6 @@ exclude_list: List[str] = [
     # "○○オールレディース",
 ]
 # =====================================================================
-
-
 def _conn() -> sqlite3.Connection:
     con = sqlite3.connect(DB_PATH)
     con.row_factory = sqlite3.Row
@@ -63,7 +61,6 @@ def _conn() -> sqlite3.Connection:
 
 def _pad(text: str, width: int) -> str:
     return text + " " * max(0, width - wcswidth(text))
-
 
 # ---------------------------------------------------------------------
 # メイン処理
