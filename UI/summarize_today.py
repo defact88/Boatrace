@@ -30,9 +30,9 @@ CANCEL_INTERVAL = 15   #   中止: n分 間隔で巡回
 OFFSET_BEFORE   = 12   #   展示:   前レース締切から n分後 に実行
 OFFSET_RESULT   = 20   #   結果: 当該レース締切から n分後 に実行
 RETRY_BEF       = 60   #   展示: 未反映なら n秒後に再試行
-OFFSET_ORI      = 17   #  オリ展: 前レース締切から n分後 に実行
-OFFSET_ORI_1R   = 10   #  オリ展: 1R は締切の n分前 に実行
-RETRY_ORI       = 60   #  オリ展: 未反映なら n秒後に再試行
+OFFSET_ORI      = 17   # オリ展: 前レース締切から n分後 に実行
+OFFSET_ORI_1R   = 10   # オリ展: 1R は締切の n分前 に実行
+RETRY_ORI       = 60   # オリ展: 未反映なら n秒後に再試行
 RETRY_RES       = 180  #   結果: 未反映なら n秒後に再試行
 RETRY_NUM       = 10   #   展示/結果: リトライ回数
 ODDS_SET_SIZE   = 212  #   オッズ総数(3T:120 + 3F:20 + 2T:30 + 2F:15 + KK:15 + TT:6 + FF:6)
@@ -176,9 +176,10 @@ class SummarizeTodayInfo:
             cc = sum(1 for t in new_tasks if t.kind == "change")
             kc = sum(1 for t in new_tasks if t.kind == "cancel")
             oc = sum(1 for t in new_tasks if t.kind == "odds")
+            ot = sum(1 for t in new_tasks if t.kind == "oriten")
 
             print( f" Total tasks={len(new_tasks)}:\n"
-                   f" before={bc} / result={rc} / change={cc} / cancel={kc} / odds={oc}" )
+                   f" before={bc} / result={rc} / change={cc} / cancel={kc} / odds={oc} / oriten={ot}" )
 
     # ------------------------------------------------------
     def _rebuild_schedule_for_venue(self, d:date, v_id:int):

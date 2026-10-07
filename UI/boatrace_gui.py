@@ -581,6 +581,8 @@ class RaceWindow(tk.Toplevel):
         self.exclude_edo = True if venue_id != 3 else False
         self.on_mark     = True
         self.limited_grade = False
+        self.disp_oriten = False
+        self.disp_parts  = True
 
         self._odds_proc    = None
         self._results_proc = None
@@ -992,6 +994,7 @@ class RaceWindow(tk.Toplevel):
 
         self.sub_rows = make_sub_rows(self)
         row           = self.sub_rows["befr"]
+        ortn_row      = self.sub_rows["ortn"]
         prg           = self.entry_prg
         e_list        = []
         fig_row       = {f:{"st":None} for f in range(1,7)}
@@ -1002,31 +1005,43 @@ class RaceWindow(tk.Toplevel):
 
         for lane in range(1,7):
 
-            frn  = self.frame_order[lane-1]
-            wdg  = self._widgets_sub[lane]
-            tilt = row[frn]["tilt"] if row[frn]["tilt"] != -0.5 else "-"
+            frn    = self.frame_order[lane-1]
+            absn   = row[frn]["absn"] or 0
+            st_ave = self.data_rows[frn]["own"][lane]["st_ave"]
+            wdg    = self._widgets_sub[lane]
+            cv     = wdg["repr"] ;cv.delete("all")
+            tilt   = row[frn]["tilt"] if row[frn]["tilt"] != -0.5 else "-"
+            fig_row[frn]["st"] = st_ave if not absn else None 
 
             if   float(row[frn]["exhi"] or 0) <= fast_ex:       e_opt={"fg":"blue" }
             elif float(row[frn]["exhi"] or 0) >= fast_ex +0.15: e_opt={"fg":"red"  } 
             else:                                               e_opt={"fg":"black"}
-
             wdg["tilt"].config(text=f"{tilt}")
             wdg["exhi"].config(text=wid_txt(f"{row[frn]['exhi'] or ''}"), **e_opt)
 
-            absn               = row[frn]["absn"] or 0
-            st_ave             = self.data_rows[frn]["own"][lane]["st_ave"]
-            fig_row[frn]["st"] = st_ave if not absn else None 
-
-            wdg["repr"].delete("all")
             g_p = ("プロペラ","キャリボ","シャフト")
+            if self.disp_parts:
+                for cnt, p in enumerate(row[frn]["repr"]):
+                    p_opt = {"fill":"red"} if p in g_p else {"fill":"black"}
+                    x     = 35 if cnt % 2 == 0 else 95
 
-            for cnt, p in enumerate(row[frn]["repr"]):
-                p_opt = {"fill":"red"} if p in g_p else {"fill":"black"}
-                x     = 35 if cnt % 2 == 0 else 95
+                    if   cnt < 2: cv.create_text(x, 21, text=f"{p}", font=(MUI,8), **p_opt)
+                    elif cnt < 4: cv.create_text(x,  7, text=f"{p}", font=(MUI,8), **p_opt)
+                    elif cnt < 6: cv.create_text(x, 35, text=f"{p}", font=(MUI,8), **p_opt)
+            else:
+                ortn = ortn_row[frn] 
+                cspd = f"{((ortn["accel"] or 0) +(ortn["turn"] or 0)):.2f}"
+                lap  = f"{ortn[ 'lap' ]:.2f}" if ortn[ "lap" ] else ""
+                accl = f"{ortn['accel']:.2f}" if ortn['accel'] else ""
+                turn = f"{ortn[ 'turn']:.2f}" if ortn[ 'turn'] else ""
 
-                if   cnt < 2: wdg["repr"].create_text(x, 21, text=f"{p}", font=(MUI,8), **p_opt)
-                elif cnt < 4: wdg["repr"].create_text(x,  7, text=f"{p}", font=(MUI,8), **p_opt)
-                elif cnt < 6: wdg["repr"].create_text(x, 35, text=f"{p}", font=(MUI,8), **p_opt)
+                cv.create_text( 18, 21, text=lap,  font=(MUI,8))
+                cv.create_text( 54, 21, text=accl, font=(MUI,8))
+                cv.create_text( 87, 21, text=turn, font=(MUI,8))
+                cv.create_text(123, 21, text=cspd, font=(MUI,8))
+                cv.create_line(38,  0,  38, 44, fill="black", width=1)
+                cv.create_line(71,  0,  71, 44, fill="black", width=1)
+                cv.create_line(103, 0, 103, 44, fill="black", width=1)
 
         framing_figure(self, self._widgets_sub[0]["Fig_A"], self.frame_order, A=fig_row)
 
@@ -1044,9 +1059,9 @@ class RaceWindow(tk.Toplevel):
         self._widgets_sub[0]["upd_b"].config(text=f" {b_pas}  ヶ月 ")
         self._widgets_sub[0]["wspd" ].config(text=f"風 速  {wspd}  m")
         self._widgets_sub[0]["wave" ].config(text=f"波 高  {wave} cm")
-        self._widgets_sub[0]["stab" ].config(text="安 定 版 装 着"   if stab else "",
+        self._widgets_sub[0]["stab" ].config(text="安 定 版 装着"   if stab else "",
                                                bg="yellow" if stab else "white"       )
-        self._widgets_sub[0]["shlp" ].config(text="周回 短縮 1200 m" if  lap else "",
+        self._widgets_sub[0]["shlp" ].config(text="周回短縮 1200m" if  lap else "",
                                                bg="yellow" if  lap else "white"       )
         self._widgets_sub[0]["deadl"].config(text=f"  {prg['deadline'].strftime('%H：%M')}  ")
         # --------------
@@ -1103,11 +1118,11 @@ class RaceWindow(tk.Toplevel):
                     else: fig_row[frn]["opt"] = dict(text=rank, font=(HNH,10,BD), fill="red")
 
             if result:
-                self._widgets_sub[0]["bt_fig1"].config(relief=RA, bg="#E1E1E1")
-                self._widgets_sub[0]["bt_fig2"].config(relief=RD, bg="#F1EE62")
+                self._widgets_sub[0]["bt_befr"].config(relief=RA, bg="#E1E1E1")
+                self._widgets_sub[0]["bt_rslt"].config(relief=RD, bg="#F1EE62")
             else:
-                self._widgets_sub[0]["bt_fig1"].config(relief=RD, bg="#F1EE62")
-                self._widgets_sub[0]["bt_fig2"].config(relief=RA, bg="#E1E1E1")
+                self._widgets_sub[0]["bt_befr"].config(relief=RD, bg="#F1EE62")
+                self._widgets_sub[0]["bt_rslt"].config(relief=RA, bg="#E1E1E1")
 
             framing_figure(self, self._widgets_sub[0]["Fig_B"], fig_order, B=fig_row)
             framing_weather(self, self._widgets_sub[0]["wthr"], self._widgets_sub[0]["wdir"], row)

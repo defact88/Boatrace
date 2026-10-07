@@ -5,13 +5,14 @@ import argparse, threading, time, sys, os, sqlite3, logging, json
 import tkinter as tk
 from tkinter        import ttk, messagebox, font as tkfont
 from datetime       import timedelta, timezone, date, datetime as dt
+
+import Dal as dal
 from Custum_func    import cFr, cLbl, cBtn, cEnt, cCvs
 from scraper_odds   import fetch_all_odds
 from selenium_buyer import SeleniumBuyer, PurchaseError, LoginError
-import tkinter as tk
 
-DB            = r"C:\boatrace\boatrace.db"
-ODDS_CTL_PATH = r"C:\boatrace\tmp\json\odds_ctl.json"
+#=====================================================================
+ODDS_CTL_PATH      = r"C:\boatrace\tmp\json\odds_ctl.json"
 
 GUI, MUI, HNH      = "Yu Gothic UI", "Meiryo UI", "Helvetica Neue Heavy"
 GR, SD, RD, RA, BD = "groove", "solid", "ridge", "raised", "bold"
@@ -155,9 +156,9 @@ class OddsWindow(tk.Tk):
         elif state in ("deiconify", "normal"):
             self.deiconify()
 
-        new_date  = d.get("date", self.date)
+        new_date  = d.get("date",  self.date)
         new_venue = d.get("venue", self.venue_id)
-        new_race  = d.get("race", self.race_no)
+        new_race  = d.get("race",  self.race_no)
 
         changed = (new_date != self.date or int(new_venue) != self.venue_id or int(new_race) != self.race_no)
 
@@ -285,10 +286,11 @@ class OddsWindow(tk.Tk):
              )._grid(R=8, C=0, Cspan=2, py=2)
 
         # CTRLパネル
-        opt1 = dict(bg=HDR_BG,    fg=HDR_FG)
-        opt2 = dict(bg=HDR_BG,    fg="#FFD700")
-        opt3 = dict(bg="#E06020", fg="white")
+        opt1 = dict(bg=HDR_BG,    fg=HDR_FG                  )
+        opt2 = dict(bg=HDR_BG,    fg="#FFD700", font=(MUI,10))
+        opt3 = dict(bg="#E06020", fg="white",   font=(MUI,10))
         default = "ーー.ー"
+
         self.lbl_count     = cLbl(ctrl_fr, text="0 点",  **opt1, font=(MUI,11), Anc="e")
         self.lbl_synth     = cLbl(ctrl_fr, text=default, **opt1, font=(MUI,11))
         self.ent_equal_bet = cEnt(ctrl_fr, W=8, Jst="right",     font=(MUI,11))
@@ -300,40 +302,42 @@ class OddsWindow(tk.Tk):
         self.total_bet     = cLbl(ctrl_fr, text="",      **opt1, font=(MUI,11))
         self.ent_equal_div.insert(1, "")
 
+        opt1 |= dict(font=(MUI,10))
+
         cBtn( ctrl_fr, text="クリア", bg="#666688", fg="white", font=(MUI,8), px=10, Rel=RA, Com=self._clear_alloc
-             )._grid(R=0, C=0, px=10, py=10)
+             )._grid(                                             R=0, C=0, py=10, px=10)
         cBtn( ctrl_fr, text="  購  入  ", bg="yellow", fg="black", font=(MUI,10,BD), Rel=RA, Com=self._open_purchase_dialog
-             )._grid(R=0, C=5, px=(0,5), py=10)
+             )._grid(                                             R=0, C=5, py=10, px=(0,5))
 
-        cLbl(ctrl_fr, text="一律配分",  **opt1, font=(MUI,10))._grid(R=1, C=0, px=2)
-        self.ent_equal_bet._grid(                           Cspan=2, R=1, C=1, px=(10,0))
-        cLbl(ctrl_fr,  text="00 円",    **opt1, font=(MUI,10), Anc="s")._grid(R=1, C=3)
-        cBtn( ctrl_fr, text="配分実行", **opt3, font=(MUI,10), px=10, Rel=RA, Com=self._exec_equal_bet
-             )._grid(                                       Cspan=2, R=1, C=4,  px=(40,10), py=5)
+        cLbl(ctrl_fr,  text="一律配分",    **opt1)._grid(         R=1, C=0, px=2)
+        self.ent_equal_bet._grid(                        Cspan=2, R=1, C=1, px=(10,0))
+        cLbl(ctrl_fr,  text="00 円",       **opt1, Anc="s")._grid(R=1, C=3)
+        cBtn( ctrl_fr, text="配分実行",    **opt3, px=10, Rel=RA, Com=self._exec_equal_bet
+             )._grid(                                    Cspan=2, R=1, C=4, py=5, px=(40,10))
 
-        cLbl(ctrl_fr, text="均等配分",  **opt1, font=(MUI,10))._grid(R=2, C=0, px=2)
-        self.ent_equal_div._grid(                           Cspan=2, R=2, C=1, px=(10,0))
-        cLbl(ctrl_fr,  text="00 円",    **opt1, font=(MUI,10), Anc="s")._grid(R=2, C=3)
-        cBtn( ctrl_fr, text="配分実行", **opt3, font=(MUI,10), px=10, Rel=RA, Com=self._exec_equal_divide
-             )._grid(                                       Cspan=2, R=2, C=4, px=(40,10), py=5)
+        cLbl(ctrl_fr,  text="均等配分",    **opt1)._grid(         R=2, C=0, px=2)
+        self.ent_equal_div._grid(                        Cspan=2, R=2, C=1, px=(10,0))
+        cLbl(ctrl_fr,  text="00 円",       **opt1, Anc="s")._grid(R=2, C=3)
+        cBtn( ctrl_fr, text="配分実行",    **opt3, px=10, Rel=RA, Com=self._exec_equal_divide
+             )._grid(                                    Cspan=2, R=2, C=4, py=5, px=(40,10))
 
-        cLbl(ctrl_fr, text="ベッド 計 :",  **opt2, font=(MUI,10), Anc="w")._grid(R=3, C=0, py=10)
-        self.lbl_count._grid(R=3, C=1, Stk="w", px=(8, 0), py=10)
-        cLbl(ctrl_fr, text="合成オッズ :", **opt2, font=(MUI,10), Anc="w")._grid(R=3, C=2, Stk="w", Cspan=3, py=10)
-        self.lbl_synth._grid(R=3, C=5, px=(0, 10), py=10)
+        cLbl(ctrl_fr, text="ベッド 計 :",  **opt2, Anc="w")._grid(R=3, C=0, py=10)
+        self.lbl_count._grid( Stk="w"                            ,R=3, C=1, py=10, px=(8,0))
+        cLbl(ctrl_fr, text="合成オッズ :", **opt2, Anc="w")._grid(R=3, C=2, Cspan=3, py=10, Stk="w")
+        self.lbl_synth._grid(                                     R=3, C=5, py=10, px=(0, 10))
 
-        cLbl(ctrl_fr, text="期待配当 :", **opt1, font=(MUI,10), Anc="w")._grid(R=4, C=0, py=10)
-        self.low_divid._grid( R=4, C=1, Cspan=2, py=10)
-        cLbl( ctrl_fr, text="～",        **opt1, font=(MUI,10), Anc="w")._grid(R=4, C=3, py=10)
-        self.high_divid._grid(R=4, C=4, Cspan=2, Stk="we", py=10)
+        cLbl(ctrl_fr, text="期待配当 :",   **opt1, Anc="w")._grid(R=4, C=0, py=10)
+        self.low_divid._grid(                            Cspan=2, R=4, C=1, py=10)
+        cLbl( ctrl_fr, text="～",          **opt1, Anc="w")._grid(R=4, C=3, py=10)
+        self.high_divid._grid( Stk="we",                 Cspan=2, R=4, C=4, py=10)
 
-        cLbl(ctrl_fr, text="      差額 :", **opt1, font=(MUI,10), Anc="w")._grid(R=5, C=0, py=10)
-        self.low_marjin._grid( R=5, C=1, Cspan=2, py=10)
-        cLbl( ctrl_fr, text="～",        **opt1, font=(MUI,10), Anc="w")._grid(R=5, C=3, py=10)
-        self.high_marjin._grid(R=5, C=4, Cspan=2, Stk="we", py=10)
+        cLbl(ctrl_fr, text="      差額 :", **opt1, Anc="w")._grid(R=5, C=0, py=10)
+        self.low_marjin._grid(                           Cspan=2, R=5, C=1, py=10)
+        cLbl( ctrl_fr, text="～",          **opt1, Anc="w")._grid(R=5, C=3, py=10)
+        self.high_marjin._grid( Stk="we",                Cspan=2, R=5, C=4, py=10)
 
-        cLbl(ctrl_fr, text="ベット総額", **opt1, font=(MUI,10))._grid(R=6, C=0, px=5)
-        self.total_bet._grid(R=6, C=1, Cspan=3, px=5, py=20)
+        cLbl(ctrl_fr, text="ベット総額",   **opt1)._grid(         R=6, C=0, px=5)
+        self.total_bet._grid(                            Cspan=3, R=6, C=1, py=20, px=5)
 
         # 選択ベット一覧テーブル
         hdr_row = cFr(tbl_outer, bg=HDR_BG, height=HDR_H)
@@ -341,8 +345,8 @@ class OddsWindow(tk.Tk):
         hdr_row.pack_propagate(False)
 
         w0 = self._COL_DEF[0][1]
-        cBtn( hdr_row, text="x", bg="#884444", fg="white", font=(GUI,8,BD), relief="flat",
-                   command=self._clear_all_sel )._grid(R=0, C=0, Cspan=1, Stk="nsew", ipadx=2)
+        cBtn( hdr_row, text="x", bg="#884444", fg="white", font=(GUI,8,BD), Rel="flat",
+                   Com=self._clear_all_sel )._grid(R=0, C=0, Cspan=1, Stk=ALL, ipadx=2)
 
         for ci, (txt, w, anc) in enumerate(self._COL_DEF):
             hdr_row.grid_columnconfigure(ci, minsize=w)
@@ -366,13 +370,19 @@ class OddsWindow(tk.Tk):
         def _on_canvas_cfg(e):
             self._tbl_canvas.itemconfig(self._tbl_win, width=e.width)
         #-----------
-        def _on_wheel(e):
-            self._tbl_canvas.yview_scroll(int(-1*(e.delta / 120)), "units")
+        def _on_mousewheel(e):
+            hovered_widget = e.widget.winfo_containing(e.x_root, e.y_root)
+            if hovered_widget:
+                if str(hovered_widget).startswith(str(self._tbl_canvas)):
+                    self._tbl_canvas.yview_scroll(int(-1 *(e.delta / 120)), "units")
+
+                elif str(hovered_widget).startswith(str(self._tbl_inner)):
+                    self._tbl_inner.yview_scroll(int(-1 *(e.delta / 120)), "units")
         #-----------
         self._tbl_inner.bind("<Configure>", _on_inner_cfg)
         self._tbl_canvas.bind("<Configure>", _on_canvas_cfg)
-        self._tbl_canvas.bind("<MouseWheel>", _on_wheel)
-        self._tbl_inner.bind("<MouseWheel>",  _on_wheel)
+        self.bind("<MouseWheel>", _on_mousewheel)
+
         self.tbl_rows = []
 
     #-------------------- ボタン動作 -----------------------
@@ -1183,9 +1193,6 @@ class OddsWindow(tk.Tk):
     # ----------------------------------
     def _fetch_Players(self, date:str, venue_id:int, race_no:int):
 
-        c             = sqlite3.connect(DB)
-        c.row_factory = sqlite3.Row
-
         sql = """
             SELECT rp.frame_no      AS fr_no,
                    p.name           AS name
@@ -1196,16 +1203,11 @@ class OddsWindow(tk.Tk):
                AND rp.race_no  =?
           ORDER BY frame_no
              """
-        rows         = c.execute(sql, (date, venue_id, race_no)).fetchall()
+        rows         = dal.fetch_all(sql, (date, venue_id, race_no))
         self.players = {i:p for i, p in rows} if rows else {}
-
-        c.close()
 
     # ----------------------------------
     def _fetch_deadline(self, date:str, venue_id:int, race_no:int):
-
-        c             = sqlite3.connect(DB)
-        c.row_factory = sqlite3.Row
 
         sql = """
             SELECT deadline_vote AS dline
@@ -1214,9 +1216,7 @@ class OddsWindow(tk.Tk):
                AND venue_id =? 
                AND race_no  =?
              """
-        out = c.execute(sql, (date, venue_id, race_no)).fetchone()
-
-        c.close()
+        out = dal.fetch_one(sql, (date, venue_id, race_no))
 
         return out
 
@@ -1227,13 +1227,14 @@ class OddsWindow(tk.Tk):
             tk.messagebox.showwarning("購入", "購入対象が選択されていません。")
             return
 
-        no_amount = [s[2] for s in self.selected
-                     if not (len(s) > 3 and s[3].strip())]
+        no_amount = [ s[2] for s in self.selected if not (len(s) > 3 and s[3].strip()) ]
+
         if no_amount:
             msg = "金額未入力の組み合わせがあります:\n"
             msg += "\n".join(no_amount[:5])
             if len(no_amount) > 5:
                 msg += f"\n…他 {len(no_amount)-5} 件"
+
             tk.messagebox.showwarning("金額未入力", msg)
             return
 
@@ -1266,7 +1267,6 @@ class OddsWindow(tk.Tk):
         ent_authpw.insert(  0, os.environ.get("MBRACE_AUTHPW",   ""))
         ent_betpw.insert(   0, os.environ.get("MBRACE_BETPW",    ""))
 
-        # オプション
         opt_frm = tk.Frame(frm, bg="#f5f5f5")
         opt_frm.grid(row=4, column=0, columnspan=2, sticky="w", pady=(10, 4))
 
@@ -1279,7 +1279,6 @@ class OddsWindow(tk.Tk):
         tk.Checkbutton( opt_frm, text="ヘッドレス（ブラウザ非表示）",
                         variable=headless_var, bg="#f5f5f5", font=(MUI,9) ).pack(anchor="w")
 
-        # 件数・金額サマリ
         n_bets    = sum(1 for s in self.selected if len(s) > 3 and s[3].strip())
         total_yen = 0
 
@@ -1292,7 +1291,6 @@ class OddsWindow(tk.Tk):
         cLbl( frm, text=f"購入対象  {n_bets} 件   合計  {total_yen:,} 円",
               font=(MUI,10,BD), bg="#f5f5f5", fg="#1a5276" )._grid(R=5, C=0, Cspan=2, py=(6, 4))
 
-        # ボタン
         btn_frm = cFr(frm, bg="#f5f5f5") ;btn_frm._grid(R=6, C=0, Cspan=2, py=8)
         #-----------
         def _start():
@@ -1331,7 +1329,7 @@ class OddsWindow(tk.Tk):
                                        auth_pw     = auth_pw,
                                        bet_pw      = bet_pw,
                                        headless    = headless,
-                                       timeout     = 10,          )
+                                       timeout     = 10,       )
 
                 buyer.login(venue_id=self.venue_id)
 
@@ -1341,18 +1339,18 @@ class OddsWindow(tk.Tk):
                                              race_no  = self.race_no,
                                              dry_run  = dry_run,        )
 
-                self.after(0, lambda r=result: self._show_purchase_result(r, prog))
+                self.after(0,lambda r=result: self._show_purchase_result(r, prog))
 
             except LoginError as e:
-                self.after(0, lambda e=e: ( prog.destroy(),
-                                            tk.messagebox.showerror("ログインエラー", str(e) ) ))
+                self.after(0,lambda e=e:( prog.destroy(),
+                                          tk.messagebox.showerror("ログインエラー", str(e)) ) )
             except ValueError as e:
-                self.after(0, lambda e=e: ( prog.destroy(),
-                                            tk.messagebox.showerror("設定エラー", str(e) ) )) 
+                self.after(0,lambda e=e:( prog.destroy(),
+                                          tk.messagebox.showerror("設定エラー",     str(e)) ) ) 
             except Exception as e:
-                self.after(0, lambda e=e: ( prog.destroy(),
-                                            tk.messagebox.showerror(
-                                                         "エラー", f"{type(e).__name__}: {e}" ) ))
+                self.after(0,lambda e=e:( prog.destroy(),
+                                          tk.messagebox.showerror( "エラー",
+                                                                   f"{type(e).__name__}: {e}" ) ) )
             finally:
                 if buyer: buyer.shutdown()
 
@@ -1363,38 +1361,37 @@ class OddsWindow(tk.Tk):
     def _show_purchase_result(self, result:dict, prog_dlg=None):
 
         if prog_dlg:
-            try:              prog_dlg.destroy()
+            try: prog_dlg.destroy()
             except Exception: pass
 
-        tgt  = result["targets"]
-        suc  = result["success"]
-        ttl  = result["total"]
-        fai  = result["failed"]
-        skp  = result["skipped"]
-        dry  = result["dry_run"]
-
+        target  = result["targets"]
+        success = result["success"]
+        total   = result["total"]
+        failed  = result["failed"]
+        skip    = result["skipped"]
+        dry     = result["dry_run"]
         lines = []
 
-        if tgt:
-            lines.append(f"購入 対象  {tgt} 件")
-        if suc:
+        if target:
+            lines.append(f"購入 対象  {target} 件")
+        if success:
             if dry:
-                lines.append(f"ドライラン実行 成功  {len(suc)} 件(購入なし)")
+                lines.append(f"ドライラン実行 成功  {len(success)} 件(購入なし)")
             else:
-                lines.append(f"購入 成功  {len(suc)} 件")
+                lines.append(f"購入 成功  {len(success)} 件")
 
-            lines += [f"   {x}" for x in suc]
-        if ttl:
-            lines.append(ttl)
-        if fai:
-            lines.append(f"購入 失敗  {len(fai)} 件")
-            lines += [f"   {x}" for x in fai]
-        if skp:
-            lines.append(f"購入 スキップ  {len(skp)} 件（金額未入力）")
+            lines += [f"   {x}" for x in success]
+        if total:
+            lines.append(total)
+        if failed:
+            lines.append(f"購入 失敗  {len(failed)} 件")
+            lines += [f"   {x}" for x in failed]
+        if skip:
+            lines.append(f"購入 スキップ  {len(skip)} 件（金額未入力）")
 
         msg = "\n".join(lines) if lines else "処理対象がありませんでした。"
 
-        if f:
+        if failed:
             tk.messagebox.showwarning("購入結果（一部失敗）", msg)
         else:
             tk.messagebox.showinfo("購入結果", msg)

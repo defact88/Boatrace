@@ -100,12 +100,13 @@ def make_rows(self):
 def make_sub_rows(self):
 
     prg  = self.entry_prg
-    rows = {"befr":{}, "rslt":{},}
+    rows = {"befr":{}, "rslt":{}, "ortn":{}, }
 
     for frn in range(1, 7):
 
         befr  = query_before_info(frn, self.date, self.venue_id, self.race_no)
         rslt  = query_result(     frn, self.date, self.venue_id, self.race_no)
+        ortn  = query_oriten(     frn, self.date, self.venue_id, self.race_no)
         repr  = [s.strip() for s in (befr["repr"] or "").split(",") if s]
         d_cou = 6 if befr["absn"] and not bef["cour"] else befr["cour"] or frn
         tilt  = befr["tilt"] if befr["tilt"] != 0 else "0"
@@ -132,6 +133,10 @@ def make_sub_rows(self):
                               "w_move":rslt["w_move"],
                                 "absn":befr["absn"],         }
 
+        rows["ortn"][frn] = {   "turn":ortn["turn"],
+                               "accel":ortn["accel"],
+                                 "lap":ortn["lap"],        }
+ 
         if frn == 1:
             rows["befr"][0] = { "wdir":befr["wdir"],
                                 "wthr":befr["wthr"],
@@ -213,7 +218,7 @@ def query_players(_date:date, venue_id:int, race_no:int):
     return dal.fetch_all(sql, (to_str(_date), venue_id, race_no))
 
 # ======================== 展示ﾃﾞｰﾀ取得 ==============================
-def query_before_info(fr_no:int, _date:date, venue_id:int, race_no:int):
+def query_before_info(fno:int, d:date, vid:int, rno:int):
 
     cur = dal._cursor()
     row = cur.execute(
@@ -240,14 +245,14 @@ def query_before_info(fr_no:int, _date:date, venue_id:int, race_no:int):
       ORDER BY frame_no
          LIMIT 1
         """,
-        (to_str(_date), venue_id, fr_no, race_no) ).fetchone()
+        (to_str(d), vid, fno, rno) ).fetchone()
 
     row = dict(row) if row else dict.fromkeys([d[0] for d in cur.description]) 
 
     return row
 
 # ====================================================================
-def query_result(fn:int, d:date, v:int, r:int):
+def query_result(fno:int, d:date, vid:int, rno:int):
 
     cur = dal._cursor()
     row = cur.execute("""
@@ -271,11 +276,35 @@ def query_result(fn:int, d:date, v:int, r:int):
            AND e.frame_no = ?
       ORDER BY frame_no
         """,
-        (to_str(d), v, r, fn) ).fetchone()
+        (to_str(d), vid, rno, fno) ).fetchone()
 
     row = dict(row) if row else dict.fromkeys([d[0] for d in cur.description])
 
     return row
-# --------------------------------------------------------------------
+
+# ====================================================================
+def query_oriten(fno:int, d:date, vid:int, rno:int):
+
+    cur = dal._cursor()
+    row = cur.execute("""
+        SELECT time_turning      AS turn,
+               time_acceleration AS accel,
+               time_lap          AS lap
+
+          FROM Oriten
+         WHERE date     = ?
+           AND venue_id = ?
+           AND race_no  = ?
+           AND frame_no = ?
+      ORDER BY frame_no
+        """,
+        (to_str(d), vid, rno, fno) ).fetchone()
+
+    row = dict(row) if row else dict.fromkeys([d[0] for d in cur.description])
+
+    return row
+
+# ====================================================================
+    return row
 if __name__ == "__main__":
     sys.exit(main())

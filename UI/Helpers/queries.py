@@ -137,24 +137,25 @@ class Query():
     def _q_relative_others(self):
 
         sql_base= """
-                  WITH base AS (  SELECT e.race_id,
-                                         e.course,
-                                         e.slit_adj,
-                                         e.finish_rank,
-                                         e.fault_code,
-                                         e.fault_level
-                                    FROM Race_entries e
-                                    JOIN Races r
-                                      ON e.race_id = r.race_id
-                                    JOIN Venues v
-                                      ON e.venue_id = v.venue_id
-                                   WHERE e.date BETWEEN ? AND ?
-                                     AND r.status       = 'held'
-                                     AND e.finish_rank != 0
-                                 AND NOT e.fault_code  IN ('F','L','K')
-                                 AND NOT (     e.fault_code  = 'S'
-                                           AND e.fault_level =  0 )
+            WITH base AS (  SELECT e.race_id,
+                                   e.course,
+                                   e.slit_adj,
+                                   e.finish_rank,
+                                   e.fault_code,
+                                   e.fault_level
+                              FROM Race_entries e
+                              JOIN Races r
+                                ON e.race_id = r.race_id
+                              JOIN Venues v
+                                ON e.venue_id = v.venue_id
+                             WHERE e.date BETWEEN ? AND ?
+                               AND r.status       = 'held'
+                               AND e.finish_rank != 0
+                           AND NOT e.fault_code  IN ('F','L','K')
+                           AND NOT (     e.fault_code  = 'S'
+                                     AND e.fault_level =  0 )
                    """
+
         sql_own = """
               ) SELECT course,
                  COUNT(*) AS starts,
@@ -168,6 +169,7 @@ class Query():
                   FROM base
               GROUP BY course
                   """
+
         sql_oths = """
                ) SELECT e.race_id,
                         e.player_id,
@@ -177,8 +179,7 @@ class Query():
                         e.fault_level,
                         e.win_move
                    FROM Race_entries e
-                   JOIN base mr
-                     ON mr.race_id = e.race_id
+                   JOIN base bs ON bs.race_id = e.race_id
                     """
 
         add_sql, add_param = self._build_filter_clause(False)

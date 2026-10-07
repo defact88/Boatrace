@@ -99,13 +99,11 @@ def call_B(_date:date, overwrite:bool=False, background:bool=False):
     import_B_txt.main(argv)
 
 #-----------------------------------------------------------
-def run_ETL(date_from:date, date_to:date, background:bool, overwrite:bool):
+def run_ETL(date_from:date, date_to:date, background:bool):
 
     d_from = to_str(date_from) ;d_to = to_str(date_to)
  
     argv = ["--date_from", d_from, "--date_to", d_to,]
-    if overwrite:
-        argv.append("--overwrite")
 
     if background:
 
@@ -218,7 +216,7 @@ def main():
 
     update_FLstate()
 
-    run_ETL(yesterday(date_from), yesterday(date_to), args.background, args.overwrite)
+    run_ETL(yesterday(date_from), yesterday(date_to), args.background)
 
     sys.exit(0)
 

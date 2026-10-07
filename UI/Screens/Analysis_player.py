@@ -417,10 +417,6 @@ class PlayerAnalysisScreen(tk.Toplevel):
             self.canvs.config(scrollregion=self.canvs.bbox("all"))
             self.canvs.itemconfig(self.window, width=self.canvs.winfo_width())
         #-----------
-        self.body.bind( "<Configure>", _on_conf)
-        self.canvs.bind("<Configure>", _on_conf)
-        self.protocol("WM_DELETE_WINDOW", _on_close)
-        #-----------
         def _on_mousewheel(e):
             hovered_widget = e.widget.winfo_containing(e.x_root, e.y_root)
             if hovered_widget:
@@ -431,7 +427,9 @@ class PlayerAnalysisScreen(tk.Toplevel):
                     self.canvs.yview_scroll(int(-1 *(e.delta / 120)), "units")
         #-----------
         self.bind("<MouseWheel>", _on_mousewheel)
-
+        self.body.bind( "<Configure>", _on_conf)
+        self.canvs.bind("<Configure>", _on_conf)
+        self.protocol("WM_DELETE_WINDOW", _on_close)
         self._update_radio_btn_state( 0, "9M")
         self._update_toggle_btn_state(1, self.grade_state)
         self._update_toggle_btn_state(2, self.trend_state)

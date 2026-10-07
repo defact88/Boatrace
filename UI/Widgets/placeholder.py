@@ -172,70 +172,79 @@ def build_sub_placeholder(self, parent:tk.Frame): #  1188  318
     fr_hdrL._grid(R=0, C=0, padx=(0, 7)) ;fr_hdrL.Pgate()
     fr_hdrR._grid(R=0, C=1)              ;fr_hdrL.Pgate()
 
-    fr_venA = cFr(fr_hdrL, W= 80, H= 43, Bd=(1,RD)) ;fr_venA._grid(R=0, C=0) ;fr_venA.Pgate()
-    fr_venB = cFr(fr_hdrL, W=150, H= 43           ) ;fr_venB._grid(R=0, C=1) ;fr_venB.Pgate()
+    fr_venu = cFr(fr_hdrL, W= 80, H= 43, Bd=(1,RD)) ;fr_venu._grid(R=0, C=0) ;fr_venu.Pgate()
+    fr_updt = cFr(fr_hdrL, W=150, H= 43           ) ;fr_updt._grid(R=0, C=1) ;fr_updt.Pgate()
     fr_clok = cFr(fr_hdrL, W=120, H= 43           ) ;fr_clok._grid(R=0, C=2) ;fr_clok.Pgate()
     fr_last = cFr(fr_hdrL, W= 60, H= 43, Bd=(1,GR)) ;fr_last._grid(R=0, C=3) ;fr_last.Pgate()
-    fr_pnel = cFr(fr_hdrL, W=383, H= 43           ) ;fr_pnel._grid(R=0, C=4) ;fr_pnel.Pgate()
-    fr_info = cFr(fr_hdrL, W=118, H= 43           ) ;fr_info._grid(R=0, C=5) ;fr_info.Pgate()
+    fr_pnel = cFr(fr_hdrL, W=501, H= 43           ) ;fr_pnel._grid(R=0, C=4) ;fr_pnel.Pgate()
 
-    fr_wthr = cFr(fr_hdrR, W= 51, H= 43, bg=BG_COL) ;fr_wthr._grid(R=0, C=1) ;fr_wthr.Pgate()
     fr_btnf = cFr(fr_hdrR, W= 84, H= 43, bg=BG_COL) ;fr_btnf._grid(R=0, C=0) ;fr_btnf.Pgate()
+    fr_wthr = cFr(fr_hdrR, W= 51, H= 43, bg=BG_COL) ;fr_wthr._grid(R=0, C=1) ;fr_wthr.Pgate()
     fr_para = cFr(fr_hdrR, W= 92, H= 43, bg=BG_COL) ;fr_para._grid(R=0, C=2) ;fr_para.Pgate()
     fr_wdir = cFr(fr_hdrR, W= 51, H= 43, bg=BG_COL) ;fr_wdir._grid(R=0, C=3) ;fr_wdir.Pgate()
 
-    fr_btnA = cFr(fr_pnel, W=383, H= 22, bg="white");fr_btnA._grid(R=0, C=0) ;fr_btnA.Pgate()
-    fr_btnB = cFr(fr_pnel, W=383, H= 21, bg="white");fr_btnB._grid(R=1, C=0) ;fr_btnB.Pgate()
+    fr_pnlA = cFr(fr_pnel, W=501, H= 22, bg="white");fr_pnlA._grid(R=0, C=0) ;fr_pnlA.Pgate()
+    fr_pnlB = cFr(fr_pnel, W=501, H= 21, bg="white");fr_pnlB._grid(R=1, C=0) ;fr_pnlB.Pgate()
 
-    self.bt_ctw = cFr(fr_btnA, W=383, H= 22)
+    self.bt_ctw = cFr(fr_pnlA, W=341, H= 22) ;self.bt_ctw._grid(R=0, C=0)
+    fr_info     = cFr(fr_pnlA, W=160, H= 22)     ;fr_info._grid(R=0, C=1) ;fr_info.Pgate()
 
-    self.bt_rst = cBtn( fr_btnB, W=8, font=(MUI,8), text="Reset",
-                        Bd=(1,RA), bg="#e1f2ff", Com=reset_figure )
+    self.bt_rst = cBtn(fr_pnlB, W=8, font=(MUI,8), text="Reset", Bd=(1,RA), bg="#bbe0fc")
+    self.bt_fly = cBtn(fr_pnlB, W=6, font=(MUI,8), text="Flying")
+    self.bt_nfl = cBtn(fr_pnlB, W=7, font=(MUI,8), text="! Flying")
+    self.bt_exE = cBtn(fr_pnlB, W=7, font=(MUI,8), text="江戸川除外")
+    self.bt_grd = cBtn(fr_pnlB, W=7, font=(MUI,8), text="一般戦除外")
+    self.bt_mrk = cBtn(fr_pnlB, W=8, font=(MUI,8), text="全 マーク")
+    self.bt_ort = cBtn(fr_pnlB, W=8, font=(MUI,8), text="オ リ 展")
+    self.bt_prt = cBtn(fr_pnlB, W=8, font=(MUI,8), text="交換 部品")
 
-    self.bt_fly = cBtn(fr_btnB, W=6, font=(MUI,8), text="Flying")
-    self.bt_nfl = cBtn(fr_btnB, W=7, font=(MUI,8), text="NotFlying")
-    self.bt_exE = cBtn(fr_btnB, W=7, font=(MUI,8), text="江戸川除外")
-    self.bt_grd = cBtn(fr_btnB, W=7, font=(MUI,8), text="一般戦除外")
-    self.bt_mrk = cBtn(fr_btnB, W=6, font=(MUI,8), text="全マーク")
-
+    self.bt_rst.config(command=reset_figure)
     self.bt_fly.config(command=lambda:_switch_btn(self, self.bt_fly, "flying"))
     self.bt_nfl.config(command=lambda:_switch_btn(self, self.bt_nfl, "not_flying"))
     self.bt_exE.config(command=lambda:_switch_btn(self, self.bt_exE, "exclude_edo"))
     self.bt_grd.config(command=lambda:_switch_btn(self, self.bt_grd, "limited_grade"))
     self.bt_mrk.config(command=lambda:_switch_btn(self, self.bt_mrk, "on_mark"))
+    self.bt_ort.config(command=lambda:_toggle_btn(self, self.bt_ort, "disp_oriten")) 
+    self.bt_prt.config(command=lambda:_toggle_btn(self, self.bt_prt, "disp_parts"))
 
-    self.bt_ctw._grid(R=0, C=0)
     self.bt_rst._grid(R=0, C=0)
     self.bt_fly._grid(R=0, C=1, px=(5,0))
     self.bt_nfl._grid(R=0, C=2)
     self.bt_exE._grid(R=0, C=3)
     self.bt_grd._grid(R=0, C=4)
-    self.bt_mrk._grid(R=0, C=5, px=(5,0))
+    self.bt_mrk._grid(R=0, C=5, px=(0,5))
+    self.bt_ort._grid(R=0, C=6)
+    self.bt_prt._grid(R=0, C=7)
 
     _config_btn(self, self.bt_fly, getattr(self, "flying"))
     _config_btn(self, self.bt_nfl, getattr(self, "not_flying"))
     _config_btn(self, self.bt_exE, getattr(self, "exclude_edo"))
     _config_btn(self, self.bt_grd, getattr(self, "limited_grade"))
     _config_btn(self, self.bt_mrk, getattr(self, "on_mark"))
+    _config_btn(self, self.bt_ort, getattr(self, "disp_oriten"), orange=True)
+    _config_btn(self, self.bt_prt, getattr(self, "disp_parts"),  orange=True)
 
-    fr_venA.Rconf(0, W=1) ;fr_venA.Cconf(0, W=1)
-    fr_venA.Rconf(1, W=1)
-    fr_venB.Rconf(0, W=1) ;fr_venB.Cconf(0, W=1)
-    fr_venB.Rconf(1, W=1) ;fr_venB.Cconf(1, W=1)
-    fr_clok.Rconf(0, W=1) ;fr_clok.Cconf(0, W=1)
-    fr_clok.Rconf(1, W=1) ;fr_clok.Cconf(1, W=1)
-    fr_last.Rconf(0, W=1) ;fr_last.Cconf(0, W=1)
-    fr_info.Rconf(0, W=1) ;fr_info.Cconf(0, W=1)
-    fr_info.Rconf(1, W=1)
-    fr_wthr.Rconf(0, W=1) ;fr_wthr.Cconf(0, W=1)
-    fr_btnf.Rconf(0, W=1) ;fr_btnf.Cconf(0, W=1)
-    fr_para.Rconf(0, W=1) ;fr_para.Cconf(0, W=1)
-    fr_para.Rconf(1, W=1)
+    fr_venu.Rconf(0, minsize=22) ;fr_venu.Cconf(0, minsize=80)
+    fr_venu.Rconf(1, minsize=21)
+    fr_updt.Rconf(0, minsize=22) ;fr_updt.Cconf(0, minsize=80)
+    fr_updt.Rconf(1, minsize=21) ;fr_updt.Cconf(1, minsize=70)
+    fr_clok.Rconf(0, minsize=22) ;fr_clok.Cconf(0, minsize=55)
+    fr_clok.Rconf(1, minsize=21) ;fr_clok.Cconf(1, minsize=65)
+    fr_last.Rconf(0, minsize=43) ;fr_last.Cconf(0, minsize=60)
 
-    lb_vname = cLbl(fr_venA, font=(MUI, 9,BD), bg="#c3ffcb", cursor= "hand2")
-    lb_w_typ = cLbl(fr_venA, font=(MUI, 8   ), bg="#c3ffcb"           )
-    lb_upd_m = cLbl(fr_venB, font=(MUI, 9   ), bg="white",   Bd=(1,SK))
-    lb_upd_b = cLbl(fr_venB, font=(MUI, 9   ), bg="white",   Bd=(1,SK))
+    fr_info.Rconf(0, minsize=22) ;fr_info.Cconf(0, minsize=80)
+    fr_info.Cconf(1, minsize=80)
+
+    fr_btnf.Rconf(0, minsize=43) ;fr_btnf.Cconf(0, minsize=84)
+    fr_wthr.Rconf(0, minsize=43) ;fr_wthr.Cconf(0, minsize=51)
+    fr_para.Rconf(0, minsize=22) ;fr_para.Cconf(0, minsize=92)
+    fr_para.Rconf(1, minsize=21)
+    fr_wdir.Rconf(0, minsize=43) ;fr_wdir.Cconf(0, minsize=51)
+
+    lb_vname = cLbl(fr_venu, font=(MUI, 9,BD), bg="#c3ffcb", cursor= "hand2")
+    lb_w_typ = cLbl(fr_venu, font=(MUI, 8   ), bg="#c3ffcb"           )
+    lb_upd_m = cLbl(fr_updt, font=(MUI, 9   ), bg="white",   Bd=(1,SK))
+    lb_upd_b = cLbl(fr_updt, font=(MUI, 9   ), bg="white",   Bd=(1,SK))
     lb_deadl = cLbl(fr_clok, font=(MUI, 9   ), bg="white",   Bd=(1,SK))
     lb_now   = cLbl(fr_clok, font=(MUI, 9   ), bg="white",   Bd=(1,SK))
     lb_last  = cLbl(fr_last, font=(GUI,10   ), bg="#f8f8f8", Bd=(1,RD))
@@ -249,21 +258,21 @@ def build_sub_placeholder(self, parent:tk.Frame): #  1188  318
     lb_now._grid(  R=1, C=1, Stk=ALL)
     lb_last._grid( R=0, C=0, Stk=ALL)
 
-    cLbl(fr_venB, text="モーター更新後", font=(MUI,8), bg=BG_COL, Bd=(1,RD))._grid(R=0, C=0, Stk=ALL)
-    cLbl(fr_venB, text=" ボート 更新後", font=(MUI,8), bg=BG_COL, Bd=(1,RD))._grid(R=1, C=0, Stk=ALL)
+    cLbl(fr_updt, text="モーター更新後", font=(MUI,8), bg=BG_COL, Bd=(1,RD))._grid(R=0, C=0, Stk=ALL)
+    cLbl(fr_updt, text=" ボート 更新後", font=(MUI,8), bg=BG_COL, Bd=(1,RD))._grid(R=1, C=0, Stk=ALL)
     cLbl(fr_clok, text="締 切",          font=(MUI,8), bg=BG_COL, Bd=(1,RD))._grid(R=0, C=0, Stk=ALL)
     cLbl(fr_clok, text="現 在",          font=(MUI,8), bg=BG_COL, Bd=(1,RD))._grid(R=1, C=0, Stk=ALL)
 
+    lb_stab = cLbl(fr_info, font=(MUI, 9), Bd=(1,GR)) ;lb_stab._grid(R=0, C=0, Stk=ALL)
+    lb_shlp = cLbl(fr_info, font=(MUI, 9), Bd=(1,GR)) ;lb_shlp._grid(R=0, C=1, Stk=ALL)
+
+    bt_befr = cBtn(fr_btnf, text=f"展 示", font=(MUI,8), Com=lambda:self._update_sub_entries(0))
+    bt_rslt = cBtn(fr_btnf, text=f"結 果", font=(MUI,8), Com=lambda:self._update_sub_entries(1))
     lb_wspd = cLbl(fr_para, font=(MUI,10), bg=BG_COL) ;lb_wspd._grid(R=0, C=0, Stk=ALL)
     lb_wave = cLbl(fr_para, font=(MUI,10), bg=BG_COL) ;lb_wave._grid(R=1, C=0, Stk=ALL)
-    lb_stab = cLbl(fr_info, font=(MUI, 9), Bd=(1,GR)) ;lb_stab._grid(R=0, C=0, Stk=ALL)
-    lb_shlp = cLbl(fr_info, font=(MUI, 9), Bd=(1,GR)) ;lb_shlp._grid(R=1, C=0, Stk=ALL)
 
-    bt_fig1 = cBtn(fr_btnf, text=f"展 示", font=(MUI,8), Com=lambda:self._update_sub_entries(0))
-    bt_fig2 = cBtn(fr_btnf, text=f"結 果", font=(MUI,8), Com=lambda:self._update_sub_entries(1))
-
-    bt_fig1.place(x=0, y= 1, width=70, height=20)
-    bt_fig2.place(x=0, y=22, width=70, height=20)
+    bt_befr.place(x=0, y= 1, width=70, height=20)
+    bt_rslt.place(x=0, y=22, width=70, height=20)
 
     # Frame body==================================
     fr_Lane = cFr(fr_body, W=913, H=266, Bd=(1,SD))
@@ -273,14 +282,14 @@ def build_sub_placeholder(self, parent:tk.Frame): #  1188  318
     fr_Rigt._grid(R=0, C=3, padx=(7, 0)) ; fr_Rigt.Pgate()
 
     fr_lanA = cFr(fr_Lane, W= 23, H=264)
-    fr_lanB = cFr(fr_Lane, W=145, H=264)
+    fr_lanB = cFr(fr_Lane, W=140, H=264)
     fr_lanC = cFr(fr_Lane, W= 20, H=264)
     fr_lanD = cFr(fr_Lane, W= 34, H=264)
     fr_lanE = cFr(fr_Lane, W=254, H=264)
     fr_botn = cFr(fr_Lane, W= 22, H=264, bg=SCOL, Bd=(1, GR))
     fr_grph = cFr(fr_Lane, W=246, H=264)
     fr_lanF = cFr(fr_Lane, W= 29, H=264)
-    fr_lanG = cFr(fr_Lane, W=138, H=264)
+    fr_lanG = cFr(fr_Lane, W=143, H=264)
     fr_figA = cFr(fr_lanE, W=254, H=264)
     fr_exhi = cFr(fr_lanE, W= 45, H=262)
     fr_figB = cFr(fr_Rigt, W=278, H=264)
@@ -301,7 +310,7 @@ def build_sub_placeholder(self, parent:tk.Frame): #  1188  318
     for ln in range(1, 7):
         row = ln -1
 
-        fr_repr = cFr(fr_lanG, W=138, H=44, Bd=(1,GR))
+        fr_repr = cFr(fr_lanG, W=143, H=44, Bd=(1,GR))
         fr_repr._grid(R=row, C=0) ;fr_repr.Pgate()
 
         fr_lanA.Rconf(row, W=1) ;fr_lanA.Cconf(0, W=1)
@@ -321,7 +330,7 @@ def build_sub_placeholder(self, parent:tk.Frame): #  1188  318
         lb_tilt = cLbl(fr_lanD, Anc=CT, font=(MUI, 8,BD), bg="white",           Bd=(1,RD))
         lb_exhi = cLbl(fr_exhi, Anc=CT, font=(MUI, 8,BD), bg=SCOL)
         lb_cnt  = cLbl(fr_lanF, Anc=CT, font=(GUI, 8,BD), bg="#f9f9f9",         Bd=(1,GR))
-        cv_repr = cCvs(fr_repr, width=138, height=44, bg="white", highlightthickness=0)
+        cv_repr = cCvs(fr_repr, width=143, height=44, bg="white", highlightthickness=0)
 
         lb_frno._grid(          Stk=ALL)
         lb_name._grid(          Stk=ALL)
@@ -368,7 +377,9 @@ def build_sub_placeholder(self, parent:tk.Frame): #  1188  318
                               "wave":lb_wave,    "stab":lb_stab,    "shlp":lb_shlp,
                              "vname":lb_vname,  "w_typ":lb_w_typ,  "upd_m":lb_upd_m,
                              "upd_b":lb_upd_b,  "deadl":lb_deadl,    "now":lb_now,
-                              "last":lb_last, "bt_fig1":bt_fig1, "bt_fig2":bt_fig2,  }
+                              "last":lb_last, "bt_befr":bt_befr, "bt_rslt":bt_rslt,  }
+
+    self.toggle_dict = {self.bt_ort:"disp_oriten", self.bt_prt:"disp_parts"}
 
 # ----------------------------------------------------------------
 def _graph(self, f, s_lane):
@@ -394,8 +405,24 @@ def _switch_btn(self, btn:tk.Button, flag_name:str):
     self._reload_for(self.date, self.venue_id, self.race_no)
 
 # ----------------------------------------------------------------
-def _config_btn(self, btn:tk.Button, flg:bool):
+def _config_btn(self, btn:tk.Button, flg:bool, orange:bool=False):
 
-     btn.config(bg="#F1EE62", relief=SK) if flg else btn.config(bg="#DFDFDF", relief=RA)
+    if orange:
+        btn.config(bg="#ffdcac", relief=SK) if flg else btn.config(bg="#DFDFDF", relief=RA)
+    else:
+        btn.config(bg="#dbfbd1", relief=SK) if flg else btn.config(bg="#DFDFDF", relief=RA)
+
+# ----------------------------------------------------------------
+def _toggle_btn(self, btn:tk.Button, flag_name:str):
+
+    setattr(self, flag_name, True)
+
+    for bt, flg in self.toggle_dict.items(): 
+        if bt == btn: bt.config(bg="#ffdcac", relief=SK)
+        else:
+             bt.config(bg="#DFDFDF", relief=RA)
+             setattr(self, flg, False)
+
+    self._reload_for(self.date, self.venue_id, self.race_no)
 
 # ----------------------------------------------------------------

@@ -5,7 +5,7 @@ import argparse, threading, sys, sqlite3, json
 import tkinter as tk
 
 from datetime                 import date, datetime as dt
-from Custum_func              import cFr, cLbl, cBtn
+from Custum_func              import cFr, cLbl, cBtn, cCvs
 from Helpers.build_series_idx import build_day_lbl
 
 #-----------------------------------------------------------
@@ -51,9 +51,9 @@ RES_BOAT_W  = 160  # 結果一覧 セル幅
 RES_LBL_W   = 50   # 結果一覧 レースno, 幅
 RES_MOVE_W  = 60   # 結果一覧 決まり手  幅
 
-SUM_HDR_H   = 25   # 着位分布 ヘッダー   高さ
+SUM_HDR_H   = 30   # 着位分布 ヘッダー   高さ
 SUM_LBL_W   = 55   # 着位分布 縦軸ラベル 幅
-SUM_COL_W   = 172  # 着位分布 セル       幅
+SUM_COL_W   = 174  # 着位分布 セル       幅
 SUM_ROW_H   = 30   # 着位分布 セル       高さ
 BAR_TRACK_W = 165  # 着位分布 棒グラフ   幅
 BAR_H       = 10   # 着位分布 棒グラフ   高さ
@@ -390,7 +390,7 @@ class ResultsWindow(tk.Tk):
             fr2.Cconf(col, Min=SUM_COL_W)
 
         n_races = self.finished_races
-        rate3 = {1:0.0, 2:0.0, 3:0.0, 4:0.0, 5:0.0, 6:0.0}
+        rate3   = {1:0.0, 2:0.0, 3:0.0, 4:0.0, 5:0.0, 6:0.0}
 
         for rank in range(1, 7):
             if rank <= 3: fr1.Rconf(rank,   Min=SUM_ROW_H)
@@ -410,9 +410,10 @@ class ResultsWindow(tk.Tk):
 
         cLbl(fr1, text="", **HDR_COLOR, Bd=(1,RA))._grid(R=0, C=0, Stk=ALL)
         for course in range(1, 7):
-            r = rate3[course]
-            cLbl( fr1, text=f"{course} コース     {r:.0f} % ", **HDR_COLOR, font=(MUI,9,BD), Anc=CT, Bd=(1,RD)
-                 )._grid(R=0, C=course, Stk=ALL)
+            r  = rate3[course]
+            cv = cCvs(fr1, W=172, H=30, Bd=(1,RA) ,bg="#2F75B5", Htt=0) ;cv._grid(R=0, C=course)
+            cv.create_text(60, 15, font=(MUI,9,BD), fill="white", text=f"{course} コース")
+            cv.create_text(140, 15, font=(MUI,9,BD), fill="yellow", text=f"{r:.0f} % ")
 
     # ------------------------------------------------------
     def _render_pct_cell(self, parent, row, col, pct):
