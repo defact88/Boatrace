@@ -7,27 +7,29 @@ import tkinter as tk
 from pathlib import Path
 from PIL     import Image, ImageTk
 
+# ==============================================================================
 GUI, MUI, HNH      = "Yu Gothic UI", "Meiryo UI", "Helvetica Neue Heavy"
 GR, SD, RD, RA, BD = "groove", "solid", "ridge", "raised", "bold"
 ALL, CT            = "nsew", "center"
 HDR_COLOR          = "#e9f1f2"
 
-WEATHER_DIR     = r"C:\boatrace\tmp\weather_icon"
-H_TYPE_ICON_DIR = r"C:\boatrace\tmp\held_type_icon"
+WEATHER_DIR     = r"C:\boatrace\tmp\Icons\weather_icon"
+H_TYPE_ICON_DIR = r"C:\boatrace\tmp\Icons\held_type_icon"
 PLAYER_IMG_DIR  = Path(r"C:\boatrace\tmp\assets\players")
 ICON_CACHE      = {}
 PLAYER_IMG_CACHE:dict[tuple[int,int,int], "ImageTk.PhotoImage"] = {}
 IMG_CACHE:       dict[tuple[int,int,int], "ImageTk.PhotoImage"] = {}
 
-# ==============================================================================
 # ----------------------------
 def _wid(s: str) -> str:
-    hair = "\u200A" 
+
+    hair = "\u200A"
+
     return hair.join(list(s))
 
 #  ============================== グラフ表示 ===================================
-# ==============================================================================
-def framing_graph( self, frame:tk.Frame, frame_order, rows1, rows2=None, s_lane=0, W=248, H=266):
+
+def framing_graph( self, frame:tk.Frame, order, rows1, rows2=None, s_lane=0, W=248, H=266):
     #---------------
     def nz(v):
         try:    return float(v)
@@ -41,10 +43,11 @@ def framing_graph( self, frame:tk.Frame, frame_order, rows1, rows2=None, s_lane=
     EDGE1    = "#000010" ;EDGE2    = "#689d9b"
     lane_col = "#7dd8f6" ;subj_col = "#8ddde9"
 
-    cv     = tk.Canvas(frame, width=W, height=H) ;cv.place(x=-2, y=-2)
-    lane_H = H // 6
-    s_frno = frame_order[s_lane -1] if s_lane else None
-    on_mark = getattr(self, "on_mark", False)
+    on_mark = getattr(self, "on_mark", None)
+    rows2   = getattr(self, "overall", None) if not rows2 else rows2
+    cv      = tk.Canvas(frame, width=W, height=H) ;cv.place(x=-2, y=-2)
+    lane_H  = H // 6
+    s_frno  = order[s_lane -1] if s_lane else None
 
     for lane in range(1,7):
 
@@ -56,7 +59,7 @@ def framing_graph( self, frame:tk.Frame, frame_order, rows1, rows2=None, s_lane=
         cv.create_line(   1, sL,    1, eL, fill="#a8a8a8", width=1) # 始端線
         cv.create_line(W//2, sL, W//2, eL, fill="#03b5e2", width=1) # 中央線
 
-        frno     = frame_order[lane -1]
+        frno     = order[lane -1]
         own_rows = rows1[frno  ]["own"] if rows1[frno].get("own", None) else rows1
         oth_rows = rows1[s_frno]["oth"] if s_lane else None
 
@@ -67,13 +70,19 @@ def framing_graph( self, frame:tk.Frame, frame_order, rows1, rows2=None, s_lane=
             gap = 1
 
             for oth_lane in range(1,7):
-                oth_frno = frame_order[oth_lane -1]
+                oth_frno = order[oth_lane -1]
                 oth_rows = rows1[oth_frno]["oth"]
 
                 if oth_frno == frno:
-                    rate1 = nz(own_rows[lane]["rate"][1])
-                    rate2 = nz(own_rows[lane]["rate"][2])
-                    rate3 = nz(own_rows[lane]["rate"][3])
+                    if  frno == order[s_lane-1] if s_lane else 0:
+                        rate1 = nz(rows2[lane]["rate"][1])
+                        rate2 = nz(rows2[lane]["rate"][2])
+                        rate3 = nz(rows2[lane]["rate"][3])
+
+                    else:
+                        rate1 = nz(own_rows[lane]["rate"][1])
+                        rate2 = nz(own_rows[lane]["rate"][2])
+                        rate3 = nz(own_rows[lane]["rate"][3])
 
                     c1, c2, c3 = color1, color2, color3
                     edge = EDGE1
@@ -124,7 +133,6 @@ def framing_graph( self, frame:tk.Frame, frame_order, rows1, rows2=None, s_lane=
                 cv.create_rectangle(seg1, s1, seg2, e1, fill=color2, outline=EDGE1, width=1)
             if seg3 != seg2:
                 cv.create_rectangle(seg2, s1, seg3, e1, fill=color1, outline=EDGE1, width=1)
-
             if rows2:
                 rateA = nz(rows2[lane]["rate"][1]) ;segA =        int(W * rateA)
                 rateB = nz(rows2[lane]["rate"][2]) ;segB = segA + int(W * rateB)
@@ -136,8 +144,7 @@ def framing_graph( self, frame:tk.Frame, frame_order, rows1, rows2=None, s_lane=
                     cv.create_rectangle(segB, s2, segC, e2, fill=colorA, outline=EDGE2, width=1)
 
 # =========================== スリット図表示 ===================================
-# ==============================================================================
-def framing_figure(self, fig_frame:tk.Frame, frame_order:list, A:dict=None, B:dict=None):
+def framing_figure(self, fig_frame:tk.Frame, frame_order:list, rowA:dict=None, rowB:dict=None):
 
     # --------------
     def load_scaled_boat(lane:int, target_w):
@@ -161,14 +168,14 @@ def framing_figure(self, fig_frame:tk.Frame, frame_order:list, A:dict=None, B:di
     # --------------
     for w in fig_frame.winfo_children(): w.destroy()
 
-    adW          = 24 if B else 0
+    adW          = 24 if rowB else 0
     W, H, row_h  = 256, 264, 44
     cv           = tk.Canvas(fig_frame, width=W + adW, height=H) ; cv.place(x=-2, y=-1)
 
     if not hasattr(fig_frame, "_img_refs"    ): fig_frame._img_refs     = []
     if not hasattr(fig_frame, "fig_boat_imgs"): fig_frame.fig_boat_imgs = {} 
 
-    base_dir      = r"C:\boatrace\tmp\slit_figure"
+    base_dir      = r"C:\boatrace\tmp\Icons\slit_figure"
     bg_path       = os.path.join(base_dir, "bg.jpg")
     img           = Image.open(bg_path).convert("RGB")
     img           = img.resize((W+adW, H), Image.LANCZOS)
@@ -190,10 +197,9 @@ def framing_figure(self, fig_frame:tk.Frame, frame_order:list, A:dict=None, B:di
         if x == zero_x: continue
         cv.create_line(x, 0, x, H, fill="#00ceff", width=1)       # 0.1秒線
 
-    # ドラッグ/リセット処理の定義
-    cv._drag_data = {"item": None, "x": 0, "lane": None}
+    cv._drag_data = {"item":None, "x":0, "lane":None}
     cv._init_data = {}
-    #---------------------------------------------
+    #---------------
     def on_press(event):
         item = cv.find_withtag("current")
         if item:
@@ -204,7 +210,7 @@ def framing_figure(self, fig_frame:tk.Frame, frame_order:list, A:dict=None, B:di
                     cv._drag_data["x"]    = event.x
                     cv._drag_data["lane"] = int(t.split("_")[1])
                     break
-    #---------------------------------------------
+    #---------------
     def on_motion(event):
         item = cv._drag_data.get("item")
         if item:
@@ -246,7 +252,7 @@ def framing_figure(self, fig_frame:tk.Frame, frame_order:list, A:dict=None, B:di
                         diff_col = "blue"
                         
                     cv.itemconfig(txt2_item[0], text=_wid(list(diff_txt)), fill=diff_col)
-    #---------------------------------------------
+    #---------------
     def on_release(event):
         item = cv._drag_data.get("item")
         if item:
@@ -256,18 +262,18 @@ def framing_figure(self, fig_frame:tk.Frame, frame_order:list, A:dict=None, B:di
             new_st = (zero_x + 5 - right_x) / px_per_sec
             
             frno = frame_order[lane-1]
-            if A and frno in A:
-                A[frno]["st"] = str(round(new_st, 2))
+            if rowA and frno in rowA:
+                rowA[frno]["st"] = str(round(new_st, 2))
                 
             cv._drag_data = {"item": None, "x": 0, "lane": None}
-    #---------------------------------------------
+    #---------------
     def reset_slit():
         if not cv._init_data: return
         for lane, init in cv._init_data.items():
             frno = frame_order[lane-1]
 
-            if A and frno in A:
-                A[frno]["st"] = init["st"]
+            if rowA and frno in rowA:
+                rowA[frno]["st"] = init["st"]
 
             boat_item = cv.find_withtag(f"boat_{lane}")
             if boat_item:
@@ -281,10 +287,10 @@ def framing_figure(self, fig_frame:tk.Frame, frame_order:list, A:dict=None, B:di
                 cv.itemconfig(txt1_item[0], text=_wid(list(init["txt"])), fill=init["t_col"])
             if txt2_item:
                 cv.itemconfig(txt2_item[0], text="", fill=init["t_col"])
-
+    #---------------
     fig_frame.reset_figure = reset_slit
 
-    if A:
+    if rowA:
         cv.tag_bind("draggable", "<ButtonPress-1>", on_press)
         cv.tag_bind("draggable", "<B1-Motion>", on_motion)
         cv.tag_bind("draggable", "<ButtonRelease-1>", on_release)
@@ -294,7 +300,7 @@ def framing_figure(self, fig_frame:tk.Frame, frame_order:list, A:dict=None, B:di
     for lane in range(1, 7):
 
         frno = frame_order[lane-1]
-        v    = A[frno]["st"] if A else B[frno]["st"]
+        v    = rowA[frno]["st"] if rowA else rowB[frno]["st"]
 
         if v == None: continue
 
@@ -304,13 +310,13 @@ def framing_figure(self, fig_frame:tk.Frame, frame_order:list, A:dict=None, B:di
         cy       = (lane - 1) * row_h + row_h // 2 +3
 
         fig_frame._img_refs.append(boat_img) 
-        
-        boat_tags = (f"boat_{lane}", "draggable") if A else (f"boat_{lane}",)
+
+        boat_tags = (f"boat_{lane}", "draggable") if rowA else (f"boat_{lane}",)
         cv.create_image(right_x, cy, image=boat_img, anchor="e", tags=boat_tags)
 
         if v == "":
             txt = " ー"
-        else: 
+        else:
             tx  = f"{st:.2f}"
             txt = f"{tx[1:]}" if st >= 0 else f"{tx[2:]}"
 
@@ -324,12 +330,11 @@ def framing_figure(self, fig_frame:tk.Frame, frame_order:list, A:dict=None, B:di
                                     "txt":txt,
                                   "t_col":t_col    }
 
-        if B and B[frno]["opt"]:
-            opt = B[frno]["opt"]
+        if rowB and rowB[frno]["opt"]:
+            opt = rowB[frno]["opt"]
             cv.create_text(15, (lane-1)*44+22, anchor="w", **opt)
 
 # ========================= 天気・風向アイコン表示 =============================
-# ==============================================================================
 def framing_weather(self, fr_wthr:tk.Frame, fr_wdir:tk.Frame, rows:dict):
 
     # --------------
@@ -413,7 +418,6 @@ def framing_weather(self, fr_wthr:tk.Frame, fr_wdir:tk.Frame, rows:dict):
         tk.Label(fr_wdir, text="", bg=HDR_COLOR).grid(sticky="nsew")
 
 # ============================= 選手画像更新 ===================================
-# ==============================================================================
 def set_player_image(label:tk.Label, player_id:int, size:tuple[int, int]):
 
     w, h = int(size[0]), int(size[1])
@@ -442,68 +446,58 @@ def set_player_image(label:tk.Label, player_id:int, size:tuple[int, int]):
     label._player_photo_ref = img
 
 # ============================ 欠場ﾌﾚｰﾑ ﾏｽｸ処理 ================================
-# ==============================================================================
-def apply_absent_bg(lane_frame:tk.Misc, gray:str = "#cfcfcf"):
+def apply_absent_bg(frame:tk.Misc, gray:str="#cfcfcf"):
 
+    #---------------
     def _walk(root):
         yield root
-        for ch in getattr(root, "winfo_children", lambda: [])():
+        for ch in getattr(root, "winfo_children", lambda:[])():
             yield from _walk(ch)
-
-    for w in _walk(lane_frame):
+    #---------------
+    for w in _walk(frame):
         try:
             w.configure(background=gray)
             w.configure(fill=gray)
         except: pass
-            
+
 #============================ ウィジェット初期化 ===============================
-# ==============================================================================
-def clear_all_lanes(self):
+def clear_widgets(self, main:bool=False, s_index:bool=False, center_wdg:bool=False,
+                            figA:bool=False, graph:bool=False, figB:bool=False           ):
 
     for lane in range(1, 7):
-        #-----------
-        def _walk(w):
-            yield w
-            for ch in w.winfo_children(): yield from _walk(ch)
-        #-----------
-        if self.is_absent:
-            for w in _walk(m["Lane"]):
-                try: w.configure(bg="white")
-                except Exception: pass
+        wdg_m = self.widgets_main[lane]
 
-        if lane in self._widgets_main:
-            wdg_m = self._widgets_main[lane]
-            
-            if "fr_Ctr" in wdg_m:
-                for child in wdg_m["fr_Ctr"].winfo_children():
-                    child.destroy()
-            
-            if "R_hdr" in wdg_m:
-                for fr_hdr in wdg_m["R_hdr"]:
-                    for child in fr_hdr.winfo_children():
-                        child.destroy()
-                    
-            if "R_bdy" in wdg_m:
-                for row_cells in wdg_m["R_bdy"]:
-                    for fr_cell in row_cells:
-                        for child in fr_cell.winfo_children():
-                            child.destroy()
-                        
-            if "R_idx" in wdg_m:
-                for fr_idx in wdg_m["R_idx"]:
-                    for child in fr_idx.winfo_children():
-                        child.destroy()
+        if s_index:
+            for fr_hdr in wdg_m["R_hdr"]:
+                for child in fr_hdr.winfo_children(): child.destroy()
+            for row_cells in wdg_m["R_bdy"]:
+                for fr_cell in row_cells:
+                    for child in fr_cell.winfo_children(): child.destroy()
+            for fr_idx in wdg_m["R_idx"]:
+                for child in fr_idx.winfo_children(): child.destroy()
 
-    if 0 in self._widgets_sub:
-        wdg_s = self._widgets_sub[0]
-        for key in ["Graph", "Fig_A", "Fig_B", "wthr", "wdir"]:
-            if key in wdg_s:
-                for child in wdg_s[key].winfo_children():
-                    child.destroy()
+        if center_wdg:
+            for child in wdg_m["fr_Ctr"].winfo_children(): child.destroy()
+
+        if main:
+            #-----------
+            def _walk(w):
+                yield w
+                for ch in w.winfo_children(): yield from _walk(ch)
+            #-----------
+            if self.is_absent:
+                for w in _walk(wdg_m["Lane"]):
+                    try: w.configure(bg="white")
+                    except Exception: pass
+
+    wdg_list = ["Graph","Fig_A","Fig_B","wthr","wdir"]
+    wdg_s = self.widgets_sub[0]
+    for key, flag in zip(wdg_list, [graph, figA, figB, figB, figB]):
+        if flag:
+            for child in wdg_s[key].winfo_children(): child.destroy()
 
 # ============================ 開催種アイコン表示 ==============================
-# ==============================================================================
-def framing_held_type_icon(self, lbl: tk.Label, h_type: int):
+def framing_held_type_icon(self, lbl:tk.Label, h_type:int):
 
     if not h_type:
         lbl.configure(image="", text="")
@@ -516,3 +510,5 @@ def framing_held_type_icon(self, lbl: tk.Label, h_type: int):
     img      = tk.PhotoImage(file=path)
     lbl.configure(image=img)
     setattr(lbl, "_held_img", img)
+
+# ==============================================================================

@@ -704,9 +704,7 @@ class SummarizeTodayInfo:
         if self._is_cancelled(d, venue_id, race_no):
             return True
 
-        d_iso = d.strftime("%Y-%m-%d") if hasattr(d, "strftime") else str(d)
-
-        with sqlite3.connect(str(DB_PATH), timeout=30) as conn:
+        with self._connect_ro() as conn:
             row = conn.execute("""
                 SELECT SUM( CASE WHEN be.entry_id   IS     NULL THEN 1
                                  WHEN be.is_absent   =        1 THEN 0
@@ -716,39 +714,16 @@ class SummarizeTodayInfo:
                                  ELSE 1
                              END                                        ) AS ng_count
                   FROM Race_programs rp
-             LEFT JOIN Before_info   be
-                    ON be.entry_id = rp.program_id
+             LEFT JOIN Before_info   be ON be.entry_id = rp.program_id
                  WHERE     rp.date= ?
                    AND rp.venue_id= ?
                    AND  rp.race_no= ?
                 """,
-               (d_iso, venue_id, race_no)).fetchone()
+               (d.strftime("%Y-%m-%d"), venue_id, race_no)).fetchone()
 
         ng = int((row[0] if row else 0) or 0)
 
         return (ng == 0)
-
-    # ------------------------------------------------------
-    def _exists_oriten(self, d:date, venue_id:int, race_no:int) -> bool:
-
-        if self._is_cancelled(d, venue_id, race_no):
-            return True
-
-        d_iso = d.strftime("%Y-%m-%d") if hasattr(d, "strftime") else str(d)
-
-        with sqlite3.connect(str(DB_PATH), timeout=30) as conn:
-            row = conn.execute("""
-                SELECT SUM( CASE WHEN o.entry_id  IS NOT NULL THEN 0
-                                 WHEN be.is_absent         = 1 THEN 0
-                                 ELSE 1
-                             END                                  ) AS ng_count
-                  FROM Race_programs rp
-             LEFT JOIN Oriten        o  ON o.entry_id  = rp.program_id
-             LEFT JOIN Before_info   be ON be.entry_id = rp.program_id
-                 WHERE rp.date= ? AND rp.venue_id= ? AND rp.race_no= ?
-                """, (d_iso, venue_id, race_no)).fetchone()
-
-        return int((row[0] if row else 0) or 0) == 0
 
     # ------------------------------------------------------
     def _exists_result(self, d:date, venue_id:int, race_no:int) -> bool:
@@ -760,8 +735,9 @@ class SummarizeTodayInfo:
             SELECT COUNT(*)
               FROM Race_entries
              WHERE date=? AND venue_id=? AND race_no=?
-               AND (finish_rank IS NOT NULL OR fault_code IN ('F', 'L', 'S', 'K'))
-            """
+               AND ( finish_rank IS NOT NULL OR
+                      fault_code IN ('F', 'L', 'S', 'K') )
+              """
 
         with self._connect_ro() as conn:
             cur = conn.cursor()
@@ -773,22 +749,45 @@ class SummarizeTodayInfo:
     # ------------------------------------------------------
     def _exists_odds(self, d:date, venue_id:int, race_no:int) -> dict:
 
-        d_iso = d.strftime("%Y-%m-%d") if hasattr(d, "strftime") else str(d)
+        if self._is_cancelled(d, venue_id, race_no):
+            return True
+
         cnt   = 0
-
         with self._connect_ro() as conn:
+            cur = conn.cursor()
             for bt in ("3T", "3F", "2T", "2F", "TT", "FF", "KK"):
-                row = conn.execute(f"""
-                          SELECT COUNT(*) AS cnt
-                            FROM Odds_{bt}
-                           WHERE date=? AND venue_id=? AND race_no=?
-                          """,
-                          (d_iso, venue_id, race_no) ).fetchone()
+                sql = f"""
+                    SELECT COUNT(*)
+                      FROM Odds_{bt}
+                     WHERE date=? AND venue_id=? AND race_no=?
+                       """
 
-                cnt += row[0] if row else 0
+                cur.execute(sql, (d.strftime("%Y-%m-%d"), venue_id, race_no))
+                cnt += cur.fetchone()[0]
 
         if cnt == 7: return True
         else:        return False
+
+    # ------------------------------------------------------
+    def _exists_oriten(self, d:date, venue_id:int, race_no:int) -> bool:
+
+        if self._is_cancelled(d, venue_id, race_no):
+            return True
+
+        with self._connect_ro() as conn:
+            row = conn.execute("""
+                SELECT SUM( CASE WHEN o.entry_id  IS NOT NULL THEN 0
+                                 WHEN be.is_absent     = 1    THEN 0
+                                 ELSE 1
+                             END                                     )
+                  FROM Race_programs rp
+             LEFT JOIN Oriten        o  ON o.entry_id  = rp.program_id
+             LEFT JOIN Before_info   be ON be.entry_id = rp.program_id
+                 WHERE rp.date= ? AND rp.venue_id= ? AND rp.race_no= ?
+                """,
+                (d.strftime("%Y-%m-%d"), venue_id, race_no)).fetchone()
+
+        return int((row[0] if row else 0) or 0) == 0
 
     # ユーティリティ ---------------------------------------
     def _connect_ro(self) -> sqlite3.Connection:
@@ -808,6 +807,7 @@ class SummarizeTodayInfo:
 
         except Exception:
             return None
+
     # ------------------------------------------------------
     def _is_cancelled(self, d:date, venue_id:int, race_no:int) -> bool:
 

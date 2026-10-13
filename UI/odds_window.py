@@ -282,7 +282,7 @@ class OddsWindow(tk.Tk):
                 self.mustin_vars[(n, i)] = var
                 self.mustin_chks[(n, i)] = chk
 
-        cBtn( fr_must, text="全 クリア", bg="#666688", fg="white", font=(MUI,10), px=8, Rel=RA, Com=self._clear_all_filters, 
+        cBtn( fr_must, text="RESET", bg="#666688", fg="white", font=(MUI,9), px=8, Rel=RA, Com=self._clear_all_filters, 
              )._grid(R=8, C=0, Cspan=2, py=2)
 
         # CTRLパネル
@@ -531,6 +531,7 @@ class OddsWindow(tk.Tk):
         self.race_no = race_no
         self.cell_refs.clear()
         self.grid_items.clear()
+        if hasattr(self, "sub_pannel_widgets"): self.sub_pannel_widgets.clear()
 
         d = dt.fromisoformat(self.date).strftime("%Y 年 %#m 月 %#d 日")
         self.lbl_title1.config(text=f" {d}    {VENUES[self.venue_id]}   ")
@@ -647,29 +648,41 @@ class OddsWindow(tk.Tk):
         d = self.odds_data
 
         # 3連単
-        blk1 = cFr(self.grid_frame, bg=PANEL_BG, Rel=GR, bd=1)
+        blk1 = cFr(self.grid_frame, bg=PANEL_BG, Bd=(1,GR))
         blk1._grid(R=0, C=0, Stk="nw", px=(23,4), py=(4,6))
         self._build_3T(blk1, d.get("3T",{}))
 
         # 3連複, 拡連複
-        blk2 = cFr(self.grid_frame, bg=PANEL_BG, Rel=GR, bd=1)
+        blk2 = cFr(self.grid_frame, bg=PANEL_BG, Bd=(1,GR))
         blk2._grid(R=1, C=0, Stk="nw", px=4, py=0)
         self._build_3F_KK(blk2, d.get("3F",{}), d.get("KK",{}))
 
+        blk_R = cFr(self.grid_frame, bg=PANEL_BG)
+        blk_R._grid(R=0, C=1, Rspan=2, Stk="nw", px=0, py=0)
+
         # 2連単
-        blk3 = cFr(self.grid_frame, bg=PANEL_BG, Rel=GR, bd=1)
-        blk3._grid(R=0, C=1, Rspan=2, Stk="nw", px=(20,0), py=10)
+        blk3 = cFr(blk_R, bg=PANEL_BG, Bd=(1,GR))
+        blk3._grid(R=0, C=0, Stk="nw", px=(25,0), py=(10,5))
         self._build_2T(blk3, d.get("2T",{}))
 
         # 2連複
-        blk4 = cFr(self.grid_frame, bg=PANEL_BG, Rel=GR, bd=1)
-        blk4._grid(R=0, C=2, Rspan=2, Stk="nw", px=(20,0), py=10)
+        blk4 = cFr(blk_R, bg=PANEL_BG, Bd=(1,GR))
+        blk4._grid(R=0, C=1, Stk="nw", px=(25,0), py=(10,5))
         self._build_2F(blk4, d.get("2F",{}))
 
         # 単勝/複勝
         self._build_others(blk4, "単勝", "TT", d.get("TT",{}))
         self._build_others(blk4, "複勝", "FF", d.get("FF",{}))
 
+        self.sub_pannel = cFr(blk_R, bg=PANEL_BG)
+        self.sub_pannel._grid(R=1, C=0, Cspan=2, Stk=ALL, px=(10,0), py=(0,2))
+        self.sub_pannel.Cconf(0, Min=30) ;self.sub_pannel.Rconf(0, Min=30)
+        self.sub_pannel.Cconf(1, Min=15) ;self.sub_pannel.Rconf(1, Min=30)
+        self.sub_pannel.Cconf(2, Min=35) ;self.sub_pannel.Rconf(2, Min=30)
+        self.sub_pannel.Cconf(3, Min=35)
+        self.sub_pannel.Cconf(4, Min=60)
+
+        self._build_sub_panel()
         self._refresh_grid_cells()
 
     #---------------- ブロック共通フレーム -----------------
@@ -923,17 +936,19 @@ class OddsWindow(tk.Tk):
 
             if any(s[0] == bt and s[1] == key for s in self.selected):
                 cell_bg = HIL_BG
-            elif self._is_linked_3T_from_3F(bt, key):
-                cell_bg = INCLUDE_BG
 
+            elif self._is_linked_3T_from_selected(bt, key):
+                cell_bg = INCLUDE_BG
             cell.config(bg=cell_bg)
             lb.config( bg=cell_bg, fg=cell_fg, text=odds_str,
                        cursor=("hand2" if (odds_str and not cut) else "") )
 
             self._bind_grid_item(bt, key, meta["title"], cell, lb, bool(odds_str and not cut))
 
+        self._update_sub_panel()
+
     #-------------------------------------------------------
-    def _is_linked_3T_from_3F(self, bet_type:str, key:tuple) -> bool:
+    def _is_linked_3T_from_selected(self, bet_type:str, key:tuple) -> bool:
 
         if bet_type != "3T" or len(key) != 3:
             return False
@@ -942,6 +957,9 @@ class OddsWindow(tk.Tk):
 
         for s in self.selected:
             if s[0] == "3F" and len(s[1]) == 3 and set(s[1]) == key_set:
+                return True
+
+            if s[0] == "2T" and len(s[1]) == 2 and s[1][0] == key[0] and s[1][1] == key[1]:
                 return True
 
         return False
@@ -1189,6 +1207,87 @@ class OddsWindow(tk.Tk):
         else:                             v = ""
 
         return v if isinstance(v, str) else ""
+
+    #---------------- サブパネル構築 -----------------------
+    def _build_sub_panel(self):
+
+        self.sub_pannel_widgets = {}
+        bet_types = [("3T", "3 連単"), ("3F", "3 連複"), ("2T", "2 連単")]
+
+        for row, (bt, title) in enumerate(bet_types):
+
+            cLbl( self.sub_pannel, text=f"{title} 有効数 :", font=(MUI,9), bg=PANEL_BG, Anc="e"
+                 )._grid(R=row,  C=0, py=1, Stk=ALL)
+
+            lbl_cnt = cLbl(self.sub_pannel, text="  0 点", font=(MUI,9,BD), bg=PANEL_BG, Anc="e", W=5)
+            lbl_cnt._grid(R=row, C=1, py=1, Stk="w")
+
+            cLbl(self.sub_pannel, text="合成オッズ :", font=(MUI,9), bg=PANEL_BG, Anc="e"
+                 )._grid( R=row, C=2, px=(15,0), py=1, Stk=ALL)
+            lbl_syn = cLbl(self.sub_pannel, text="--.-", font=(MUI,9,BD), bg=PANEL_BG, Anc="e", W=4)
+            lbl_syn._grid(R=row, C=3, px=(0,8), py=1, Stk="w")
+
+            btn_sel = cBtn( self.sub_pannel, text="全選択", font=(MUI,8), bg="#4A6A9A", fg="white",
+                             Rel=RA, Com=lambda b=bt: self._select_all_valid(b) )
+            btn_sel._grid(R=row, C=4, py=1)
+
+            self.sub_pannel_widgets[bt] = {"count":lbl_cnt, "synth":lbl_syn}
+
+    #---------------- サブパネル更新 -----------------------
+    def _update_sub_panel(self):
+
+        if not hasattr(self, "sub_pannel_widgets"):
+            return
+
+        for bt, widgets in self.sub_pannel_widgets.items():
+            valid_odds = []
+            valid_count = 0
+
+            for ref_key, meta in self.grid_items.items():
+                if meta["bet_type"] != bt:
+                    continue
+
+                key = meta["key"]
+                odds_str = self._current_odds_str(bt, key)
+                v = parse_odds_min(odds_str)
+                cut = self._is_cut(key, bt)
+
+                if v > 0 and odds_str != "欠場" and not cut:
+                    valid_count += 1
+                    valid_odds.append(v)
+
+            widgets["count"].config(text=f"{valid_count:>3} 点")
+
+            if valid_odds:
+                sv = synthetic_odds(valid_odds)
+                color = "red" if sv <= 1.0 else ("black" if sv <= 2.0 else "blue")
+                widgets["synth"].config(text=f"{sv:.1f}", fg=color)
+            else:
+                widgets["synth"].config(text="ーー.ー", fg="#222222")
+
+    #---------------- 全選択処理 ---------------------------
+    def _select_all_valid(self, bet_type: str):
+
+        changed = False
+
+        for ref_key, meta in self.grid_items.items():
+            bt = meta["bet_type"]
+            if bt != bet_type:
+                continue
+
+            key = meta["key"]
+            odds_str = self._current_odds_str(bt, key)
+            v = parse_odds_min(odds_str)
+            cut = self._is_cut(key, bt)
+
+            if v > 0 and odds_str != "欠場" and not cut:
+                if not any(s[0] == bt and s[1] == key for s in self.selected):
+                    self.selected.append((bt, key, meta["title"], ""))
+                    changed = True
+
+        if changed:
+            self._refresh_grid_cells()
+            self._refresh_tree()
 
     # ----------------------------------
     def _fetch_Players(self, date:str, venue_id:int, race_no:int):

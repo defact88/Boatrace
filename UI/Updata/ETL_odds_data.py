@@ -148,34 +148,34 @@ def main(argv=None):
 
             if exists:
                 if not args.overwrite:
-                    print( f"  [{d_iso} {VENUES[int(venue_id)-1]} {race_no:02d}R] "
-                           f"既存データあり スキップ。"                             )
+                    print( f"  [ {VENUES[int(venue_id)-1]} {race_no:02} R ] "
+                           f"既存データ有り -> スキップ。"                     )
                     continue
                 else:
-                    print( f"  [{d_iso} {VENUES[int(venue_id)-1]} {race_no:02d}R] "
-                           f"既存データ削除 上書き更新します。"                     )
+                    print( f"  [ {VENUES[int(venue_id)-1]} {race_no:02} R ] "
+                           f"既存データ削除 上書更新...", end=""               )
                     delete_existing_odds(d_iso, venue_id, race_no)
             else:
-                print( f"  [{d_iso} {VENUES[int(venue_id)-1]} {race_no:02d}R] "
-                       f"既存データ無し 取得開始..."                             )
+                print( f"  [ {VENUES[int(venue_id)-1]} {race_no:02} R ] "
+                       f"既存データ無し 取得開始...", end=""                   )
 
             try:
                 data = fetch_all_odds(d_str, venue_id, race_no)
                 if data.get("error"):
-                    print(f"    [WARN] ページ取得エラー: {data['error']}")
-
+                    print(f"   -> ページ取得エラー: {data['error']}")
+                    continue
                 res, _ = insert_odds_snapshot(data, _date, venue_id, race_no, hits=[])
                 if res == 0:
-                    print(f"    -> 取得成功 (7 bet_type)")
+                    print(f"   -> 取得成功 (7 bet_types)")
                 elif res == 1:
-                    print(f"    -> 取得完了 (7 bet_ryoe未満)")
+                    print(f"   -> 取得完了 [WARN](7 bet_tyoes 未満)")
                 else:
-                    print(f"    -> 取得失敗 (保存対象データなし)")
+                    print(f"   -> 取得失敗 (保存対象データなし)")
 
                 time.sleep(1.0)
 
             except Exception as e:
-                print(f"    [Error] 処理中に例外発生: {e}")
+                print(f"   ->[Error] 処理中に例外発生: {e}")
 
         _date += timedelta(days=1)
 

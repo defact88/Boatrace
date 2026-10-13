@@ -24,8 +24,8 @@ CREATE TABLE Players(
   CHECK(sex IN ('男','女'))
 );
 
-CREATE INDEX IF NOT EXISTS idx_Players_1
-                        ON Players(player_id, name, age, regions, flying_st, late_st, class_now);
+CREATE INDEX IF NOT EXISTS idx_players_player_id
+                        ON Players(player_id);
 
 /*-------------------------------------------------------------------------------------*/
 CREATE TABLE Season_result(
@@ -59,6 +59,9 @@ CREATE TABLE Venues(
   direction       TEXT
 );
 
+CREATE INDEX IF NOT EXISTS idx_venues_venue_id
+                        ON Venues(venue_id);
+
 /*-------------------------------------------------------------------------------------*/
 CREATE TABLE Races(
 
@@ -84,14 +87,14 @@ CREATE TABLE Races(
   CHECK(race_no BETWEEN 1 AND 12)
 );
 
-CREATE INDEX IF NOT EXISTS idx_races_1
-                        ON Races(date, venue_id, grade, series_title, status, is_final);
+CREATE INDEX IF NOT EXISTS idx_races_race_id
+                        ON Races(race_id);
+
+CREATE INDEX IF NOT EXISTS idx_races_d_v_r
+                        ON Races(date, venue_id, race_no);
 
 CREATE INDEX IF NOT EXISTS idx_races_venue_date_status
                         ON Races(venue_id, date, status, is_final);
-
-CREATE INDEX IF NOT EXISTS idx_races_date_status
-                        ON Races(date, status, is_final);
 
 /*------------------------------------------------------------------------------------*/
 CREATE TABLE Race_entries(
@@ -123,9 +126,17 @@ CREATE TABLE Race_entries(
 CREATE INDEX IF NOT EXISTS idx_entries_race_id
                         ON Race_entries(race_id);
 
-CREATE INDEX IF NOT EXISTS idx_entries_1
-                        ON Race_entries( date, frame_no, player_id, finish_rank, fault_code,
-                                         fault_level, course, slit_ADJ, win_move, venue_id, race_id );
+CREATE INDEX IF NOT EXISTS idx_entries_entry_id
+                        ON Race_entries(entry_id);
+
+CREATE INDEX IF NOT EXISTS idx_entries_venue_id
+                        ON Race_entries(venue_id);
+
+CREATE INDEX IF NOT EXISTS idx_entries_player_id
+                        ON Race_entries(player_id);
+
+CREATE INDEX IF NOT EXISTS idx_entries_d_v_r
+                        ON Race_entries(date, venue_id, race_no);
 
 CREATE INDEX IF NOT EXISTS idx_entries_pid_date
                         ON Race_entries(player_id, date, race_id);
@@ -160,9 +171,14 @@ CREATE TABLE Race_programs(
   UNIQUE(program_id, player_id)
 );
 
-CREATE INDEX IF NOT EXISTS idx_programs_1 
-                        ON Race_programs( date, frame_no, player_id, venue_id,
-                                          day_no, race_no, series_title        );
+CREATE INDEX IF NOT EXISTS idx_programs_program_id
+                        ON Race_programs(program_id);
+
+CREATE INDEX IF NOT EXISTS idx_programs_venue_id
+                        ON Race_programs(venue_id);
+
+CREATE INDEX IF NOT EXISTS idx_programs_player_id
+                        ON Race_programs(player_id);
 
 CREATE INDEX IF NOT EXISTS idx_programs_venue_series_date
                         ON Race_programs (venue_id, series_title, date);
@@ -202,8 +218,14 @@ CREATE TABLE Before_info(
 CREATE INDEX IF NOT EXISTS idx_before_info_race_id
                         ON Before_info(race_id);
 
+CREATE INDEX IF NOT EXISTS idx_before_info_entry_id
+                        ON Before_info(entry_id);
+
 CREATE INDEX IF NOT EXISTS idx_before_info_player_id
                         ON Before_info(player_id);
+
+CREATE INDEX IF NOT EXISTS idx_before_d_v_r
+                        ON Before_info(date, venue_id, race_no);
 
 /*-------------------------------------------------------------------------------------*/
 
@@ -222,10 +244,11 @@ CREATE TABLE Odds_{bet_type}(
   venue_id INTEGER NOT NULL,
   race_no  INTEGER NOT NULL,
   ',\n  '.join(COMBOS[bet_type])
+
 );
 
 CREATE UNIQUE INDEX IF NOT EXISTS odds_{bet_type}_race_id
-    ON Odds_{bet_type}(race_id);
+                               ON Odds_{bet_type}(race_id);
 
 /*-------------------------------------------------------------------------------------*/
 CREATE TABLE Payouts(
@@ -273,7 +296,10 @@ CREATE TABLE Payouts(
 );
 
 CREATE UNIQUE INDEX IF NOT EXISTS payouts_race_id
-    ON Payouts(race_id, status);
+                               ON Payouts(race_id, status);
+
+CREATE INDEX IF NOT EXISTS payouts_d_v_r
+                        ON Payouts(date, venue_id, race_no);
 
 /*-------------------------------------------------------------------------------------*/
 CREATE TABLE IF NOT EXISTS Oriten(
@@ -291,7 +317,10 @@ CREATE TABLE IF NOT EXISTS Oriten(
 );
 
 CREATE UNIQUE INDEX IF NOT EXISTS oriten_entry_id
-    ON Oriten(entry_id);
+                               ON Oriten(entry_id);
+
+CREATE INDEX IF NOT EXISTS oriten_d_v_r
+                        ON Oriten(date, venue_id, race_no);
 
 /*-------------------------------------------------------------------------------------*/
 CREATE TABLE Daily_Overall(

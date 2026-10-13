@@ -71,11 +71,11 @@ boatrace/
 
     Widgets/
       widgets.py/
-          framing_graph              # 当該ｺｰｽ別1,2,3着率ｸﾞﾗﾌの表示、主観選手からのｻﾌﾞｸﾞﾗﾌの表示
+          framing_graph              # 当該ｺｰｽ別1,2,3着率ｸﾞﾗﾌ、主観選手からのｻﾌﾞｸﾞﾗﾌ
           framing_figure             # ｽﾘｯﾄ予想図 / 展示航走ｽﾘｯﾄ図 / ﾚｰｽ結果ｽﾘｯﾄ図
           framing_weather            # 天候ｱｲｺﾝ(天気、風向)
           framing_held_type_icon     # ﾚｰｽ選択画面 開催種別ｱｲｺﾝ
-          clear_all_lanes            # ﾒｲﾝﾌﾟﾚｰｽﾎﾙﾀﾞｰ内の各ｳｨｼﾞｪｯﾄをｸﾘｱ
+          clear_widgets              # 各ｳｨｼﾞｪｯﾄをｸﾘｱ
           set_player_image           # 画像読込/等倍比フィット
 
       placeholder.py/

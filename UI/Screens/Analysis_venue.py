@@ -337,7 +337,7 @@ class VenueAnalysisScreen(tk.Toplevel):
     def _set_venue_image(self):
 
         try:
-            path  = os.path.join(r"C:\boatrace\tmp\venues_img", f"{self.venue_id}.png")
+            path  = os.path.join(r"C:\boatrace\tmp\Icons\venues_img", f"{self.venue_id}.png")
             im    = Image.open(path).resize((380, 180))
             photo = ImageTk.PhotoImage(im)
             self.lb_img.configure(image=photo, text="")

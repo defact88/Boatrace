@@ -93,15 +93,20 @@ class SeleniumBuyer:
 
         opts.add_argument(r"--user-data-dir=C:\boatrace\tmp\Brave_profile\User Data")
         opts.add_argument("--profile-directory=Default")
-        opts.add_argument("--no-sandbox")
-        opts.add_argument("--disable-infobars")
-        opts.add_argument("--disable-dev-shm-usage")
-        opts.add_argument("--disable-blink-features=AutomationControlled")
         opts.add_argument("--no-first-run")
         opts.add_argument("--no-default-browser-check")
         opts.add_argument("--disable-session-crashed-bubble")
+        opts.add_argument("--disable-notifications")
+        opts.add_argument("--disable-features=BraveRewards,BraveAds,BraveWallet")
+        opts.add_argument("--disable-features=IsolateOrigins,site-per-process")
+        #opts.add_argument("--no-sandbox")
+        #opts.add_argument("--disable-infobars")
+        #opts.add_argument("--disable-dev-shm-usage")
+        #opts.add_argument("--disable-blink-features=AutomationControlled")
 
-        self._driver = uc.Chrome(options=opts, version_main=153, use_subprocess=True)
+        opts.add_argument("--force-device-scale-factor=0.9")
+
+        self._driver = uc.Chrome(options=opts, version_main=155, use_subprocess=True)
         logger.info("Brave 起動完了")
 
     #-----------------------------------------------------------------
@@ -116,23 +121,27 @@ class SeleniumBuyer:
     #-----------------------------------------------------------------
     def _navigate_to_bet_window(self):
 
-        self._driver.set_window_size(1000, 700)
+        self._driver.set_window_size(1000, 950)
         self._driver.set_window_position(1000, 300)
+        #self._driver.delete_all_cookies()
+        #self._driver.execute_script("window.localStorage.clear(); window.sessionStorage.clear();")
+        #self._driver.refresh()
+
         logger.info(f"トップページへアクセス →")
         self._driver.get(TOP_PAGE)
-        time.sleep(0.1)
+        time.sleep(0.5)
 
         handles_before = set(self._driver.window_handles)
 
         try:
-            self._wait(3).until(EC.element_to_be_clickable((By.ID,"commonHead"))).click()
+            self._wait(2).until(EC.element_to_be_clickable((By.ID,"commonHead"))).click()
             logger.info("「投票」ボタン クリック →")
         except TimeoutException:
             logger.warning("「投票」ボタンが見つかりません")
-        time.sleep(0.3)
+        time.sleep(0.5)
 
         try:
-            self._wait(5).until(EC.presence_of_element_located((By.ID,"in_KanyusyaNo")))
+            self._wait(2).until(EC.presence_of_element_located((By.ID,"in_KanyusyaNo")))
 
             logger.info("ログインフォーム検出: OK → 入力開始")
             for fid, val in [ ("in_KanyusyaNo", self.kanyusha_no),
@@ -440,11 +449,12 @@ class SeleniumBuyer:
 
         time.sleep(0.5)
         logger.info(f"購入処理完了")
+        self._driver.close()
 
     #-----------------------------------------------------------------
     def _force_kill_leftovers(self):
 
-        targets = ["chromedriver.exe", "undetected_chromedriver.exe"]
+        targets = ["chromedriver.exe", "undetected_chromedriver.exe", "brave.exe"]
         for target in targets:
             try:
                 subprocess.run(['taskkill', '/IM', target, '/T'], capture_output=True, shell=True)

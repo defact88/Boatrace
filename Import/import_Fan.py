@@ -7,16 +7,19 @@ from datetime    import date
 from pathlib     import Path
 from typing      import Dict, List, Tuple, Optional
 
-DB_PATH    = r"C:\boatrace\boatrace.db"
+DB_PATH    = Path(r"C:\boatrace\boatrace.db")
 INBOX_DIR  = Path(r"C:\boatrace\INBOX\Fan")
 ARC_DIR    = Path(r"C:\boatrace\Archive\FAN\FAN_TXT")
-LAYOUT_TXT = r"C:\boatrace\tmp\fan_data_layout.txt"
+LAYOUT_TXT = Path(r"C:\boatrace\tmp\FAN\fan_data_layout.txt")
 
 # =========================== ユーティリティ =========================
 def conn():
+
     c = sqlite3.connect(DB_PATH)
     c.execute("PRAGMA foreign_keys=ON;")
+
     return c
+
 #---------------------------------------------------------------------
 def load_layout():
 
@@ -43,7 +46,7 @@ def load_layout():
     return names, offs
 
 #---------------------------------------------------------------------
-def decode_line(line_bytes:bytes, names:List[str], offs: List[Tuple[int,int]]):
+def decode_line(line_bytes:bytes, names:List[str], offs:List[Tuple[int,int]]):
 
     out:Dict[str, str] = {}
 
@@ -53,6 +56,7 @@ def decode_line(line_bytes:bytes, names:List[str], offs: List[Tuple[int,int]]):
 
     return out
 
+#---------------------------------------------------------------------
 class RequiredFieldError(Exception): pass
 #---------------------------------------------------------------------
 def req_str(field:str, v:Optional[str]):
@@ -62,6 +66,7 @@ def req_str(field:str, v:Optional[str]):
     if s == "":   raise RequiredFieldError(f"{field} empty")
 
     return s
+
 #---------------------------------------------------------------------
 def req_int(field:str, v:Optional[str]):
 
@@ -71,6 +76,7 @@ def req_int(field:str, v:Optional[str]):
         raise RequiredFieldError(f"{field} not-int: {v!r}")
 
     return int(s)
+
 #---------------------------------------------------------------------
 def normalize_sex(v:str):
 
@@ -79,6 +85,7 @@ def normalize_sex(v:str):
     if v in ("2", "女"): return "女"
 
     raise RequiredFieldError(f"sex invalid: {v!r}")
+
 #---------------------------------------------------------------------
 def parse_birthday(era_letter:str, yymmdd:str):
 
@@ -108,6 +115,7 @@ def compute_age(birthday_iso:str, asof:Optional[date]=None):
     a       = today.year -bd.year -((today.month, today.day) < (bd.month, bd.day))
 
     return max(a, 0)
+
 # ---------------------モード ----------------------------------------
 @dataclass(frozen=True)
 class Mode:
@@ -115,6 +123,7 @@ class Mode:
     @classmethod
     def from_args(cls, args) -> "Mode":
         return cls(overwrite=args.overwrite)
+
 # =================== SQL (Players / Season_result) ==================
 # 変動5項目のみ差分更新（最新ファイル時の通常モード）
 
@@ -142,6 +151,7 @@ PLAYER_UPDATE_DIFF_SQL = """
                         AND COALESCE(class_now,'') <> :class_now
                        THEN :class_now
                        ELSE  class_now END
+
      WHERE player_id = :player_id
        AND (COALESCE(age, -1) IS NOT COALESCE(:age, -1)
         OR (:regions   IS NOT NULL AND COALESCE(regions,'')   <> :regions)
@@ -169,6 +179,7 @@ PLAYER_UPDATE_PAST_NULLZERO_SQL = """
            class_now = CASE WHEN (class_now IS NULL )
                             THEN :class_now
                             ELSE  class_now END
+
      WHERE player_id = :player_id
        AND ( (age       IS NULL OR       age= 0 )
         OR   (regions   IS NULL OR   regions='0')
@@ -252,6 +263,7 @@ def archive_files(paths: List[Path]):
         if dst.exists(): continue
 
         shutil.move(str(src), str(dst))
+
 # ======================= パース関数 =================================
 def parse_player_row(obj: Dict[str,str], is_old: bool=False):
 
@@ -325,6 +337,7 @@ def get_latest_season_in_summary(c:sqlite3.Connection):
     """).fetchone()
 
     return (int(row[0]), int(row[1])) if row else None
+
 #---------------------------------------------------------------------
 def parse_year_season_from_filename(path:Path):
 
@@ -336,6 +349,7 @@ def parse_year_season_from_filename(path:Path):
     season = 1 if tt == "04" else 2
 
     return year, season
+
 #---------------------------------------------------------------------
 @dataclass
 class FileContext:

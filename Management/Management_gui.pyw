@@ -9,8 +9,8 @@ import subprocess, shutil, os, csv, datetime, time, ctypes, win32com.client, sys
 import tkinter as tk
 #-------------------------------------------------
 BASE_DIR     = Path(r"C:\boatrace\Management")
-CSV_FILEMAP  = BASE_DIR / "file_map.csv"
-CSV_ARGSTBL  = BASE_DIR / "args_table.csv"
+CSV_FILEMAP  = BASE_DIR / r"CSV\file_map.csv"
+CSV_ARGSTBL  = BASE_DIR / r"CSV\args_table.csv"
 ICON_GUI     = BASE_DIR / r"Icon\GUI.ico"
 ICON_SERCH   = BASE_DIR / r"Icon\HP-Projector.ico"
 TERAPAD_PATH = r"C:\Program Files (x86)\TeraPad\TeraPad.exe"
@@ -109,8 +109,8 @@ class FileManagementGUI(tk.Tk):
         MNG_PATH     = Path(r"C:\boatrace\Management\Management_gui.pyw")
         BR_GUI_PATH  = Path(r"C:\boatrace\UI\boatrace_gui.py")
         SCHEMA_PATH  = Path(r"C:\boatrace\Schema\schema_all.sql")
-        FILEMAP_PATH = Path(r"C:\boatrace\Management\file_map.csv")
-        ARGLIST_PATH = Path(r"C:\boatrace\Management\args_table.csv")
+        FILEMAP_PATH = Path(r"C:\boatrace\Management\CSV\file_map.csv")
+        ARGLIST_PATH = Path(r"C:\boatrace\Management\CSV\args_table.csv")
         SERCH_PATH   = Path(r"C:\boatrace\Checker\Tools\word_replacer.py")
         MNG_DIR      = r"C:\boatrace\Management"
         BR_GUI_DIR   = r"C:\boatrace\UI"
@@ -118,7 +118,7 @@ class FileManagementGUI(tk.Tk):
         MAIN_DIR     = r"C:\boatrace"
         BACKUP_DIR   = r"C:\boatrace\Backup"
 
-        BAT_COMMIT   = Path(r"C:\boatrace\BR\Gitcommit.bat")
+        BAT_COMMIT   = Path(r"C:\boatrace\Management\bat_files\Gitcommit.bat")
         DAILY_PATH   = Path(r"C:\boatrace\UI\Updata\daily_insert.py")
 
         base_size    = (1760, 950, 800, 500)

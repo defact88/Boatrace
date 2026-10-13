@@ -10,7 +10,14 @@ import threading, subprocess, sys, sqlite3, tkinter as tk
 VENUES   = [ "桐生", "戸田", "江戸川", "平和島", "多摩川", "浜名湖", "蒲郡", "常滑",
              "津",   "三国", "びわこ", "住之江", "尼崎",   "鳴門",   "丸亀", "児島",
              "宮島", "徳山", "下関",   "若松",   "芦屋",   "福岡",   "唐津", "大村", ]
-VENUE_ID = {name: i+1 for i, name in enumerate(VENUES)}
+
+TABLE_ORDER = [ "Races", "Race_entries", "Race_programs", "Before_info", "Players", "Venues",
+                "Payouts", "Odds_3T", "Odds_3F", "Odds_2T", "Odds_2F", "Odds_TT", "Odds_FF",
+                "Odds_KK", "Oriten", "Season_result", "Daily_Overall"                         ]
+EXCLUDE_SET = {"sqlite_sequence", "sqlite_stat1"}
+
+ORDER_DICT  = {item:index for index, item in enumerate(TABLE_ORDER)}
+VENUE_ID    = {name: i+1 for i, name in enumerate(VENUES)}
 
 IMPORT_B = r"C:\boatrace\import_B_txt.py"
 
@@ -272,6 +279,9 @@ class DBOpsScreen(ttk.Frame):
             self._echo(f"[ERR] list tables: {e}")
 
         self._tables_cache = names
+        names = [item for item in names if item not in EXCLUDE_SET]
+        names.sort(key=lambda x: ORDER_DICT.get(x, len(names)))
+
         self.cbo_table1["values"] = names
         self.cbo_table2["values"] = [""] + names 
 

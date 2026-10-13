@@ -79,7 +79,7 @@ NMFNT          = dict(font=(MUI,9   ))
 COL1, COL2, COL3 = "#FFF4AA", "#33EE33", "#2A62FF"
 SRC_COL, SRS_COL = "#a463ff", "#505050"
 STC_COL, STR_COL = "#2A62FF", "#2a9a01"
-G_COL            = {0:"#616161", 1:"#616161", 2:"#05eb00", 3:"#3f76ff", 4:"#3f76ff", 5:"red"}
+G_COL            = {0:"#616161", 1:"#616161", 2:"#00b008", 3:"#3f76ff", 4:"#3f76ff", 5:"red"}
 NOR_COL          = {"bg":"white", "fg":"black"}
 HDR_COL          = "#e0e1f4"
 HL_COL           = "#cce8ff"

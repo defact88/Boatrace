@@ -6,7 +6,6 @@ from tkinter import ttk, messagebox, filedialog
 from pathlib import Path
 import os, csv, shutil, datetime, ctypes, sys, re
 
-
 def minimize_console():
     try:
         hwnd = ctypes.windll.kernel32.GetConsoleWindow()
@@ -14,11 +13,11 @@ def minimize_console():
             ctypes.windll.user32.ShowWindow(hwnd, 0)
     except Exception:
         pass
-
 minimize_console()
 
+#===============================================================================
 BASE_DIR     = Path(r"C:\boatrace\Management")
-CSV_FILEMAP  = BASE_DIR / "file_map.csv"
+CSV_FILEMAP  = BASE_DIR / r"CSV\file_map.csv"
 BACKUP_ROOT  = Path(r"C:\boatrace\BACKUP")
 ICON_PATH    = BASE_DIR / r"Icon\GUI.ico"
 

@@ -3,7 +3,7 @@
 
 import argparse, time, os, sys
 import Dal as dal
-from datetime    import datetime as dt, timedelta
+from datetime    import datetime as dt, date, timedelta
 
 from get_payouts import upsert_payouts
 import ETL_K_results
@@ -25,7 +25,7 @@ def to_str(x) -> str:
     if isinstance(x, date): return x.strftime("%Y-%m-%d")
 
     raise ValueError("str conv error")
-\
+
 # ------------------
 def to_date(x) -> date:
 
@@ -87,8 +87,8 @@ def main(argv=None):
 
     p = argparse.ArgumentParser()
     p.add_argument("--date",      required=False, help="指定日 (YYYY-MM-DD)")
-    p.add_argument("--date_from", required=True,  help="開始日 (YYYY-MM-DD)")
-    p.add_argument("--date_to",   required=True,  help="終了日 (YYYY-MM-DD)")
+    p.add_argument("--date_from", required=False,  help="開始日 (YYYY-MM-DD)")
+    p.add_argument("--date_to",   required=False,  help="終了日 (YYYY-MM-DD)")
     p.add_argument("--venue",     required=False, help="場(venue_id)指定")
     p.add_argument("--race",      required=False, help="レース(race_no)指定")
     p.add_argument("--from_html", action="store_true", help="公式ページHTMLから取得")

@@ -2,11 +2,11 @@
 # C:\boatrace\Import\ETL_k_results.py
 
 from pathlib   import Path
-from datetime  import datetime as dt, timedelta
+from datetime  import datetime as dt, date, timedelta
 from typing    import List, Optional, Dict, Set, Iterable
 from lhafile   import lhafile
 from curl_cffi import requests
-import argparse, sys, re, sqlite3, shutil, random, time
+import argparse, sys, re, sqlite3, shutil, random, time, os
 # ----------------- 外部依存 ---------------------
 from parse_and_upsert    import upsert_Races, upsert_Race_entries, upsert_Payouts_from_K
 from upsert_Grade        import upsert_Grade
@@ -37,12 +37,36 @@ VENUES = [ "桐  生", "戸  田", "江戸川", "平和島", "多摩川", "浜�
            "宮  島", "徳  山", "下  関", "若  松", "芦  屋", "福  岡", "唐  津", "大  村"  ]
 
 #---------------- ユーティリティ -----------------
+def today_iso() -> str:
+
+    JST = timezone(timedelta(hours=9))
+
+    return dt.now(JST).date().strftime("%Y-%m-%d")
+
+# ------------------
+def to_str(x) -> str:
+
+    if isinstance(x,  str): return x
+    if isinstance(x, date): return x.strftime("%Y-%m-%d")
+
+    raise ValueError("str conv error")
+
+# ------------------
+def to_date(x) -> date:
+
+    if isinstance(x, date): return x
+    if isinstance(x,  str): return date.fromisoformat(x)
+
+    raise ValueError("date conv error")
+
+# ------------------
 def daterange(d0:dt, d1:dt):
 
     cur = d0
     while cur <= d1:
         yield cur
         cur = cur +timedelta(days=1)
+
 #-----------------------------
 def date_from_filename(name:str):
 
@@ -50,6 +74,7 @@ def date_from_filename(name:str):
     y2, mo, da = map(int, m.groups())
 
     return f"20{y2:02d}-{mo:02d}-{da:02d}"
+
 #-----------------------------
 def ask_yes_no(prompt:str) -> bool:
 
@@ -58,6 +83,7 @@ def ask_yes_no(prompt:str) -> bool:
         if ans in ("y", "yes"): return True
         if ans in ("n", "no"):  return False
     except: return False
+
 #-----------------------------------------------------------
 def ensure_empty_delete(path:Path, label:str, external:bool) -> bool:
 
@@ -306,7 +332,7 @@ def main(argv=None):
                             args.payouts_only, args.external, args.DL_only )
 
 #=====================================================================
-def run_ETL( date_from:int, date_to:int, overwrite:bool=False, no_grade:bool=False,
+def run_ETL( date_from:str, date_to:str, overwrite:bool=False, no_grade:bool=False,
                    payouts_only:bool=False, external:bool=False, DL_only:bool=False ):
 
     range_mode = bool(date_from and date_to)
@@ -320,8 +346,8 @@ def run_ETL( date_from:int, date_to:int, overwrite:bool=False, no_grade:bool=Fal
 
     if range_mode:
         try:
-            d0 = dt.strptime(date_from, "%Y-%m-%d")
-            d1 = dt.strptime(date_to,   "%Y-%m-%d")
+            d0 = to_date(date_from)
+            d1 = to_date(date_to)
         except ValueError:
             print("日付は YYYY-MM-DD で指定してください"); return 2
 
@@ -343,13 +369,13 @@ def run_ETL( date_from:int, date_to:int, overwrite:bool=False, no_grade:bool=Fal
 
             saved = try_download(d)
             if not saved:
-                print(f"[警告] {d.strftime('%Y-%m-%d')}の Kﾌｧｲﾙ 取得失敗")
+                print(f"[警告] {to_str(d)}の Kﾌｧｲﾙ 取得失敗")
                 continue
 
             downloaded.extend(saved)
 
         if downloaded: staged_txts.extend(stage_DL_to_INBOX(downloaded))
-        else: print("DL対象なし(全日 archive 済み)\n")
+        else:          print("DL対象なし(全日 archive 済み)\n")
 
     else: staged_txts = sorted(DIR_INBOX.glob("K*.TXT"))
 

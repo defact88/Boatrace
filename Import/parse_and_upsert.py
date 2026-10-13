@@ -7,6 +7,8 @@ import re, sqlite3, math
 
 import Dal as dal
 
+#=====================================================================
+
 DB = r"C:\boatrace\boatrace.db"
 
 TXT2DEG = {    "東": 0,   "南": 90,   "西":180,   "北":270,
@@ -14,10 +16,11 @@ TXT2DEG = {    "東": 0,   "南": 90,   "西":180,   "北":270,
            "東南東":22.5,  "南南東":67.5,  "南南西":112.5, "西南西":157.5, 
            "西北西":202.5, "北北西":247.5, "北北東":292.5, "東北東":337.5, } 
 
-#=====================================================================
-RE_DATE_LINE = re.compile(r"^\s*第\s*(\d+)日.*?(\d{4})/\s*(\d{1,2})/\s*(\d{1,2}).*$", re.M)
-RE_RACE_HEAD = re.compile(
-    r"^\s*(\d{1,2})R\s+(.*?)\s+H(\d{3,4})m\s+(\S+).*?風\s+(\S+)\s*(\d+)m\s+波\s+(\d+)cm", re.M)
+RE_DATE_LINE   = re.compile(r"^\s*第\s*(\d+)日.*?(\d{4})/\s*(\d{1,2})/\s*(\d{1,2}).*$", re.M)
+RE_RACE_HEAD   = re.compile( r"^\s*(\d{1,2})R\s+(.*?)\s+H(\d{3,4})m\s+(\S+)"
+                             r".*?風\s+(\S+)\s*(\d+)m\s+波\s+(\d+)cm", re.M  )
+RE_CANCEL_LINE = re.compile(r"^\s*(\d{1,2})R\s*中\s*止\s*$", re.M)
+RE_PREFINAL    = re.compile(r"準優(?!進出)|準王将位戦", re.I)
 
 RE_FINAL = re.compile(r"(?:"
     r"優勝戦"
@@ -45,8 +48,37 @@ RE_FINAL = re.compile(r"(?:"
     r"|(?<=.{5})優"
     r")",re.I)
 
-RE_CANCEL_LINE = re.compile(r"^\s*(\d{1,2})R\s*中\s*止\s*$", re.M)
-RE_PREFINAL    = re.compile(r"準優(?!進出)|準王将位戦", re.I)
+#-----------------------------
+def _deg_from_txt(txt:str|None):
+
+    if not txt: return None
+
+    return TXT2DEG.get(txt.strip(), None)
+
+#-----------------------------
+def _venue_dir_deg(c:sqlite3.Connection, venue_id:int):
+
+    cur = c.execute("SELECT direction FROM Venues WHERE venue_id=?", (venue_id,))
+    row = cur.fetchone()
+    if not row or row[0] is None: return None
+
+    return _deg_from_txt(str(row[0]))
+
+#-----------------------------
+def _get_title(body:str):
+
+    m = re.search(r"競走成績[^\n]*\n\s*(.+?)\n", body)
+
+    return m.group(1).strip() if m else ""
+
+#-----------------------------
+def _get_date(name:str):
+
+    dt = re.search(r"K(\d{2})(\d{2})(\d{2})\.TXT", name, re.I)
+    if not dt: return None
+    y, m, d = map(int, dt.groups())
+
+    return f"20{y:02d}-{m:02d}-{d:02d}"
 
 #-------------------------------------------------
 def to_upsert(c:dal.transaction, r:Dict):
@@ -99,32 +131,6 @@ def to_insert(c:dal.transaction, r:Dict):
 
     return 1 if c.total_changes > pre_cnt else 0
 
-#-------------------------------------------------
-def _deg_from_txt(txt:str|None):
-    if not txt: return None
-
-    return TXT2DEG.get(txt.strip(), None)
-#-----------------------------
-def _venue_dir_deg(c:sqlite3.Connection, venue_id:int):
-
-    cur = c.execute("SELECT direction FROM Venues WHERE venue_id=?", (venue_id,))
-    row = cur.fetchone()
-    if not row or row[0] is None: return None
-
-    return _deg_from_txt(str(row[0]))
-#-----------------------------
-def _get_title(body:str):
-    m = re.search(r"競走成績[^\n]*\n\s*(.+?)\n", body)
-
-    return m.group(1).strip() if m else ""
-#-----------------------------
-def _get_date(name:str):
-
-    dt = re.search(r"K(\d{2})(\d{2})(\d{2})\.TXT", name, re.I)
-    if not dt: return None
-    y, m, d = map(int, dt.groups())
-
-    return f"20{y:02d}-{m:02d}-{d:02d}"
 #-----------------------------
 def _get_subblocks(body: str):
 
@@ -138,6 +144,7 @@ def _get_subblocks(body: str):
         out.append((rno, start, end))
 
     return out
+
 #-----------------------------
 def _is_final(title:str):
 
@@ -248,12 +255,18 @@ RE_ROW_LINE    = re.compile(r"""
 
 #-----------------------------
 def _parse_time(s:str):
+
     s = s.strip()
+
     return float(s) if s and s[0].isdigit() else None
+
 #-----------------------------
 def _parse_course(s:str):
+
     s = s.strip()
+
     return int(s) if s.isdigit() else None
+
 #-------------------------------------------------
 def _subblocks_by_race(body:str):
 
@@ -600,4 +613,5 @@ def upsert_Payouts_from_K(venue_id:int, body:str, date_iso:str) -> int:
         total += 1
 
     return total
+
 #=====================================================================

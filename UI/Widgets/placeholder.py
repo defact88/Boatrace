@@ -137,7 +137,7 @@ def build_main_placeholder(self, parent:tk.Frame):
         fr_idx.Cconf(0, W=1)
 
         # ================
-        self._widgets_main[ln] = {
+        self.widgets_main[ln] = {
            "frno":lb_frno,    #"regp":lb_regp,    "pid":lb_pid,    "rgns":lb_regs,
            "name":lb_name,    #"age" :lb_age,     "wkg":lb_wkg,    "heig":lb_heig,
            "stav":lb_stav,
@@ -146,9 +146,9 @@ def build_main_placeholder(self, parent:tk.Frame):
           "photo":lb_photo, "fr_Ctr":fr_Ctr,    "Lane":Lane,  
             "cv1":cv1,  "cv2":cv2,  "cv3":cv3,       }
 
-        self._widgets_main[ln]["R_hdr"] = R_hdr
-        self._widgets_main[ln]["R_bdy"] = R_bdy
-        self._widgets_main[ln]["R_idx"] = R_idx
+        self.widgets_main[ln]["R_hdr"] = R_hdr
+        self.widgets_main[ln]["R_bdy"] = R_bdy
+        self.widgets_main[ln]["R_idx"] = R_idx
 
 # ==================== プレースホルダ(Sub) =======================
 # ----------------------------------------------------------------
@@ -189,14 +189,14 @@ def build_sub_placeholder(self, parent:tk.Frame): #  1188  318
     self.bt_ctw = cFr(fr_pnlA, W=341, H= 22) ;self.bt_ctw._grid(R=0, C=0)
     fr_info     = cFr(fr_pnlA, W=160, H= 22)     ;fr_info._grid(R=0, C=1) ;fr_info.Pgate()
 
-    self.bt_rst = cBtn(fr_pnlB, W=8, font=(MUI,8), text="Reset", Bd=(1,RA), bg="#bbe0fc")
-    self.bt_fly = cBtn(fr_pnlB, W=6, font=(MUI,8), text="Flying")
-    self.bt_nfl = cBtn(fr_pnlB, W=7, font=(MUI,8), text="! Flying")
-    self.bt_exE = cBtn(fr_pnlB, W=7, font=(MUI,8), text="江戸川除外")
-    self.bt_grd = cBtn(fr_pnlB, W=7, font=(MUI,8), text="一般戦除外")
-    self.bt_mrk = cBtn(fr_pnlB, W=8, font=(MUI,8), text="全 マーク")
-    self.bt_ort = cBtn(fr_pnlB, W=8, font=(MUI,8), text="オ リ 展")
-    self.bt_prt = cBtn(fr_pnlB, W=8, font=(MUI,8), text="交換 部品")
+    self.bt_rst = cBtn(fr_pnlB, W=8, font=(MUI,8), cursor= "hand2", text="Reset", Bd=(1,RA), bg="#bbe0fc")
+    self.bt_fly = cBtn(fr_pnlB, W=6, font=(MUI,8), cursor= "hand2", text="Flying")
+    self.bt_nfl = cBtn(fr_pnlB, W=7, font=(MUI,8), cursor= "hand2", text="! Flying")
+    self.bt_exE = cBtn(fr_pnlB, W=7, font=(MUI,8), cursor= "hand2", text="江戸川除外")
+    self.bt_grd = cBtn(fr_pnlB, W=7, font=(MUI,8), cursor= "hand2", text="一般戦除外")
+    self.bt_mrk = cBtn(fr_pnlB, W=8, font=(MUI,8), cursor= "hand2", text="全 マーク")
+    self.bt_ort = cBtn(fr_pnlB, W=8, font=(MUI,8), cursor= "hand2", text="オ リ 展")
+    self.bt_prt = cBtn(fr_pnlB, W=8, font=(MUI,8), cursor= "hand2", text="交換 部品")
 
     self.bt_rst.config(command=reset_figure)
     self.bt_fly.config(command=lambda:_switch_btn(self, self.bt_fly, "flying"))
@@ -204,8 +204,8 @@ def build_sub_placeholder(self, parent:tk.Frame): #  1188  318
     self.bt_exE.config(command=lambda:_switch_btn(self, self.bt_exE, "exclude_edo"))
     self.bt_grd.config(command=lambda:_switch_btn(self, self.bt_grd, "limited_grade"))
     self.bt_mrk.config(command=lambda:_switch_btn(self, self.bt_mrk, "on_mark"))
-    self.bt_ort.config(command=lambda:_toggle_btn(self, self.bt_ort, "disp_oriten")) 
-    self.bt_prt.config(command=lambda:_toggle_btn(self, self.bt_prt, "disp_parts"))
+    self.bt_ort.config(command=lambda:_toggle_P_O(self, self.bt_ort, "disp_oriten")) 
+    self.bt_prt.config(command=lambda:_toggle_P_O(self, self.bt_prt, "disp_parts"))
 
     self.bt_rst._grid(R=0, C=0)
     self.bt_fly._grid(R=0, C=1, px=(5,0))
@@ -266,13 +266,15 @@ def build_sub_placeholder(self, parent:tk.Frame): #  1188  318
     lb_stab = cLbl(fr_info, font=(MUI, 9), Bd=(1,GR)) ;lb_stab._grid(R=0, C=0, Stk=ALL)
     lb_shlp = cLbl(fr_info, font=(MUI, 9), Bd=(1,GR)) ;lb_shlp._grid(R=0, C=1, Stk=ALL)
 
-    bt_befr = cBtn(fr_btnf, text=f"展 示", font=(MUI,8), Com=lambda:self._update_sub_entries(0))
-    bt_rslt = cBtn(fr_btnf, text=f"結 果", font=(MUI,8), Com=lambda:self._update_sub_entries(1))
+    self.bt_befr = cBtn(fr_btnf, text=f"展 示", font=(MUI,8), Com=lambda:_on_figB(self, False))
+    self.bt_rslt = cBtn(fr_btnf, text=f"結 果", font=(MUI,8), Com=lambda:_on_figB(self, True ))
     lb_wspd = cLbl(fr_para, font=(MUI,10), bg=BG_COL) ;lb_wspd._grid(R=0, C=0, Stk=ALL)
     lb_wave = cLbl(fr_para, font=(MUI,10), bg=BG_COL) ;lb_wave._grid(R=1, C=0, Stk=ALL)
 
-    bt_befr.place(x=0, y= 1, width=70, height=20)
-    bt_rslt.place(x=0, y=22, width=70, height=20)
+    self.bt_befr.place(x=0, y= 1, width=70, height=20)
+    self.bt_rslt.place(x=0, y=22, width=70, height=20)
+
+    _toggle_figB(self)
 
     # Frame body==================================
     fr_Lane = cFr(fr_body, W=913, H=266, Bd=(1,SD))
@@ -308,49 +310,47 @@ def build_sub_placeholder(self, parent:tk.Frame): #  1188  318
     fr_figB._grid(R=0, C=1)              ;fr_figB.Pgate()
 
     for ln in range(1, 7):
-        row = ln -1
+        r = ln -1
+        fr_repr = cFr(fr_lanG, W=143, H=44, Bd=(1,GR)) ;fr_repr._grid(R=r, C=0) ;fr_repr.Pgate()
 
-        fr_repr = cFr(fr_lanG, W=143, H=44, Bd=(1,GR))
-        fr_repr._grid(R=row, C=0) ;fr_repr.Pgate()
-
-        fr_lanA.Rconf(row, W=1) ;fr_lanA.Cconf(0, W=1)
-        fr_lanB.Rconf(row, W=1) ;fr_lanB.Cconf(0, W=1)
-        fr_lanC.Rconf(row, W=1) ;fr_lanC.Cconf(0, W=1)
-        fr_lanD.Rconf(row, W=1) ;fr_lanD.Cconf(0, W=1)
-        fr_lanF.Rconf(row, W=1) ;fr_lanF.Cconf(0, W=1)
-        fr_exhi.Rconf(row, W=1) ;fr_exhi.Cconf(0, W=1)
-        fr_repr.Rconf(  0, W=1) ;fr_repr.Cconf(0, W=1)
-        fr_repr.Rconf(  1, W=1)
-        fr_repr.Rconf(  2, W=1)
+        fr_lanA.Rconf(r, W=1) ;fr_lanA.Cconf(0, W=1)
+        fr_lanB.Rconf(r, W=1) ;fr_lanB.Cconf(0, W=1)
+        fr_lanC.Rconf(r, W=1) ;fr_lanC.Cconf(0, W=1)
+        fr_lanD.Rconf(r, W=1) ;fr_lanD.Cconf(0, W=1)
+        fr_lanF.Rconf(r, W=1) ;fr_lanF.Cconf(0, W=1)
+        fr_exhi.Rconf(r, W=1) ;fr_exhi.Cconf(0, W=1)
+        fr_repr.Rconf(0, W=1) ;fr_repr.Cconf(0, W=1)
+        fr_repr.Rconf(1, W=1)
+        fr_repr.Rconf(2, W=1)
 
         # Label body=====
-        lb_frno = cLbl(fr_lanA, Anc=CT, font=(MUI, 9   ), cursor= "hand2",      Bd=(1,RD))
-        lb_name = cLbl(fr_lanB, Anc=CT, font=(GUI,11,BD), bg="white",           Bd=(1,RD))
-        lb_flyg = cLbl(fr_lanC, Anc=CT, font=(MUI, 9,BD), bg="white", fg="red", Bd=(1,RD))
-        lb_tilt = cLbl(fr_lanD, Anc=CT, font=(MUI, 8,BD), bg="white",           Bd=(1,RD))
-        lb_exhi = cLbl(fr_exhi, Anc=CT, font=(MUI, 8,BD), bg=SCOL)
-        lb_cnt  = cLbl(fr_lanF, Anc=CT, font=(GUI, 8,BD), bg="#f9f9f9",         Bd=(1,GR))
-        cv_repr = cCvs(fr_repr, width=143, height=44, bg="white", highlightthickness=0)
+        lb_frno = cLbl(fr_lanA, Anc=CT,  font=(MUI, 9   ), cursor= "hand2",      Bd=(1,RD))
+        lb_name = cLbl(fr_lanB, Anc=CT,  font=(GUI,11,BD), bg="white",           Bd=(1,RD))
+        lb_flyg = cLbl(fr_lanC, Anc=CT,  font=(MUI, 9,BD), bg="white", fg="red", Bd=(1,RD))
+        lb_tilt = cLbl(fr_lanD, Anc=CT,  font=(MUI, 8,BD), bg="white",           Bd=(1,RD))
+        lb_exhi = cLbl(fr_exhi, Anc=CT,  font=(MUI, 8,BD), bg=SCOL                        )
+        lb_cnt  = cLbl(fr_lanF, Anc="w", font=(GUI, 8,BD), bg="#e9e9e9",         Bd=(1,RD))
+        canvas = cCvs(fr_repr, W=143, H=44, bg="white", Htt=0)
 
-        lb_frno._grid(          Stk=ALL)
-        lb_name._grid(          Stk=ALL)
-        lb_flyg._grid(          Stk=ALL)
-        lb_tilt._grid(          Stk=ALL)
-        lb_exhi._grid(          Stk=ALL)
-        lb_cnt._grid(           Stk=ALL)
-        cv_repr._grid(R=0, C=0, Stk=ALL)
+        lb_frno._grid(Stk=ALL)
+        lb_name._grid(Stk=ALL)
+        lb_flyg._grid(Stk=ALL)
+        lb_tilt._grid(Stk=ALL)
+        lb_exhi._grid(Stk=ALL)
+        lb_cnt._grid( Stk=ALL)
+        canvas._grid( Stk=ALL)
 
-        bt_sbj = cBtn( fr_botn, text= "", font=(MUI,8,BD), Rel=RA, bg="#dfdfdf",
-                                  Com=lambda L=ln:_graph(self, fr_grph, L) )
+        bt_sbj = cBtn( fr_botn, text= "", font=(MUI,8,BD), Rel=RA, bg="#DFDFDF",
+                                  Com=lambda ln=ln:_on_graph_btn(self, fr_grph, ln) )
         bt_sbj.place(x=4, y=(ln -1) *44 +5, width=13, height=32)
         # ----------------
         def _press(ev, ln=ln):
-            w              = self._widgets_sub[ln]["frno"]
+            w              = self.widgets_sub[ln]["frno"]
             self._drag_frn = w.cget("text")
         # ----------------
         def _release(ev, ln=ln):
             x, y = ev.x_root, ev.y_root
-            for ln, wdict in self._widgets_sub.items():
+            for ln, wdict in self.widgets_sub.items():
                 if ln != 0:
                     w  = wdict["frno"]
                     wx = w.winfo_rootx()
@@ -368,32 +368,32 @@ def build_sub_placeholder(self, parent:tk.Frame): #  1188  318
         lb_frno.bind("<ButtonPress-1>",   _press  )
         lb_frno.bind("<ButtonRelease-1>", _release)
 
-        self._widgets_sub[ln] ={ "frno":lb_frno,   "name":lb_name, "flyg":lb_flyg,
-                                 "tilt":lb_tilt,   "exhi":lb_exhi,  "cnt" :lb_cnt,
-                                 "repr":cv_repr, "bt_sbj":bt_sbj,                  }
+        self.widgets_sub[ln] ={ "frno":lb_frno,  "name":lb_name, "flyg":lb_flyg,
+                                 "tilt":lb_tilt,  "exhi":lb_exhi,  "cnt" :lb_cnt,
+                                 "cnvs":canvas, "bt_sbj":bt_sbj,                  }
 
-    self._widgets_sub[0]  ={ "Graph":fr_grph,   "Fig_A":fr_figA,   "Fig_B":fr_figB,
+    self.widgets_sub[0]  ={ "Graph":fr_grph,   "Fig_A":fr_figA,   "Fig_B":fr_figB,
                               "wthr":fr_wthr,    "wdir":fr_wdir,    "wspd":lb_wspd,
                               "wave":lb_wave,    "stab":lb_stab,    "shlp":lb_shlp,
                              "vname":lb_vname,  "w_typ":lb_w_typ,  "upd_m":lb_upd_m,
                              "upd_b":lb_upd_b,  "deadl":lb_deadl,    "now":lb_now,
-                              "last":lb_last, "bt_befr":bt_befr, "bt_rslt":bt_rslt,  }
+                              "last":lb_last,                                        }
 
     self.toggle_dict = {self.bt_ort:"disp_oriten", self.bt_prt:"disp_parts"}
 
 # ----------------------------------------------------------------
-def _graph(self, f, s_lane):
+def _on_graph_btn(self, f, s_lane):
 
     if self.s_lane == s_lane:
-        self._widgets_sub[s_lane]["bt_sbj"].config(bg="#dfdfdf", relief=RA) # 非選択
+        self.widgets_sub[s_lane]["bt_sbj"].config(bg="#DFDFDF", relief=RA)
         self.s_lane = 0 
     else: 
-        self._widgets_sub[s_lane]["bt_sbj"].config(bg="#F1EE62", relief=RD) # 選択中
+        self.widgets_sub[s_lane]["bt_sbj"].config(bg="#F1EE62", relief=RD)
         if self.s_lane:
-            self._widgets_sub[self.s_lane]["bt_sbj"].config(bg="#E1E1E1", relief=RA) # 非選択
+            self.widgets_sub[self.s_lane]["bt_sbj"].config(bg="#DFDFDF", relief=RA)
         self.s_lane = s_lane
 
-    framing_graph(self, f, self.frame_order, self.data_rows, rows2=self.overall, s_lane=self.s_lane)
+    framing_graph(self, f, self.frame_order, self.data_rows, s_lane=self.s_lane)
 
 # ----------------------------------------------------------------
 def _switch_btn(self, btn:tk.Button, flag_name:str):
@@ -402,7 +402,8 @@ def _switch_btn(self, btn:tk.Button, flag_name:str):
 
     _config_btn(self, btn, getattr(self, flag_name))
 
-    self._reload_for(self.date, self.venue_id, self.race_no)
+    self._update_main_entries()
+    self._update_sub_entries()
 
 # ----------------------------------------------------------------
 def _config_btn(self, btn:tk.Button, flg:bool, orange:bool=False):
@@ -413,9 +414,9 @@ def _config_btn(self, btn:tk.Button, flg:bool, orange:bool=False):
         btn.config(bg="#dbfbd1", relief=SK) if flg else btn.config(bg="#DFDFDF", relief=RA)
 
 # ----------------------------------------------------------------
-def _toggle_btn(self, btn:tk.Button, flag_name:str):
+def _toggle_P_O(self, btn:tk.Button, flag:str):
 
-    setattr(self, flag_name, True)
+    setattr(self, flag, True)
 
     for bt, flg in self.toggle_dict.items(): 
         if bt == btn: bt.config(bg="#ffdcac", relief=SK)
@@ -423,6 +424,24 @@ def _toggle_btn(self, btn:tk.Button, flag_name:str):
              bt.config(bg="#DFDFDF", relief=RA)
              setattr(self, flg, False)
 
-    self._reload_for(self.date, self.venue_id, self.race_no)
+    self._update_sub_entries(figA=False, graph=False, figB=False)
+
+# ----------------------------------------------------------------
+def _on_figB(self, result:bool):
+
+    self.figB_result = result
+    _toggle_figB(self)
+
+    self._update_sub_entries(figA=False, graph=False, figB=True)
+
+# ----------------------------------------------------------------
+def _toggle_figB(self):
+
+    if self.figB_result:
+        self.bt_rslt.config(relief=RD, bg="#F1EE62")
+        self.bt_befr.config(relief=RA, bg="#E1E1E1")
+    else:
+        self.bt_befr.config(relief=RD, bg="#F1EE62")
+        self.bt_rslt.config(relief=RA, bg="#E1E1E1")
 
 # ----------------------------------------------------------------

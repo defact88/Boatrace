@@ -54,7 +54,7 @@ RES_MOVE_W  = 60   # 結果一覧 決まり手  幅
 SUM_HDR_H   = 30   # 着位分布 ヘッダー   高さ
 SUM_LBL_W   = 55   # 着位分布 縦軸ラベル 幅
 SUM_COL_W   = 174  # 着位分布 セル       幅
-SUM_ROW_H   = 30   # 着位分布 セル       高さ
+SUM_ROW_H   = 57   # 着位分布 セル       高さ
 BAR_TRACK_W = 165  # 着位分布 棒グラフ   幅
 BAR_H       = 10   # 着位分布 棒グラフ   高さ
 
@@ -63,16 +63,20 @@ def to_str(x:date) -> str:
 
    if isinstance(x,  str): return x
    if isinstance(x, date): return x.strftime("%Y-%m-%d")
+
 # ------------------
 def to_date(x:str) -> date:
 
     if isinstance(x, date): return x
     if isinstance(x,  str): return dt.strptime(x, "%Y-%m-%d").date()
+
 # ----------------------------
 def wid_txt(s:str) -> str:
 
     hair = "\u200A" 
+
     return hair.join(list(s))
+
 #===============================================================================
 class ResultsWindow(tk.Tk):
 
@@ -84,12 +88,15 @@ class ResultsWindow(tk.Tk):
         self.resizable(False, False)
         self.configure(bg=PANEL_BG)
 
-        self.date             = date
-        self.venue_id         = venue_id
-        self.race_rows        = {}
-        self.course_rank_cnt  = {}
-        self.finished_races   = 0
-        self.payout_rows      = {}
+        self.date                 = date
+        self.venue_id             = venue_id
+        self.summary_mode         = "day" 
+        self.race_rows            = {}
+        self.course_rank_cnt      = {}
+        self.finished_races       = 0
+        self.course_rank_cnt_series = {}
+        self.finished_races_series  = 0
+        self.payout_rows          = {}
 
         self._build_ui()
         self._load_data()
@@ -154,7 +161,11 @@ class ResultsWindow(tk.Tk):
         self.lbl_title._pack(side="left", px=10, py=2)
 
         cBtn( hdr, text=" 更   新 ", Com=self._on_refresh, bg="#4A7ACC", fg="white",
-                  font=(GUI,9,BD), Rel=RA, px=8 )._pack(side="right", px=10, py=4)
+                  font=(GUI,9,BD), Rel=RA, px=8 )._pack(side="right", px=(0, 10), py=4)
+
+        self.btn_mode = cBtn( hdr, text=" 単  日 ", font=(GUI,9,BD), bg="#2F75B5", fg="white",
+                              Com=self._toggle_summary_mode, Rel=RA, px=8 )
+        self.btn_mode._pack(side="right", px=(10,2), py=4)
 
         self.btn_fr = cFr(hdr, bg=MAIN_HDR_BG, H=35) ;self.btn_fr._pack(side="left", px=30)
         self._mk_day_buttons(self.btn_fr)
@@ -169,6 +180,20 @@ class ResultsWindow(tk.Tk):
         self.top_frame._pack(   fill="x",              side="top",        py=(0,0))
         self.bottom_frame._pack(fill="both", Exp=True, side="top",        py=(5,8))
 
+    # ----------------- モード切替トグル -------------------
+    def _toggle_summary_mode(self):
+
+        if self.summary_mode == "day":
+            self.summary_mode = "series"
+            self.btn_mode.config(text=" 節  間 ", bg="#E67E22")
+        else:
+            self.summary_mode = "day"
+            self.btn_mode.config(text=" 単  日 ", bg="#2F75B5")
+
+        for w in self.bottom_frame.winfo_children():
+            w.destroy()
+        self._render_course_summary(self.bottom_frame)
+
     # ------------------------------------------------------
     def _on_refresh(self):
 
@@ -178,7 +203,7 @@ class ResultsWindow(tk.Tk):
     # ------------------ DB 読み込み -----------------------
     def _load_data(self):
 
-        c = sqlite3.connect(DB)
+        c             = sqlite3.connect(DB)
         c.row_factory = sqlite3.Row
 
         sql = """
@@ -213,7 +238,6 @@ class ResultsWindow(tk.Tk):
              """
 
         prows = c.execute(psql, (self.date, self.venue_id)).fetchall()
-        c.close()
 
         race_rows       = {}
         course_rank_cnt = {}
@@ -235,6 +259,34 @@ class ResultsWindow(tk.Tk):
         self.course_rank_cnt = course_rank_cnt
         self.finished_races  = len(finished)
         self.payout_rows     = payout_rows
+
+        meta, _      = build_day_lbl(to_date(self.date), self.venue_id)
+        series_dates = [ itm["date"] for itm in meta if itm.get("visible")
+                                                    and to_date(itm["date"]) <= to_date(self.date) ]
+
+        course_rank_cnt_series = {}
+        finished_series        = set()
+
+        if series_dates:
+            placeholders = ",".join("?" * len(series_dates))
+            ssql = f"""
+                SELECT re.date, re.race_no, re.course, re.finish_rank AS f_rank, re.fault_code
+                  FROM Race_entries re
+                 WHERE re.venue_id = ?
+                   AND re.date IN ({placeholders})
+            """
+            srows = c.execute(ssql, (self.venue_id, *series_dates)).fetchall()
+
+            for r in srows:
+                finished_series.add((r["date"], r["race_no"]))
+                if r["fault_code"] == "N" and r["f_rank"] is not None and r["course"]:
+                    key = (r["course"], r["f_rank"])
+                    course_rank_cnt_series[key] = course_rank_cnt_series.get(key, 0) + 1
+
+        self.course_rank_cnt_series = course_rank_cnt_series
+        self.finished_races_series  = len(finished_series)
+
+        c.close()
 
     # ---------------------- 描画 --------------------------
     def _render(self):
@@ -385,16 +437,24 @@ class ResultsWindow(tk.Tk):
 
         fr1.Cconf(0, Min=SUM_LBL_W) ;fr1.Rconf(0, Min=SUM_HDR_H)
         fr2.Cconf(0, Min=SUM_LBL_W)
+
         for col in range(1, 7):
             fr1.Cconf(col, Min=SUM_COL_W)
             fr2.Cconf(col, Min=SUM_COL_W)
 
-        n_races = self.finished_races
-        rate3   = {1:0.0, 2:0.0, 3:0.0, 4:0.0, 5:0.0, 6:0.0}
+        if self.summary_mode == "series":
+            rank_cnt = self.course_rank_cnt_series
+            n_races  = self.finished_races_series
+        else:
+            rank_cnt = self.course_rank_cnt
+            n_races  = self.finished_races
+
+        rate3 = {1:0.0, 2:0.0, 3:0.0, 4:0.0, 5:0.0, 6:0.0}
 
         for rank in range(1, 7):
             if rank <= 3: fr1.Rconf(rank,   Min=SUM_ROW_H)
             else:         fr2.Rconf(rank-4, Min=SUM_ROW_H)
+
             frame = fr1  if rank <= 3 else fr2
             row   = rank if rank <= 3 else rank-4
 
@@ -402,7 +462,7 @@ class ResultsWindow(tk.Tk):
                  )._grid(R=row, C=0, Stk=ALL)
 
             for course in range(1, 7):
-                cnt = self.course_rank_cnt.get((course, rank), 0)
+                cnt = rank_cnt.get((course, rank), 0)
                 pct = (cnt / n_races * 100.0) if n_races else 0.0
                 self._render_pct_cell(frame, row, course, pct)
 
@@ -412,7 +472,7 @@ class ResultsWindow(tk.Tk):
         for course in range(1, 7):
             r  = rate3[course]
             cv = cCvs(fr1, W=172, H=30, Bd=(1,RA) ,bg="#2F75B5", Htt=0) ;cv._grid(R=0, C=course)
-            cv.create_text(60, 15, font=(MUI,9,BD), fill="white", text=f"{course} コース")
+            cv.create_text( 60, 15, font=(MUI,9,BD), fill="white",  text=f"{course} コース")
             cv.create_text(140, 15, font=(MUI,9,BD), fill="yellow", text=f"{r:.0f} % ")
 
     # ------------------------------------------------------
@@ -436,12 +496,12 @@ class ResultsWindow(tk.Tk):
         for child in parent.winfo_children(): child.destroy()
 
         self._day_btns = {}
-        labels, _ = build_day_lbl(to_date(self.date), self.venue_id)
+        labels, _      = build_day_lbl(to_date(self.date), self.venue_id)
 
         for col, info in enumerate(labels):
             if not info["visible"]: continue
 
-            dn   = info["label_no"]
+            dn   = info["day_no"]
             d    = to_date(info["date"])
             txt  = "初 日"  if dn == 1           else f"{dn}日目"
             txt  = "最終日" if info["final_day"] else txt
