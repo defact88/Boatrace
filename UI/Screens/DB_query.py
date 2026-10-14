@@ -23,11 +23,11 @@ FINAL    = ["", "0", "1"]
 # ==============================================================================
 class DBQueryScreen(ttk.Frame):
 
-    def __init__(self, parent, app:App, db_path:str):
+    def __init__(self, parent, app:App):
         super().__init__(parent)
 
         self.app     = app
-        self.db_path = db_path
+        self.db_path = r"C:\boatrace\boatrace.db"
 
         root  = ttk.Panedwindow(self, orient=tk.HORIZONTAL)
         left  = ttk.Frame(root) ; root.add( left, weight= 1)

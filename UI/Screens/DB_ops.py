@@ -30,11 +30,11 @@ BG_COLOR = "#F0F4FA"
 #=====================================================================
 class DBOpsScreen(ttk.Frame):
 
-    def __init__(self, parent, app, db_path):
+    def __init__(self, parent, app):
         super().__init__(parent)
 
         self.app            = app
-        self.db_path        = db_path
+        self.db_path        = r"C:\boatrace\boatrace.db"
         self._tables_cache  = []
         self.cols1          = []
         self.cols2          = []

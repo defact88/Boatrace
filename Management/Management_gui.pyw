@@ -107,7 +107,7 @@ class FileManagementGUI(tk.Tk):
         #====== 左カラム =====
 
         MNG_PATH     = Path(r"C:\boatrace\Management\Management_gui.pyw")
-        BR_GUI_PATH  = Path(r"C:\boatrace\UI\boatrace_gui.py")
+        R_WINDW_PATH = Path(r"C:\boatrace\UI\Window\race_window.py")
         SCHEMA_PATH  = Path(r"C:\boatrace\Schema\schema_all.sql")
         FILEMAP_PATH = Path(r"C:\boatrace\Management\CSV\file_map.csv")
         ARGLIST_PATH = Path(r"C:\boatrace\Management\CSV\args_table.csv")
@@ -144,7 +144,7 @@ class FileManagementGUI(tk.Tk):
 
         icon_A_F = cBtn(fr_icons, Img=self.A_D, bd=0, Com=lambda p=MNG_PATH:open_file(p))
         icon_A_D = cBtn(fr_icons, Img=self.Fol, bd=0, Com=lambda:open_explr(MNG_DIR, *base_size))
-        icon_B_F = cBtn(fr_icons, Img=self.B_D, bd=0, Com=lambda p=BR_GUI_PATH:open_file(p))
+        icon_B_F = cBtn(fr_icons, Img=self.B_D, bd=0, Com=lambda p=R_WINDW_PATH:open_file(p))
         icon_B_D = cBtn(fr_icons, Img=self.Fol, bd=0, Com=lambda:open_explr(BR_GUI_DIR, *base_size) )
         icon_C_F = cBtn(fr_icons, Img=self.C_D, bd=0, Com=lambda p=SCHEMA_PATH: open_file(p))
         icon_C_D = cBtn(fr_icons, Img=self.Fol, bd=0, Com=lambda:open_explr(SCHEMA_DIR, *base_size))

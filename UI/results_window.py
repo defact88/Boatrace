@@ -471,7 +471,7 @@ class ResultsWindow(tk.Tk):
         cLbl(fr1, text="", **HDR_COLOR, Bd=(1,RA))._grid(R=0, C=0, Stk=ALL)
         for course in range(1, 7):
             r  = rate3[course]
-            cv = cCvs(fr1, W=172, H=30, Bd=(1,RA) ,bg="#2F75B5", Htt=0) ;cv._grid(R=0, C=course)
+            cv = cCvs(fr1, W=172, H=30, Bd=(1,RA) ,bg="#2F75B5", HLth=0) ;cv._grid(R=0, C=course)
             cv.create_text( 60, 15, font=(MUI,9,BD), fill="white",  text=f"{course} コース")
             cv.create_text(140, 15, font=(MUI,9,BD), fill="yellow", text=f"{r:.0f} % ")
 

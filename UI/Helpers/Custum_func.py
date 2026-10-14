@@ -70,21 +70,22 @@ class cFr(tk.Frame):
 
 # カスタム短縮表記ラベル -----------------------------------
 class cLbl(tk.Label):
-    def __init__( self, master=None, *, Anc=None, W=None, H=None, Bd=None, Rel=None,
-                  Jst=None, hlbg=None, hlth=None, px=None, py=None, bg=None, **kwargs ):
+    def __init__( self, master=None, *, Anc=None, W=None, H=None, Bd=None, Rel=None, Jst=None,
+                  Wrap=None, HLbg=None, HLth=None, px=None, py=None, bg=None, **kwargs        ):
 
-        if W    is not None: kwargs['width']               = W
-        if H    is not None: kwargs['height']              = H
-        if Anc  is not None: kwargs['anchor']              = Anc
-        if Bd   is not None: kwargs['bd']                  = Bd[0];kwargs['relief'] = Bd[1]
-        if Rel  is not None: kwargs['relief']              = Rel
-        if bg   is not None: kwargs['background']          = bg
-        else:                kwargs['background']          = MAIN_BG
-        if Jst  is not None: kwargs['justify']             = Jst
-        if hlbg is not None: kwargs['highlightbackground'] = hlbg
-        if hlth is not None: kwargs['highlightthickness']  = hlth
-        if px   is not None: kwargs['padx']                = px
-        if py   is not None: kwargs['pady']                = py
+        if W:    kwargs['width']               = W
+        if H:    kwargs['height']              = H
+        if Anc:  kwargs['anchor']              = Anc
+        if Bd:   kwargs['bd']                  = Bd[0] ;kwargs['relief'] = Bd[1]
+        if Rel:  kwargs['relief']              = Rel
+        if Jst:  kwargs['justify']             = Jst
+        if HLbg: kwargs['highlightbackground'] = hlbg
+        if HLth: kwargs['highlightthickness']  = hlth
+        if px:   kwargs['padx']                = px
+        if py:   kwargs['pady']                = py
+        if Wrap: kwargs['wraplength']          = Wrap
+
+        kwargs['background'] = bg if bg else MAIN_BG
 
         super().__init__(master, **kwargs)
 
@@ -133,21 +134,33 @@ class cLbl(tk.Label):
         self.pack(**kwargs)
 
     # ------------------------
-    def _config(self, Bd=None, Rel=None, **kwargs):
+    def _config(self, Anc=None, W=None, H=None, Bd=None, Rel=None, Jst=None,
+                  Wrap=None, HLbg=None, HLth=None, px=None, py=None, bg=None, **kwargs ):
 
-        if Bd  is not None: kwargs['bd']     = Bd[0]; kwargs['relief'] = Bd[1]
-        if Rel is not None: kwargs['relief'] = Rel
+        if W:    kwargs['width']               = W
+        if H:    kwargs['height']              = H
+        if Anc:  kwargs['anchor']              = Anc
+        if Bd:   kwargs['bd']                  = Bd[0] ;kwargs['relief'] = Bd[1]
+        if Rel:  kwargs['relief']              = Rel
+        if Jst:  kwargs['justify']             = Jst
+        if HLbg: kwargs['highlightbackground'] = hlbg
+        if HLth: kwargs['highlightthickness']  = hlth
+        if px:   kwargs['padx']                = px
+        if py:   kwargs['pady']                = py
+        if Wrap: kwargs['wraplength']          = Wrap
 
         self.configure(**kwargs)
 
 # カスタム短縮表記テキストボックス -------------------------
 class cEnt(tk.Entry):
-    def __init__(self, master=None, *, W=None, Com=None, Bd=None, Rel=None, Jst=None, **kwargs):
-        if W   is not None: kwargs['width']      = W
-        if Com is not None: kwargs['command']    = Com
-        if Bd  is not None: kwargs['bd']         = Bd[0]; kwargs['relief'] = Bd[1]
-        if Rel is not None: kwargs['relief']     = Rel
-        if Jst is not None: kwargs['justify']    = Jst
+    def __init__( self, master=None, *, W=None, Com=None, Bd=None, Rel=None, Jst=None, Txtv=None,
+                                                                                         **kwargs ):
+        if W    is not None: kwargs['width']        = W
+        if Com  is not None: kwargs['command']      = Com
+        if Bd   is not None: kwargs['bd']           = Bd[0] ;kwargs['relief'] = Bd[1]
+        if Rel  is not None: kwargs['relief']       = Rel
+        if Jst  is not None: kwargs['justify']      = Jst
+        if Txtv is not None: kwargs['textvariable'] = Txtv
 
         super().__init__(master, **kwargs)
     # ------------------------
@@ -180,7 +193,7 @@ class cBtn(tk.Button):
         if W   is not None: kwargs['width']      = W
         if H   is not None: kwargs['height']     = H
         if Anc is not None: kwargs['anchor']     = Anc
-        if Bd  is not None: kwargs['bd']         = Bd[0]; kwargs['relief'] = Bd[1]
+        if Bd  is not None: kwargs['bd']         = Bd[0] ;kwargs['relief'] = Bd[1]
         if Rel is not None: kwargs['relief']     = Rel
         if bg  is not None: kwargs['background'] = bg
         if Img is not None: kwargs['image']      = Img
@@ -214,28 +227,28 @@ class cBtn(tk.Button):
 
 # カスタム短縮表記tkキャンバス------------------------------
 class cCvs(tk.Canvas):
-    def __init__( self, master=None, *, W=None, H=None, Rel=None, Bd=None, bg=None, Htt=None,
+    def __init__( self, master=None, *, W=None, H=None, Rel=None, Bd=None, bg=None, HLth=None,
                   **kwargs ):
 
-        if W   is not None: kwargs['width']              = W
-        if H   is not None: kwargs['height']             = H
-        if Rel is not None: kwargs['relief']             = Rel
-        if Bd  is not None: kwargs['borderwidth']        = Bd[0]; kwargs['relief'] = Bd[1]
-        if bg  is not None: kwargs['background']         = bg
-        if Htt is not None: kwargs['highlightthickness'] = Htt
+        if W    is not None: kwargs['width']              = W
+        if H    is not None: kwargs['height']             = H
+        if Rel  is not None: kwargs['relief']             = Rel
+        if Bd   is not None: kwargs['borderwidth']        = Bd[0] ;kwargs['relief'] = Bd[1]
+        if bg   is not None: kwargs['background']         = bg
+        if HLth is not None: kwargs['highlightthickness'] = HLth
 
         super().__init__(master, **kwargs)
 
     # ------------------------
-    def _itemconf( self, master=None, *, W=None, H=None, Rel=None, Bd=None, bg=None, Htt=None,
+    def _itemconf( self, master=None, *, W=None, H=None, Rel=None, Bd=None, bg=None, HLth=None,
                    **kwargs):
 
-        if W   is not None: kwargs['width']              = W
-        if H   is not None: kwargs['height']             = H
-        if Rel is not None: kwargs['relief']             = Rel
-        if Bd  is not None: kwargs['borderwidth']        = Bd[0]; kwargs['relief'] = Bd[1]
-        if bg  is not None: kwargs['background']         = bg
-        if Htt is not None: kwargs['highlightthickness'] = Htt
+        if W    is not None: kwargs['width']              = W
+        if H    is not None: kwargs['height']             = H
+        if Rel  is not None: kwargs['relief']             = Rel
+        if Bd   is not None: kwargs['borderwidth']        = Bd[0] ;kwargs['relief'] = Bd[1]
+        if bg   is not None: kwargs['background']         = bg
+        if HLth is not None: kwargs['highlightthickness'] = HLth
 
         self.itemconfigure(**kwargs)
 

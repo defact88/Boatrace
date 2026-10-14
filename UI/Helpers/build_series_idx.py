@@ -319,7 +319,7 @@ def _paint_abcd(self, cells:list, r_no:int, course:int, st:str, rank:str, f_no:i
     fg     = "red" if rank in ("F", "L", "S", "K") else "black"
 
     lbl = cLbl(cells[0], text=f"{r_no}R", bg="white", Anc=CT, font=(MUI,8), cursor="hand2")
-    lbl.bind("<Button-1>", lambda e:self._reload_for(d_iso, self.venue_id, race_no, result=True))
+    lbl.bind("<Button-1>", lambda e:self._reload_for(d_iso, self.venue_id, r_no, result=True))
     lbl.pack(expand=True, fill="both")
 
     cLbl( cells[1], text=course,    font=(MUI,8,BD), **fr_col, Bd=(1,RD), Anc=CT

@@ -5,4 +5,3 @@ from .analysis_player    import PlayerAnalysisScreen
 from .analysis_venue     import VenueAnalysisScreen
 from .analysis_motor     import MotorAnalysisScreen
 from .classification     import PlayerClassificationScreen
-from .race_select        import RaceSelectScreen

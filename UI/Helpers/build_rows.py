@@ -37,66 +37,65 @@ def make_rows(self):
     data_rows  = [None] *7
 
     for row in lineup:
-        d_to   = self.date_to
-        d_from = self.date_from
-        f_no   = row["frame_no"]
-        p_id   = row["player_id"]
-        q_opt  = {}
+        fno  = row["frame_no"]
+        pid  = row["player_id"]
+        d_t  = self.date_to
+        d_f  = self.date_from
 
+        opt  = {}
         if self.flying and (row['flying_st'] or row['late_st']):
-            q_opt |= dict(flying=True)
-            d_from = days_ago(self.date, 730)
+            opt |= dict(flying=True)
+            d_f  = days_ago(self.date, 730)
         if self.not_flying and not (row['flying_st'] or row['late_st']):
-            q_opt |= dict(not_flying=True)
+            opt |= dict(not_flying=True)
         if self.exclude_edo:
-            q_opt |= dict(exclude_venue=3)
+            opt |= dict(exclude_venue=3)
         if self.limited_grade:
-            q_opt |= dict(grade=[5, 4, 3, 2])
+            opt |= dict(grade=[5, 4, 3, 2])
+            d_f  = days_ago(self.date, 365)
 
-        query    = Query( d_from, d_to, player_id=p_id, **q_opt,
-                          query_results=True, query_self_others=True )
-        d_from   = days_ago(self.date, self.vrange_d)
-        query_v  = Query(d_from, d_to, player_id=p_id, venue_id=self.venue_id, query_results=True)
+        query    = Query(d_f, d_t, player_id=pid, **opt, query_results=True, query_self_others=True)
+        d_f      = days_ago(self.date, self.vrange_d)
+        query_v  = Query(d_f, d_t, player_id=pid, venue_id=self.venue_id, query_results=True)
         ave      = query._pack(by_course=True)
         rate     = query._pack(for_graph=True)
         dist     = query._pack(for_distribute=True)
-        v_ave    = query_v._pack(by_course=True)
+        v_ave    = query_v._pack(by_course=True)[0]
         own_rate = rate["own"][0]["rate"]
 
-        entry_rows[f_no] = { "frno":row["frame_no"],
-                              "pid":row["player_id"],
-                             "name":row["name"],
-                             "rgns":row["regions"],
-                              "age":f"{row['age']} 歳",
-                             "clss":row["class_now"],
-                             "regp":f"{row['regist_period']} 期",
-                             "flyg":row['flying_st'],
-                             "late":row['late_st'],
-                             "heig":f"{row['heig']}cm",
-                              "wkg":f"{row['weight_tdy']}kg",
-                            "mo_no":row["motor_no"],
-                            "bo_no":row["boat_no"],
-                            "mo_av":f"{row["motor_ave"]:.1f}",
-                            "bo_av":f"{row["boat_ave"]:.1f}",
-                             "scav":ave[0]["sc_ave"],
-                             "stav":ave[0]["st_ave"],
-                              "cnt":{c:ave[c]["cnt"] for c in range(1,7)},
-                            "v_ave":v_ave[0]["sc_ave"],
-                            "v_cnt":v_ave[0]["cnt"],
-                             "absn":row["absn"], 
-                            "rate1":own_rate[1],
-                            "rate2":own_rate[1]+own_rate[2],
-                            "rate3":own_rate[1]+own_rate[2]+own_rate[3],   }
+        entry_rows[fno] = { "frno":row["frame_no"],
+                             "pid":row["player_id"],
+                            "name":row["name"],
+                            "rgns":row["regions"],
+                             "age":f"{row['age']} 歳",
+                            "clss":row["class_now"],
+                            "regp":f"{row['r_period']} 期",
+                            "flyg":row['flying'],
+                            "late":row['late_st'],
+                            "heig":f"{row['height']}cm",
+                             "wkg":f"{row['weight']}kg",
+                           "mo_no":row['mo_no'],
+                           "mo_av":f"{row['m_ave']:.1f}",
+                           "bo_av":f"{row['b_ave']:.1f}",
+                            "scav":ave[0]["sc_ave"],
+                            "stav":ave[0]["st_ave"],
+                             "cnt":{c:ave[c]["cnt"] for c in range(1,7)},
+                           "v_ave":v_ave["sc_ave"],
+                           "v_cnt":v_ave["cnt"],
+                            "absn":row["absn"], 
+                           "rate1":own_rate[1],
+                           "rate2":own_rate[1]+own_rate[2],
+                           "rate3":own_rate[1]+own_rate[2]+own_rate[3],   }
 
-        data_rows[f_no] = {   "own":rate["own"],
-                              "oth":rate["oth"],
-                             "absn":row["absn"],
-                          "own_cnt":dist["own_cnt"],
-                          "oth_cnt":dist["oth_cnt"],
-                         "oth_by_r":dist["oth_by_r"],
-                         "win_move":dist["win_move"],
-                          "subj_wm":dist["subj_wm"],
-                           "starts":dist["starts"],   }
+        data_rows[fno] = {   "own":rate["own"],
+                             "oth":rate["oth"],
+                            "absn":row["absn"],
+                         "own_cnt":dist["own_cnt"],
+                         "oth_cnt":dist["oth_cnt"],
+                        "oth_by_r":dist["oth_by_r"],
+                        "win_move":dist["win_move"],
+                         "subj_wm":dist["subj_wm"],
+                          "starts":dist["starts"],   }
 
     return entry_rows, data_rows
 
@@ -115,21 +114,18 @@ def make_sub_rows(self):
         d_cou = 6 if (befr["absn"] and not bef["cour"]) else befr["cour"] or frn
         r_cou = 6 if rslt["f_code"] == "K" else rslt["cour"]
         tilt  = "0" if befr["tilt"] == 0 else befr["tilt"] or ""
-        exhi  = f"{befr['exhi']:.2f}" if befr["exhi"] else ""
-        adj_d = befr["s_adj"]
-        adj_r = rslt["s_adj"]
         fin   = rslt["f_code"] or "" if not rslt["f_rank"] else rslt["f_rank"]
 
         rows["befr"][frn] = {   "cour":d_cou,
-                                "exhi":exhi,
-                               "s_adj":adj_d,
+                                "exhi":befr["exhi"],
+                               "s_adj":befr["s_adj"],
                                 "tilt":tilt,
                                 "repr":repr,
                                 "absn":befr["absn"],   }
         rows["rslt"][frn] = {   "cour":r_cou,
                               "finish":fin,
                               "f_code":rslt["f_code"],
-                               "s_adj":adj_r,
+                               "s_adj":rslt["s_adj"],
                               "w_move":rslt["w_move"],
                                 "absn":befr["absn"],   }
         rows["ortn"][frn] = {   "turn":ortn["turn"],
@@ -142,11 +138,11 @@ def make_sub_rows(self):
                                 "wspd":befr["wspd"] or "",
                                 "wave":befr["wave"] or "",
                                 "stab":befr["stab"] or "",
-                                "shlp":befr["shlp"] or "",   }
+                                "shlp":befr["shlp"] or "", }
             rows["rslt"][0] = { "wdir":rslt["wdir"],
                                 "wthr":rslt["wthr"],
                                 "wspd":rslt["wspd"] or "",
-                                "wave":rslt["wave"] or "",   }
+                                "wave":rslt["wave"] or "", }
 
     return rows
 
@@ -189,21 +185,19 @@ def query_players(d_iso:str, venue_id:int, race_no:int):
     sql = """
         SELECT rp.frame_no,
                rp.player_id,
-
                p.name          AS name,
                p.regions       AS regions,
                p.age           AS age,
-               p.height        AS heig,
+               p.height        AS height,
                p.class_now     AS class_now,
-               p.regist_period AS regist_period,
-               p.flying_st     AS flying_st,
+               p.regist_period AS r_period,
+               p.flying_st     AS flying,
                p.late_st       AS late_st,
    
-               rp.weight_tdy   AS weight_tdy,
-               rp.motor_no     AS motor_no,
-               rp.motor_ave    AS motor_ave,
-               rp.boat_no      AS boat_no,
-               rp.boat_ave     AS boat_ave,
+               rp.weight_tdy   AS weight,
+               rp.motor_no     AS mo_no,
+               rp.motor_ave    AS m_ave,
+               rp.boat_ave     AS b_ave,
                rp.is_absent    AS absn
 
           FROM Race_programs rp

@@ -30,6 +30,7 @@ class LaneCenterManager:
         self.dist_refs = {"rank_btn":{}, "course_btn":{}, "cells":{}, "move_cells":{}}
         self.move_cols = [ ("逃 げ", "逃げ"), (" 差 し ", "差し"), 
                            ("捲差し", "まくり差し"), ("まくり", "まくり") ]
+
     #-------------------------------------------------------
     def _build_distribute_ui(self, fr:tk.Frame):
 
@@ -154,16 +155,19 @@ class LaneCenterManager:
         self.subj_r = 0 if self.subj_r == rk else rk
         self._render_distribute_table(self.rows)
 
+    #-----------------------------------
+    def reset_state(self, lane):
+        self.subj_r = 0
+        self.subj_c = lane
+        self.disp   = 1
+
 #===============================================================================
 def framing_center_widgets(self, fr:tk.Frame, lane:int, rows:dict, wdgt_no:int):
 
-    if not hasattr(self, "_lane_managers"):
-        self._lane_managers = {}
+    if lane not in self.lane_managers:
+        self.lane_managers[lane] = LaneCenterManager(lane)
 
-    if lane not in self._lane_managers:
-        self._lane_managers[lane] = LaneCenterManager(lane)
-
-    manager = self._lane_managers[lane]
+    manager = self.lane_managers[lane]
 
     if wdgt_no == 1:
         manager._build_distribute_ui(fr)

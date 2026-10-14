@@ -14,11 +14,11 @@ ALL, CT            = "nsew", "center"
 #=====================================================================
 class DBSchemScreen(ttk.Frame):
 
-    def __init__(self, parent, app, db_path):
+    def __init__(self, parent, app):
         super().__init__(parent)
 
         self.app     = app
-        self.db_path = db_path
+        self.db_path = r"C:\boatrace\boatrace.db"
         self.configure(width=1300, height=900)
         self.grid_propagate(False)
 

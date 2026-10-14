@@ -323,6 +323,17 @@ CREATE INDEX IF NOT EXISTS oriten_d_v_r
                         ON Oriten(date, venue_id, race_no);
 
 /*-------------------------------------------------------------------------------------*/
+CREATE TABLE IF NOT EXISTS Motor_Achievements(
+
+  motor_id INTEGER PRIMARY KEY,
+  venue_id INTEGER NOT NULL,
+  motor_no INTEGER NOT NULL,
+  rate_1st REAL,
+  rate_2nd REAL,
+  rate_3rd REAL
+);
+
+/*-------------------------------------------------------------------------------------*/
 CREATE TABLE Daily_Overall(
 
     date      DATE PRIMARY KEY,

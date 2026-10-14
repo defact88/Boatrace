@@ -1,5 +1,7 @@
 ﻿# -*- coding: utf-8 -*-
 # C:\boatrace\UI\Scraper\import_original_info.py
+# オリジナル展示データを取得して Oriten に upsert (summarize_today.py からサブプロセス実行)
+#   exit code: 0=OK / 1=取得エラー / 2=未反映(再試行) / 3=対象外
 
 import Dal as dal
 import argparse, sys
@@ -17,6 +19,7 @@ def build_ids(d_iso:str, venue_id:int, race_no:int, frame_no:int):
 
 # ----------------------------------------------------------
 def fetch_frames(d_iso:str, venue_id:int, race_no:int) -> dict:
+    """ {frame_no: is_absent} (出走表の枠 / 欠場はBefore_infoから) """
 
     rows = dal.fetch_all("""
            SELECT rp.frame_no, COALESCE(be.is_absent, 0)
@@ -40,14 +43,13 @@ def upsert_Oriten(d_iso:str, venue_id:int, race_no:int, parsed:dict, frames:dict
                           time_acceleration = excluded.time_acceleration,
                           time_lap          = excluded.time_lap
           """
-
     params = []
     for fr in sorted(frames):
         p        = parsed.get(fr)
         if not p: continue
         _, e_id  = build_ids(d_iso, venue_id, race_no, fr)
-        params.append( ( e_id, d_iso, venue_id, race_no, fr,
-                        p["time_turning"], p["time_acceleration"], p["time_lap"] ) )
+        params.append(( e_id, d_iso, venue_id, race_no, fr,
+                        p["time_turning"], p["time_acceleration"], p["time_lap"] ))
 
     dal.executemany(sql, params)
 
@@ -76,19 +78,19 @@ def main(argv=None):
     except Exception as e:
         print(f"[ERR] Page access failed: {e}"); return 1
 
-    parsed    = parse_original(html)
-    not_ready = [ fr for fr, abs in frames.items() if not abs and
-                                                      not any(
-                                       (parsed.get(fr) or {}).get(f) is not None for f in FIELDS) ]
+    parsed = parse_original(html, args.venue)
+
+    # 欠場でない枠に、1項目も値が無い(未反映/計測前)なら未反映扱い
+    not_ready = [ fr for fr, absent in frames.items()
+                  if not absent and not any( (parsed.get(fr) or {}).get(f) is not None
+                                             for f in FIELDS ) ]
     if not_ready:
         print(f"page update yet (not ready frames={not_ready})"); return 2
 
     upsert_Oriten(args.date, args.venue, args.race, parsed, frames)
-
     print(f"[OK] Upsert: {args.date} jcd={args.venue} {args.race}R")
 
     return 0
 
-# ====================================================================
 if __name__ == "__main__":
     sys.exit(main())

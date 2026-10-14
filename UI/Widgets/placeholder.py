@@ -329,8 +329,8 @@ def build_sub_placeholder(self, parent:tk.Frame): #  1188  318
         lb_flyg = cLbl(fr_lanC, Anc=CT,  font=(MUI, 9,BD), bg="white", fg="red", Bd=(1,RD))
         lb_tilt = cLbl(fr_lanD, Anc=CT,  font=(MUI, 8,BD), bg="white",           Bd=(1,RD))
         lb_exhi = cLbl(fr_exhi, Anc=CT,  font=(MUI, 8,BD), bg=SCOL                        )
-        lb_cnt  = cLbl(fr_lanF, Anc="w", font=(GUI, 8,BD), bg="#e9e9e9",         Bd=(1,RD))
-        canvas = cCvs(fr_repr, W=143, H=44, bg="white", Htt=0)
+        lb_cnt  = cLbl(fr_lanF, Anc="w", font=(MUI, 7,BD), bg="#e9e9e9",         Bd=(1,RD))
+        canvas = cCvs(fr_repr, W=143, H=44, bg="white", HLth=0)
 
         lb_frno._grid(Stk=ALL)
         lb_name._grid(Stk=ALL)

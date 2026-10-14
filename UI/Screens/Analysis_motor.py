@@ -42,15 +42,15 @@ GOPT = { 0: dict(text="一般戦",          bg=INFO, font=(MUI,9    )),
          4: dict(text="PG1", fg="blue",  bg=INFO, font=(MUI,10,BD)),
          5: dict(text="SG",  fg="red",   bg=INFO, font=(MUI,10,BD))  }
 
-CLS  = { "A1": dict(text="A1", fg="blue",    bg=PLAYER, font=(GUI,10,BD), Anc=CT),
-         "A2": dict(text="A2", fg="#006625", bg=PLAYER, font=(GUI,10,BD), Anc=CT),
-         "B1": dict(text="B1", fg="black",   bg=PLAYER, font=(GUI,10,BD), Anc=CT),
-         "B2": dict(text="B2", fg="red",     bg=PLAYER, font=(GUI,10,BD), Anc=CT)  }
+CLS  = { "A1": dict(text="A1", fg="blue",    bg="white", font=(GUI,10,BD), Anc=CT),
+         "A2": dict(text="A2", fg="#006625", bg="white", font=(GUI,10,BD), Anc=CT),
+         "B1": dict(text="B1", fg="black",   bg="white", font=(GUI,10,BD), Anc=CT),
+         "B2": dict(text="B2", fg="red",     bg="white", font=(GUI,10,BD), Anc=CT)  }
 
 FINAL = { 1:"①", 2:"②", 3:"③", 4:"④", 5:"⑤", 6:"⑥",
           "F":"(F)", "L":"(L)", "S":"(S)", "K":"(K)"       }
 
-NAME =  dict(font=(MUI, 9,BD), bg=PLAYER,  Anc=CT)
+NAME =  dict(font=(MUI, 9,BD), bg="white", Anc=CT)
 TERM =  dict(font=(MUI, 9   ), bg=INFO,    Anc=CT)
 FIN  = [dict(font=(MUI, 8,BD), bg="white", Anc=CT),
         dict(font=(MUI, 8,BD), bg=PREFIN,  Anc=CT),
@@ -255,8 +255,8 @@ class MotorAnalysisScreen(tk.Toplevel):
 
             fr_term  = cFr(fr_head1, W=285, H=30, bg=INFO,    Bd=(1,GR)) ;fr_term.Pgate()
             fr_grad  = cFr(fr_head1, W= 50, H=30, bg=INFO,    Bd=(1,GR)) ;fr_grad.Pgate()
-            fr_name  = cFr(fr_head2, W=135, H=30, bg=PLAYER,  Bd=(1,GR)) ;fr_name.Pgate()
-            fr_clas  = cFr(fr_head2, W= 40, H=30, bg=PLAYER,  Bd=(1,GR)) ;fr_clas.Pgate()
+            fr_name  = cFr(fr_head2, W=135, H=30, bg="white", Bd=(1,GR)) ;fr_name.Pgate()
+            fr_clas  = cFr(fr_head2, W= 40, H=30, bg="white", Bd=(1,GR)) ;fr_clas.Pgate()
             fr_sc_p  = cFr(fr_head2, W= 80, H=30, bg=PLAYER,  Bd=(1,GR)) ;fr_sc_p.Pgate()
             fr_sc_m  = cFr(fr_head2, W= 80, H=30, bg="white", Bd=(1,GR)) ;fr_sc_m.Pgate()
 

@@ -12,7 +12,6 @@ from queries import Query
 import Dal as dal
 
 BASE      = Path(r"C:\boatrace")
-
 LOG_PATH  = Path(r"C:\boatrace\Archive\logs\daily_insert")
 BEF_PATH  = Path(r"C:\boatrace\UI\Updata\ETL_Before_info.py")
 ODDS_PATH = Path(r"C:\boatrace\UI\Updata\ETL_odds_data.py")
@@ -21,13 +20,14 @@ ODDS_PATH = Path(r"C:\boatrace\UI\Updata\ETL_odds_data.py")
 def today_iso() -> str:
 
     JST = timezone(timedelta(hours=9))
+
     return dt.now(JST).date().strftime("%Y-%m-%d")
 
 #-------------------
-def yesterday(x) -> date:
+def yesterday(x) -> str:
 
-    if isinstance(x, date): return x -timedelta(days=1)
-    if isinstance(x,  str): return to_date(x) -timedelta(days=1)
+    if isinstance(x, date): return to_str(x -timedelta(days=1))
+    if isinstance(x,  str): return to_str(to_date(x) -timedelta(days=1))
 
 # ------------------
 def to_str(x) -> str:
@@ -45,26 +45,37 @@ def to_date(x) -> date:
 
     raise ValueError("date conv error")
 
+#-----------------------------
+def days_ago(d:str, range:int)-> str:
+
+    d = to_date(d)
+
+    return to_str(d -timedelta(days=range))
+
+#-----------------------------
+def days_pass(d:str, range:int):
+
+    d = to_date(d)
+
+    return to_str(d +timedelta(days=range))
+
 #-----------------------------------------------------------
 def ensure_programs(d:date):
 
-    (cnt,) = dal.fetch_one("""
-                 SELECT COUNT(1)
-                   FROM Race_programs
-                  WHERE date=?
-                 """ ,
-                 (to_str(d),)          )
+    row = dal.fetch_one("""
+              SELECT COUNT(1)
+                FROM Race_programs
+               WHERE date=?
+              """ ,
+              (d,) )
 
-    if cnt and cnt > 0:
-        return True
-    else:
-        return False
+    return True if row[0] else False
 
 #-----------------------------------------------------------
-def call_K(_date:date, overwrite:bool=False, background:bool=False):
+def call_K(d_iso:str, background:bool=False):
 
     if background:
-        file_name = f"K_txt_{to_str(_date)}.log"
+        file_name = f"K_txt_{d_iso}.log"
         log       = LOG_PATH / "K_txt" / file_name
         log.parent.mkdir(parents=True, exist_ok=True)
         log_file = open(log, "w", encoding="utf-8")
@@ -72,26 +83,23 @@ def call_K(_date:date, overwrite:bool=False, background:bool=False):
         sys.stdout = log_file
         sys.stderr = log_file
 
-    argv = ["--date_from", to_str(_date), "--date_to", to_str(_date), "--external"]
-
-    if overwrite:
-        argv.append("--overwrite")
+    argv = ["--date_from", d_iso, "--date_to", d_iso, "--external", "--overwrite"]
 
     ETL_K_results.main(argv)
 
 #-----------------------------------------------------------
-def call_B(_date:date, overwrite:bool=False, background:bool=False):
+def call_B(d_iso:str, overwrite:bool=False, background:bool=False):
 
     if background:
-        file_name = f"B_txt_{to_str(_date)}.log"
+        file_name = f"B_txt_{d_iso}.log"
         log       = LOG_PATH / "B_txt" / file_name
         log.parent.mkdir(parents=True, exist_ok=True)
-        log_file = open(log, "w", encoding="utf-8")
+        log_file  = open(log, "w", encoding="utf-8")
 
         sys.stdout = log_file
         sys.stderr = log_file
 
-    argv = ["--date", to_str(_date)]
+    argv = ["--date", d_iso]
 
     if overwrite:
         argv.append("--overwrite")
@@ -99,10 +107,8 @@ def call_B(_date:date, overwrite:bool=False, background:bool=False):
     import_B_txt.main(argv)
 
 #-----------------------------------------------------------
-def run_ETL(date_from:date, date_to:date, background:bool):
+def run_ETL(d_from:str, d_to:str, background:bool):
 
-    d_from = to_str(date_from) ;d_to = to_str(date_to)
- 
     argv = ["--date_from", d_from, "--date_to", d_to,]
 
     if background:
@@ -125,7 +131,7 @@ def run_ETL(date_from:date, date_to:date, background:bool):
                                    stdout= log_file,
                                    stderr= log_file,
                                     stdin= subprocess.DEVNULL,
-                                      cwd= str(BASE),                                       )
+                                      cwd= str(BASE),                    )
                 try:
                     proc = subprocess.Popen(cmd, **opt)
 
@@ -142,10 +148,10 @@ def run_ETL(date_from:date, date_to:date, background:bool):
         ETL_odds_data.main(argv)
 
 #-----------------------------------------------------------
-def update_overall(_date:date, overwrite:bool=False):
+def update_overall(d_iso:str, overwrite:bool=False):
 
-    d_from  = to_str( _date -timedelta(days=int(270)) )
-    d_to    = to_str(_date)
+    d_from  = days_ago(d_iso, 270)
+    d_to    = d_iso
     data1   = Query( d_from, d_to, query_results=True, exclude_rookie=[True,False]
                       )._pack(by_course=True)
     data2   = Query( d_from, d_to, query_results=True, exclude_rookie=[True,False], exclude_venue=3
@@ -162,9 +168,9 @@ def update_overall(_date:date, overwrite:bool=False):
                           INTO Daily_Overall (date, all_venue, excld_edo)
                         VALUES (?, ?, ?)
                     """,
-                    (to_str(_date), json1, json2) )
+                    (d_iso, json1, json2) )
 
-        print(f"[{_date}] Daily_Overall created.")
+        print(f"[{d_iso}] Daily_Overall created.")
 
     except Exception as e:
         print(str(e))
@@ -189,30 +195,31 @@ def main():
         raise SystemExit(2)
 
     if args.days:
-        date_from = dt.today() -timedelta(days=args.days)
-        date_to   = dt.today()
+        date_to   = today_iso()
+        date_from = days_ago(date_to, args.days)
     elif args.date:
-        date_from = args.date
         date_to   = args.date
+        date_from = args.date
     elif args.date_from and args.date_to:
-        date_from = args.date_from
         date_to   = args.date_to
+        date_from = args.date_from
     else:
-        date_from = dt.today()
-        date_to   = dt.today()
+        date_to   = today_iso()
+        date_from = today_iso()
 
-    _date = date_from
-    while _date <= date_to:
+    d = date_from
+    while d <= date_to:
 
-        if not args.overwrite and ensure_programs(_date):
-            print(f"[{_date}] B_file is already imported")
-            call_K(yesterday(_date), args.overwrite, args.background)
+        if not args.overwrite and ensure_programs(d):
+            print(f"[{d}] B_file is already imported")
+            call_K(yesterday(d), args.background)
         else:
-            call_B(_date, args.overwrite, args.background)
-            call_K(yesterday(_date), args.overwrite)
-        update_overall(_date, args.overwrite)
+            call_B(d, args.overwrite, args.background)
+            call_K(yesterday(d),      args.background)
 
-        _date += timedelta(days=1)
+        update_overall(d, args.overwrite)
+
+        d = days_pass(d, 1)
 
     update_FLstate()
 

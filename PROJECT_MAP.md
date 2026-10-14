@@ -11,16 +11,26 @@
 ```
 boatrace/
 
-  boatrace.db                        # SQLite3 DB
+  boatrace.db                        # SQLite3 DataBase
 
-  Dal.py                             # UI用Data Access Layer(sqlite3簡易ラッパ)
+  Dal.py                             # UI用Data Access Layer(sqlite3簡易ﾗｯﾊﾟｰ)
 
   UI/
-    boatrace_gui.py                  # エントリ/ルータ/共通設定
-    summarize_today.py               # botrace_gui.py起動時に実行するｻﾌﾞﾌﾟﾛｾｽ(当日情報取得ｻﾌﾞﾌﾟﾛｾｽの実行管理ﾚｲﾔｰ)
-    odds_window.py(OddsWindow)       # RaceWindowと並列でｻﾌﾞﾌﾟﾛｾｽ実行されるｵｯｽﾞ表示 画面
-    results_window.py(ResultsWindow) # RaceWindowと並列でｻﾌﾞﾌﾟﾛｾｽ実行されるﾚｰｽ結果表示 画面
-
+    boatrace_gui.py/                 
+      APP                            # エントリ/ルータ/共通設定
+      MainScreen                     # ﾒｲﾝﾒﾆｭｰ/外部ﾌﾟﾛｾｽ連携
+    summarize_today.py               # 当日情報取得ｻ各ﾌﾞﾌﾟﾛｾｽの実行管理ﾚｲﾔｰ(botrace_gui.py起動時に実行)
+    odds_window.py(OddsWindow)       # RaceWindowと並列でｻﾌﾞﾌﾟﾛｾｽ表示されるｵｯｽﾞ画面
+    results_window.py(ResultsWindow) # RaceWindowと並列でｻﾌﾞﾌﾟﾛｾｽ表示されるﾚｰｽ結果画面
+    Window/
+      race_serect.py                 # RaceSelectScreen・・・RaceWindow表示レース選択画面
+      race_window.py                 # 出走表メイン
+      analysis_player.py             # PlayerAnalysisScreen・・・選手詳細情報
+      analysis_venue.py              # VenueAnalysisScreen・・・ ﾚｰｽ場詳細情報
+    Screens/                         # 画面クラス
+      DB_ops.py                      # DBOpsScreen・・・DB参照
+      DB_schem.py                    # DBSchemScreen・・・ﾃｰﾌﾞﾙ/ｶﾗﾑ 追加/削除/更新
+      DB_query.py                    # DBQueryScreen・・・特定ﾚｰｽ条件でﾚｰｽ結果の比較検証
     Scraper/                         # summarize_today.pyから管理/実行
       get_Before_info.py             # 展示航走/直前情報ﾃﾞｰﾀの取得/ﾊﾟｰｽ/挿入
       get_results_today.py           # ﾚｰｽ結果ﾃﾞｰﾀの取得/ﾊﾟｰｽ/挿入(翌日の日時更新時に正規ﾃﾞｰﾀでUPDATE)
@@ -29,27 +39,12 @@ boatrace/
           get_cancel_info            # 当日中止ﾚｰｽの取得/ﾊﾟｰｽ/挿入
       get_payouts.py/
           upsert_payouts             # 払戻情報(Payouts)へのﾃﾞｰﾀ取得・挿入ｽｸﾘﾌﾟﾄ
-
-    Updata/
-      daily_insert.py                # 日時更新(前日Kﾌｧｲﾙ/当日Bﾌｧｲﾙのｲﾝﾎﾟｰﾄ, 前日直線情報ﾃﾞｰﾀ/ｵｯｽﾞﾃﾞｰﾀの補填)
-      ETL_odds_data.py               # ｵｯｽﾞﾃﾞｰﾀ(Odds)を指定期間で一括取得
-      ETL_Before_info.py             # 展示航走/直線情報(Before_info)を指定期間で一括取得
-      update_FLstate.py              # Race_entriesからPlayers.flying_st/late_st(今期ﾌﾗｲﾝｸﾞ/出遅れ情報)のﾃﾞｰﾀ算出・挿入ﾌﾟﾛｾｽ
-
-    Screens/                         # 画面クラス
-      DB_ops.py                      # DBOpsScreen・・・DB参照 画面
-      DB_schem.py                    # DBSchemScreen・・・ﾃｰﾌﾞﾙ/ｶﾗﾑ 追加/削除/更新 画面
-      DB_query.py                    # DBQueryScreen・・・統計的抽出条件でのDB閲覧 画面
-      Analysis_player.py             # PlayerAnalysisScreen・・・選手詳細情報 画面
-      Analysis_venue.py              # VenueAnalysisScreen・・・ ﾚｰｽ場詳細情報 画面
-      Race_serect.py                 # RaceSelectScreen・・・RaceWindow表示レース選択 画面
-
+      scraper_odds.py/
+          fetch_all_odds             # OddsWindowのｵｯｽﾞﾃﾞｰﾀ ｽｸﾚｲﾋﾟﾝｸﾞ/ﾊﾟｰｽ
     Helpers/
       Custum_func.py                 # tkinterのｵﾘｼﾞﾅﾙ短縮表記ｸﾗｽ/ﾒｿｯﾄﾞ
-
       queries.py/                    # DB 汎用クエリクラス
           _pack                      # パッキングメソッド
-
       build_rows.py/                 # RaceWindow表示ﾃﾞｰﾀの取得(DB)/構成
           make_rows                  # 各ｸｴﾘからのﾃﾞｰﾀを纏めてentry_rows, data_rowsを生成
           make_sub_rows              # 各ｸｴﾘからのﾃﾞｰﾀを纏めてsub_rowsを生成
@@ -57,14 +52,9 @@ boatrace/
           query_Players              # 選手基本ﾃﾞｰﾀ用クエリ
           query_result               # 結果ﾃﾞｰﾀ用クエリ
           query_before_info          # 直前情報 展示航走ﾃﾞｰﾀ用クエリ
-
       build_series_idx.py/
           uodate_series_idx          # RaceWindow Main Right の節間成績ﾃﾞｰﾀ 表示/更新
           build_day_labels           # 日程ラベルの構築
-
-      scraper_odds.py/
-          fetch_all_odds             # OddsWindowのｵｯｽﾞﾃﾞｰﾀ ｽｸﾚｲﾋﾟﾝｸﾞ/ﾊﾟｰｽ
-
       ev_scanner.py/
           evaluate_ev                # 予想ｴﾝｼﾞﾝ（未完成）
           persist_odds_snapshot      # oddsﾃﾞｰﾀ挿入/evaluate_evのﾗｯﾊﾟｰ
@@ -77,25 +67,32 @@ boatrace/
           framing_held_type_icon     # ﾚｰｽ選択画面 開催種別ｱｲｺﾝ
           clear_widgets              # 各ｳｨｼﾞｪｯﾄをｸﾘｱ
           set_player_image           # 画像読込/等倍比フィット
-
       placeholder.py/
           main_placeholder           # RaceWindowのメイン表示部(上部)枠組み
           sub_placeholder            # RaceWindowのサブ表示部(下部)枠組み
-
-      center_widgets.py              # RaceWindow/main_placeholder中央部切り替え式可変ウィジェット
+      center_widgets.py/             # RaceWindow/main_placeholder中央部切り替え式可変ウィジェット
 
   Import/
-    import_B_txt.py                  # B_txt(当日出走表ﾃﾞｰﾀ)からRace_programsへの取得・ﾊﾟｰｽ・挿入ｽｸﾘﾌﾟﾄ
-    ETL_K_results.py                 # Races/Race_entriesへの各ﾃﾞｰﾀ取得・挿入ﾌﾟﾛｾｽのﾗｯﾊﾟｰ
-    parse and upsert.py              # K_TEXT(公式ﾚｰｽ結果ﾌｧｲﾙ)からののﾊﾟｰｽ・挿入ﾌﾟﾛｾｽ
-    upsert_Grade.py                  # 公式ﾍﾟｰｼﾞHMLからRace_result.gradeへのﾃﾞｰﾀ抽出・挿入
-    import_Fan_txt.py                # FAN_TEXTﾌｧｲﾙからPlayers/Season_resultへのﾃﾞｰﾀ抽出・挿入
-    DL_player_img.py                 # 公式ﾍﾟｰｼﾞから選手画像の取得ﾌﾟﾛｾｽ
-    insert_newcomer.py               # 期始めﾃﾞﾋﾞｭｰ選手ﾃﾞｰﾀ(正式FAN_TEXT公開までの間)の仮取得・挿入
+    B/
+      import_B_txt.py                # B_txt(当日出走表ﾃﾞｰﾀ)からRace_programsへの取得・ﾊﾟｰｽ・挿入ｽｸﾘﾌﾟﾄ
+    K/
+      ETL_K_results.py               # Races/Race_entriesへの各ﾃﾞｰﾀ取得・挿入ﾌﾟﾛｾｽのﾗｯﾊﾟｰ
+      parse and upsert.py            # K_TEXT(公式ﾚｰｽ結果ﾌｧｲﾙ)からののﾊﾟｰｽ・挿入ﾌﾟﾛｾｽ
+      upsert_Grade.py                # 公式ﾍﾟｰｼﾞHMLからRace_result.gradeへのﾃﾞｰﾀ抽出・挿入
+    FAN/
+      import_Fan_txt.py              # FAN_TEXTﾌｧｲﾙからPlayers/Season_resultへのﾃﾞｰﾀ抽出・挿入
+      DL_player_img.py               # 公式ﾍﾟｰｼﾞから選手画像の取得ﾌﾟﾛｾｽ
+      insert_newcomer.py             # 期始めﾃﾞﾋﾞｭｰ選手ﾃﾞｰﾀ(正式FAN_TEXT公開までの間)の仮取得・挿入
+    Updata/
+      daily_insert.py                # 日時更新(前日Kﾌｧｲﾙ/当日Bﾌｧｲﾙのｲﾝﾎﾟｰﾄ, 前日直線情報ﾃﾞｰﾀ/ｵｯｽﾞﾃﾞｰﾀの補填)
+      ETL_odds_data.py               # ｵｯｽﾞﾃﾞｰﾀ(Odds)を指定期間で一括取得
+      ETL_Before_info.py             # 展示航走/直線情報(Before_info)を指定期間で一括取得
+      update_FLstate.py              # Race_entriesからPlayers.flying_st/late_st(今期ﾌﾗｲﾝｸﾞ/出遅れ情報)のﾃﾞｰﾀ算出・挿入ﾌﾟﾛｾｽ
 
   Checker/
     data/
       check_odds_data.py             # テーブルOdds_xxデータの検査スクリプト
+      check_K_files                  # 公式配布Kﾌｧｲﾙ過去の不足分を検査
     Player/
       check_score_ave.py             # 期単位で指定選手の公式得点率とDBデータ算出得点率の整合性をチェック
       check_score_ave_ALL.py         # check_score_ave.pyを全選手対象で実行
@@ -103,8 +100,8 @@ boatrace/
       show_player_term.py            
     Race/
       check_Before_info.py           # 展示航走データ(Before_info)のデータ欠損チェック
-      check_finals.py                # Races.is_finalの取得漏れをチェック
-      check_series_title.py          # Races.series_titleの表記揺れをチェック
+      check_finals.py                # Races.is_final(優勝戦)の取得漏れをチェック
+      check_series_title.py          # Races.series_titleの節間の表記揺れをチェック
       update_is_prefinal.py          # 準優勝線(Races.is_prefinal)を更新
 ```
 

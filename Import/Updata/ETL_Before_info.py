@@ -1,8 +1,9 @@
 ﻿# -*- coding: utf-8 -*-
 # C:\boatrace\UI\Updata\ETL_Before_info.py
 
-import time, sys, subprocess, argparse
-from datetime          import datetime as dt, timedelta
+import time, sys, subprocess, argparse, sqlite3
+from datetime import datetime as dt, timedelta
+
 import get_Before_info
 import Dal as dal
 
@@ -38,7 +39,8 @@ def check_Before_info_data(date_from, date_to, quiet_mode=False):
         HAVING (r.status != 'cancelled' AND record_count < 6)
             OR (missing_val_count > 0)
       ORDER BY r.date, r.venue_id, r.race_no;
-                """
+          """
+
     try:
         rows = dal.fetch_all(sql, (date_from, date_to))
 
@@ -91,7 +93,7 @@ def ETL_run(date_from:str, date_to:str, overwrite:bool=False):
                 continue
 
         args_list = ["--date", date_str, "--ALL_venue", "--ALL_race"]
-        
+
         try:
             result_code = get_Before_info.main(args_list)
 

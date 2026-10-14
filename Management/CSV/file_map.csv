@@ -15,16 +15,11 @@ UI,Screens,DBQueryScreen,               C:\boatrace\UI\Screens\DB_query.py,0
 UI,Screens,PlayerAnalysisScreen,        C:\boatrace\UI\Screens\analysis_player.py,1
 UI,Screens,VenueAnalysisScreen,         C:\boatrace\UI\Screens\analysis_venue.py,0
 UI,Screens,MotorAnalysisScreen,         C:\boatrace\UI\Screens\analysis_motor.py,0
-UI,Screens,RaceSelectScreen,            C:\boatrace\UI\Screens\race_select.py,1
 UI,Screens,Classification,              C:\boatrace\UI\Screens\classification.py,0
 UI,Screens,__init__,                    C:\boatrace\UI\Screens\__init__.py,0
 
-UI,Updata,daily_insert.py,              C:\boatrace\UI\Updata\daily_insert.py,1
-UI,Updata,delete_data.py,               C:\boatrace\UI\Updata\delete_data.py
-UI,Updata,update_FLstate.py,            C:\boatrace\UI\Updata\update_FLstate.py,0
-UI,Updata,ETL_Before_info.py,           C:\boatrace\UI\Updata\ETL_Before_info.py,0
-UI,Updata,ETL_odds_data.py,             C:\boatrace\UI\Updata\ETL_odds_data.py,0
-UI,Updata,ETL_payouts_data.py,          C:\boatrace\UI\Updata\ETL_payouts_data.py,0
+UI,Window,RaceWindow,                   C:\boatrace\UI\Window\race_window.py
+UI,Window,RaceSelectWindow,             C:\boatrace\UI\Window\race_select.py
 
 UI,Scraper,get_today_info.py,           C:\boatrace\UI\Scraper\get_today_info.py,1
 UI,Scraper,get_Before_info.py,          C:\boatrace\UI\Scraper\get_Before_info.py,1
@@ -49,26 +44,32 @@ UI,Widgets,center_widgets.py,           C:\boatrace\UI\Widgets\center_widgets.py
 UI,Widgets,placeholder.py,              C:\boatrace\UI\Widgets\placeholder.py,1
 UI,Widgets,__init__,                    C:\boatrace\UI\Widgets\__init__.py,0
 
-Import,Import_B,import_B_txt.py,        C:\boatrace\Import\import_B_txt.py,1
-Import,Import_FAN,import_Fan.py,        C:\boatrace\Import\import_Fan.py,0
-Import,Import_K,ETL_K_results.py,       C:\boatrace\Import\ETL_K_results.py,1
-Import,Import_K,upsert_Grade.py,        C:\boatrace\Import\upsert_Grade.py,1
-Import,Import_K,parse_and_upsert.py,    C:\boatrace\Import\parse_and_upsert.py,1
+Import,Import_B,import_B_txt.py,        C:\boatrace\Import\B\import_B_txt.py,1
+Import,Import_K,ETL_K_results.py,       C:\boatrace\Import\K\ETL_K_results.py,1
+Import,Import_K,parse_and_upsert.py,    C:\boatrace\Import\K\parse_and_upsert.py,1
+Import,Import_K,upsert_Grade.py,        C:\boatrace\Import\K\upsert_Grade.py,1
+Import,Import_K,make_grade_txt.py,      C:\boatrace\Import\K\make_grade_txt.py,0
+Import,Import_FAN,import_Fan.py,        C:\boatrace\Import\FAN\import_Fan.py,0
+Import,Import_FAN,DL_player_img.py,     C:\boatrace\Import\FAN\DL_player_img.py,0
+Import,Import_FAN,insert_newcomer.py,   C:\boatrace\Import\FAN\insert_newcomer.py,0
 
-Import,Helper,DL_player_img.py,         C:\boatrace\Import\Helper\DL_player_img.py,0
-Import,Helper,insert_newcomer.py,       C:\boatrace\Import\Helper\insert_newcomer.py,0
-Import,Helper,make_grade_txt.py,        C:\boatrace\Import\Helper\make_grade_txt.py,0
+Import,Updata,daily_insert.py,          C:\boatrace\Import\Updata\daily_insert.py,1
+Import,Updata,delete_data.py,           C:\boatrace\Import\Updata\delete_data.py
+Import,Updata,update_FLstate.py,        C:\boatrace\Import\Updata\update_FLstate.py,0
+Import,Updata,ETL_Before_info.py,       C:\boatrace\Import\Updata\ETL_Before_info.py,0
+Import,Updata,ETL_odds_data.py,         C:\boatrace\Import\Updata\ETL_odds_data.py,0
+Import,Updata,ETL_payouts_data.py,      C:\boatrace\Import\Updata\ETL_payouts_data.py,0
 
 Checker,Player,check_score_ave.py,      C:\boatrace\Checker\Player\check_score_ave.py,0
 Checker,Player,check_score_ave_ALL.py,  C:\boatrace\Checker\Player\check_score_ave_ALL.py,0
 Checker,Player,list_player_in_final.py, C:\boatrace\Checker\Player\list_player_in_final.py,0
 Checker,Player,show_player_term.py,     C:\boatrace\Checker\Player\show_player_term.py,0
-Checker,Race,check_finals.py,           C:\boatrace\Checker\Race\check_finals.py,0
 Checker,Data,check_K_files.py,          C:\boatrace\Checker\Data\check_K_files.py,0
+Checker,Data,check_Before_info.py,      C:\boatrace\Checker\Data\check_Before_info.py,0
 Checker,Data,check_odds_data.py,        C:\boatrace\Checker\data\check_odds_data.py,0
+Checker,Race,check_finals.py,           C:\boatrace\Checker\Race\check_finals.py,0
 Checker,Race,update_is_prefinal.py,     C:\boatrace\Checker\Race\update_is_prefinal.py,0
 Checker,Race,check_series_title.py,     C:\boatrace\Checker\Race\check_series_title.py,0
-Checker,Race,check_Before_info.py,      C:\boatrace\Checker\Race\check_Before_info.py,0
 Checker,Tools,word_replacer.py,         C:\boatrace\Checker\Tools\word_replacer.py,0
 Checker,Tools,rename_title.py,          C:\boatrace\Checker\Tools\rename_title.py,0
 Checker,Tools,API_GUI,                  C:\boatrace\Checker\Tools\API_GUI\API_GUI.py,0

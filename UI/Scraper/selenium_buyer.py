@@ -64,7 +64,7 @@ class SeleniumBuyer:
                         auth_pw     :Optional[str] = None,
                         bet_pw      :Optional[str] = None,
                         headless    :bool          = False,
-                        timeout     :int           = 5      ):
+                        timeout     :int           = 3      ):
 
         self.kanyusha_no = kanyusha_no or os.environ.get("MBRACE_KANYUSHA", "")
         self.ansyo_no    = ansyo_no    or os.environ.get("MBRACE_ANSYO",    "")
@@ -81,28 +81,20 @@ class SeleniumBuyer:
             raise ValueError(f"未設定の認証情報: {', '.join(missing)}")
 
         self._force_kill_leftovers()
-        self._reset_brave_session()
-
-        time.sleep(1)
 
         opts = uc.ChromeOptions()
         opts.binary_location = (r"C:\Program Files\BraveSoftware\Brave-Browser\Application\brave.exe")
 
-        if headless:
-            opts.add_argument("--headless=new")
+        if headless: opts.add_argument("--headless=new")
 
-        opts.add_argument(r"--user-data-dir=C:\boatrace\tmp\Brave_profile\User Data")
-        opts.add_argument("--profile-directory=Default")
         opts.add_argument("--no-first-run")
         opts.add_argument("--no-default-browser-check")
+        opts.add_argument("--restore-last-session=false") 
         opts.add_argument("--disable-session-crashed-bubble")
         opts.add_argument("--disable-notifications")
         opts.add_argument("--disable-features=BraveRewards,BraveAds,BraveWallet")
         opts.add_argument("--disable-features=IsolateOrigins,site-per-process")
-        #opts.add_argument("--no-sandbox")
-        #opts.add_argument("--disable-infobars")
-        #opts.add_argument("--disable-dev-shm-usage")
-        #opts.add_argument("--disable-blink-features=AutomationControlled")
+        opts.page_load_strategy = 'eager' 
 
         opts.add_argument("--force-device-scale-factor=0.9")
 
@@ -112,98 +104,92 @@ class SeleniumBuyer:
     #-----------------------------------------------------------------
     def login(self, venue_id:int):
 
+        time.sleep(0.2)
         self._close_extra_windows()
-        time.sleep(0.5)
         self._navigate_to_bet_window()
         self._navigate_to_venue(venue_id)
-        logger.info(f"ログイン・場遷移完了 venue_id={venue_id}")
+
+        logger.info(f"ログイン/投票ウィンドウ遷移 完了")
 
     #-----------------------------------------------------------------
     def _navigate_to_bet_window(self):
 
         self._driver.set_window_size(1000, 950)
         self._driver.set_window_position(1000, 300)
-        #self._driver.delete_all_cookies()
-        #self._driver.execute_script("window.localStorage.clear(); window.sessionStorage.clear();")
-        #self._driver.refresh()
 
-        logger.info(f"トップページへアクセス →")
         self._driver.get(TOP_PAGE)
-        time.sleep(0.5)
+        logger.info(f"トップページ アクセス →")
 
         handles_before = set(self._driver.window_handles)
 
         try:
             self._wait(2).until(EC.element_to_be_clickable((By.ID,"commonHead"))).click()
-            logger.info("「投票」ボタン クリック →")
+            logger.info("「投票/ログイン」ボタン検知 OK → クリック")
         except TimeoutException:
-            logger.warning("「投票」ボタンが見つかりません")
-        time.sleep(0.5)
+            logger.warning("「投票/ログイン」ボタンク検知 NG")
 
         try:
             self._wait(2).until(EC.presence_of_element_located((By.ID,"in_KanyusyaNo")))
 
-            logger.info("ログインフォーム検出: OK → 入力開始")
+            logger.info("ログインページ移行 OK → 入力開始")
             for fid, val in [ ("in_KanyusyaNo", self.kanyusha_no),
                               ("in_AnsyoNo",    self.ansyo_no),
                               ("in_PassWord",   self.auth_pw)     ]:
                 el = self._driver.find_element(By.ID, fid)
                 el.send_keys(val)
-                time.sleep(0.1)
 
             handles_before = set(self._driver.window_handles)
             btn            = self._driver.find_element(By.NAME, "TENTP017A_2")
             ActionChains(self._driver).move_to_element(btn).click().perform()
-            logger.info("ログインボタン クリック")
+            logger.info("「ログイン」ボタン クリック →")
 
         except TimeoutException:
-            logger.info("ログインフォームなし (ログイン済み)")
+            logger.info("ログインページ移行 NG")
+
+        if len(self._driver.window_handles) == 1:
+            try:
+                self._wait(1).until(EC.element_to_be_clickable((By.ID,"commonHead"))).click()
+                logger.info("「投票」ボタン検知 OK → クリック")
+            except TimeoutException:
+                logger.warning("「投票」ボタンク検知 NG")
 
         try:
             self._wait(3).until(lambda d:set(d.window_handles) != handles_before)
             new_handle = (set(self._driver.window_handles) - handles_before).pop()
+            self._driver.close()
             self._driver.switch_to.window(new_handle)
-            logger.info(f"投票画面へ切り替え: OK")
+            logger.info(f"投票ウィンドウ切替 OK")
 
         except TimeoutException:
-            raise LoginError("投票ウィンドウが開きませんでした")
-
-        logger.info("場選択画面 遷移確認 →")
+            raise LoginError("投票ウィンドウ切替 NG")
 
         try:
             self._wait(3).until(EC.presence_of_element_located((By.ID,"todayForm")))
-            logger.info("場選択画面 遷移: OK")
+            logger.info("場選択画面 遷移 OK")
         except TimeoutException:
-            raise LoginError(f"場選択画面が開きません: {self._driver.current_url}")
+            raise LoginError(f"場選択画面 遷移 NG: {self._driver.current_url}")
 
     #-----------------------------------------------------------------
     def _navigate_to_venue(self, venue_id:int):
 
         self._driver.set_window_size(1000, 700)
         self._driver.set_window_position(800, 300)
-        jyo_id   = f"jyo{venue_id:02d}"
-        selector = f"#{jyo_id} a"
-        logger.info(f"場選択を実行: jyoCode={venue_id} →")
+
+        selector = f"#jyo{venue_id:02d} a"
+        logger.info(f"場選択実行: {venue_id} →")
 
         try:
             btn = self._wait(3).until( EC.element_to_be_clickable((By.CSS_SELECTOR, selector)))
             btn.click()
-
         except TimeoutException:
-            li_exists = bool(self._driver.find_elements(By.ID, jyo_id))
-            a_exists  = bool(self._driver.find_elements(By.CSS_SELECTOR, selector))
-            raise LoginError( f"場選択ボタンが見つかりません\n"
-                              f"  selector='{selector}'\n"
-                              f"  li#{jyo_id}: {li_exists} / {selector}: {a_exists}\n"
-                              f"  URL: {self._driver.current_url}\n"
-                              f"  → 指定会場が開催中か確認してください"                 )
+            raise LoginError("場選択ボタンが見つかりません")
 
         try:
             self._wait(3).until(lambda d:"betcom" in d.current_url or "nextrace" in d.current_url)
             time.sleep(0.2)
-            logger.info(f"投票画面への遷移: OK")
+            logger.info(f"投票画面 遷移: OK")
         except TimeoutException:
-            raise LoginError(f"投票画面へ遷移できませんでした: {self._driver.current_url}")
+            raise LoginError(f"投票画面 遷移: NG: {self._driver.current_url}")
 
     #-----------------------------------------------------------------
     def _select_race(self, race_no:int):
@@ -221,12 +207,12 @@ class SeleniumBuyer:
                     el = self._driver.find_element(By.CSS_SELECTOR, sel)
                 el.click()
                 time.sleep(0.1)
-                logger.info(f"レース選択({race_no}R): OK")
+                logger.info(f"レース選択: OK ({race_no}R)")
                 return
             except NoSuchElementException:
                 continue
 
-        logger.warning(f"レースタブが見つかりません({race_no}R)。")
+        logger.warning(f"レースタブ検知：NG ({race_no}R)")
 
     #-----------------------------------------------------------------
     def purchase_all( self, selected:List[Tuple], date_str:str, venue_id:int, race_no:int,
@@ -275,27 +261,27 @@ class SeleniumBuyer:
                 logger.error(f"ベット登録失敗: {label} → {e}")
 
         if not result["success"]:
-            logger.warning("登録成功件数 0 件。購入を中止します。")
+            logger.warning("登録成功件数 0 件。購入を中止します")
             return result
         else:
             result["total"] = f"合計   {total}00円"
         try:
             self._click_comp_btn()
         except BetError as e:
-            logger.error(f"投票入力完了ボタン失敗: {e}")
+            logger.error(f"「投票入力完了」実行エラー: {e}")
             result["failed"] += result["success"]
             result["success"] = []
             return result
 
         if dry_run:
-            logger.info("[DRY RUN] 投票入力完了まで完了。確認画面へは進みません。")
+            logger.info("[DRY RUN] 投票入力完了まで。最終確認画面へは進みません")
             return result
 
         try:
             self._confirm_and_vote(f"{total*100}")
             logger.info("購入完了")
         except BetError as e:
-            logger.error(f"購入確定失敗: {e}")
+            logger.error(f"購入確定エラー: {e}")
             result["failed"] += result["success"]
             result["success"] = []
 
@@ -308,14 +294,14 @@ class SeleniumBuyer:
         kachi_sel = KACHISHIKI_SEL.get(bet_type)
 
         if not kachi_sel:
-            raise BetError(f"未対応の賭式: {bet_type}")
+            raise BetError(f"未対応賭式: {bet_type}")
 
         try:
             wait.until(EC.element_to_be_clickable((By.CSS_SELECTOR, kachi_sel))).click()
             time.sleep(0.1)
             logger.info(f"賭式選択: {bet_type} ({kachi_sel})")
         except TimeoutException:
-            raise BetError(f"賭式ボタンが見つかりません: {kachi_sel}")
+            raise BetError(f"賭式ボタン検知異常: {kachi_sel}")
 
         n_cols = KACHISHIKI_COLS.get(bet_type, 1)
         boats  = list(key)
@@ -325,23 +311,23 @@ class SeleniumBuyer:
                 sel = f"#regbtn_{boat}_1 a"
                 try:
                     wait.until(EC.element_to_be_clickable((By.CSS_SELECTOR, sel))).click()
-                    logger.info(f"舟番クリック: {boat}号艇 (列1)")
+                    logger.info(f"艇番クリック: {boat}号艇 (列1)")
                 except TimeoutException:
                     try:
                         self._driver.find_element(By.ID, f"regbtn_{boat}_1").click()
                     except NoSuchElementException:
-                        raise BetError(f"舟番ボタンが見つかりません: {sel}")
+                        raise BetError(f"艇番ボタン検知異常: {sel}")
         else:
             for col, boat in enumerate(boats[:n_cols], start=1):
                 sel = f"#regbtn_{boat}_{col} a"
                 try:
                     wait.until(EC.element_to_be_clickable((By.CSS_SELECTOR, sel))).click()
-                    logger.info(f"舟番クリック: {boat}号艇 ({col}着列)")
+                    logger.info(f"艇番クリック: {boat}号艇 ({col}着列)")
                 except TimeoutException:
                     try:
                         self._driver.find_element(By.ID, f"regbtn_{boat}_{col}").click()
                     except NoSuchElementException:
-                        raise BetError(f"舟番ボタンが見つかりません: {sel}")
+                        raise BetError(f"艇番ボタン検知異常: {sel}")
 
         try:
             amt_el = wait.until(EC.element_to_be_clickable((By.CSS_SELECTOR, SEL_AMOUNT)))
@@ -349,45 +335,43 @@ class SeleniumBuyer:
             amt_el.send_keys(str(lot))
             logger.info(f"金額入力: {lot}（={lot*100}円）")
         except TimeoutException:
-            raise BetError("金額フィールドが見つかりません")
+            raise BetError("金額フィールド検知異常")
 
         try:
             self._wait(5).until( lambda d:
                                      "off" not in ( d.find_element( By.ID, "regAmountBtn"
                                                    ).get_attribute("class") or "" ) )
         except TimeoutException:
-            raise BetError( "「ベットリストに追加」ボタンが有効になりません。\n"
-                            "舟番が正しく選択されているか確認してください。"     )
-
+            raise BetError("「ベット追加」ボタン検知異常")
         try:
             wait.until(EC.element_to_be_clickable((By.CSS_SELECTOR, SEL_ADD_BTN))).click()
             time.sleep(0.1)
-            logger.info("ベットリストに追加 クリック完了")
+            logger.info("「ベット追加」クリック完了")
         except TimeoutException:
-            raise BetError("「ベットリストに追加」ボタンが押せません")
+            raise BetError("「ベット追加」クリック異常")
 
     #-----------------------------------------------------------------
     def _click_comp_btn(self):
 
         try:
-            self._wait(5).until( lambda d: 
+            self._wait(3).until( lambda d: 
                                     "off" not in ( d.find_element( By.CSS_SELECTOR, ".btnSubmit"
                                                                   ).get_attribute("class") or "" ))
         except TimeoutException:
-            raise BetError("「投票入力完了」ボタンが有効になりません（ベット登録件数を確認）")
+            raise BetError("「投票入力完了」ボタン検知異常")
 
         try:
-            self._wait(5).until(EC.element_to_be_clickable((By.CSS_SELECTOR, SEL_COMP_BTN))).click()
-            logger.info("「投票入力完了」クリック → 確認画面を待機中")
+            self._wait(3).until(EC.element_to_be_clickable((By.CSS_SELECTOR, SEL_COMP_BTN))).click()
+            logger.info("「投票入力完了」クリック → 購入確認画面 待機中")
         except TimeoutException:
-            raise BetError("「投票入力完了」が押せません")
+            raise BetError("「投票入力完了」クリック異常")
 
         try:
-            self._wait(5).until(lambda d: "betconf" in d.current_url)
+            self._wait(3).until(lambda d: "betconf" in d.current_url)
             time.sleep(0.1)
-            logger.info(f"購入確認画面へ遷移: OK")
+            logger.info(f"購入確認画面 遷移: OK")
         except TimeoutException:
-            raise BetError(f"購入確認画面への遷移タイムアウト: {self._driver.current_url}")
+            raise BetError(f"購入確認画面 遷移: NG {self._driver.current_url}")
 
     #-----------------------------------------------------------------
     def _confirm_and_vote(self, total_yen:int):
@@ -398,25 +382,25 @@ class SeleniumBuyer:
             amt_el = wait.until(EC.element_to_be_clickable((By.ID, "amount")))
             amt_el.send_keys(str(total_yen))
             time.sleep(0.1)
-            logger.info(f"確認画面 購入金額入力: {total_yen}円")
+            logger.info(f"購入金額入力: {total_yen}円")
         except TimeoutException:
-            raise BetError("確認画面の購入金額フィールド(#amount)が見つかりません")
+            raise BetError("購入金額フィールド(#amount)検知異常")
 
         try:
             pw_el = wait.until(EC.element_to_be_clickable((By.ID, "pass")))
             pw_el.send_keys(self.bet_pw)
             time.sleep(0.1)
-            logger.info("確認画面 投票用パスワード入力完了")
+            logger.info("投票用パスワード入力完了")
         except TimeoutException:
-            raise BetError("確認画面の投票用PWフィールド(#pass)が見つかりません")
+            raise BetError("投票用PWフィールド(#pass)検知異常")
 
         try:
             vote_btn = wait.until(EC.element_to_be_clickable((By.CSS_SELECTOR, "#submitBet a")))
             vote_btn.click()
-            logger.info("「投票する」ボタンクリック完了")
+            logger.info("「投票」ボタンクリック完了")
             time.sleep(0.1)
         except TimeoutException:
-            raise BetError("「投票する」ボタン(#submitBet a)が見つかりません")
+            raise BetError("「投票」ボタン(#submitBet a)検知異常")
 
         ok_clicked = False
         ok_selectors = [ (By.XPATH,        "//a[normalize-space()='OK']"),
@@ -430,7 +414,7 @@ class SeleniumBuyer:
                 ok_el = WebDriverWait(self._driver, 3).until(EC.element_to_be_clickable((by, sel)))
                 ok_el.click()
                 ok_clicked = True
-                logger.info(f"最終確認 OKクリック: {sel}")
+                logger.info(f"「最終確認」ボタン検知異常: {sel}")
                 break
             except (TimeoutException, NoSuchElementException):
                 continue
@@ -445,11 +429,9 @@ class SeleniumBuyer:
                 pass
 
         if not ok_clicked:
-            logger.warning("最終確認OKボタンが見つかりませんでした。手動確認してください。")
+            logger.warning("「最終確認」ボタン実行エラー。")
 
-        time.sleep(0.5)
         logger.info(f"購入処理完了")
-        self._driver.close()
 
     #-----------------------------------------------------------------
     def _force_kill_leftovers(self):
@@ -464,15 +446,17 @@ class SeleniumBuyer:
     #-----------------------------------------------------------------
     def shutdown(self):
         if hasattr(self, '_driver') and self._driver:
+            for h in self._driver.window_handles:
+                    self._driver.switch_to.window(h)
+                    self._driver.close()
             try:
                 self._driver.quit()
             except Exception as e:
-                logger.warning(f"Seleniumの終了中にエラー: {e}")
+                logger.warning(f"Selenium終了中エラー: {e}")
             finally:
                 self._driver = None
 
-        self._reset_brave_session()
-        logger.info("すべての終了処理が完了しました。")
+        logger.info("終了処理完了")
 
     #-----------------------------------------------------------------
     def _reset_brave_session(self):
@@ -505,26 +489,30 @@ class SeleniumBuyer:
 
                 with open(prefs_path, "w", encoding="utf-8") as f:
                     json.dump(prefs, f)
-                logger.info("Braveのセッション復元フラグをリセットしました")
+                logger.info("Braveセッション復元フラグ リセット")
 
             except Exception as e:
-                logger.warning(f"Preferences の書き換えに失敗: {e}")
+                logger.warning(f"Preferences 書換失敗: {e}")
 
     #-----------------------------------------------------------------
     def _close_extra_windows(self):
 
         handles = self._driver.window_handles
+
         if len(handles) > 1:
-            logger.info(f"不要なウィンドウが {len(handles)-1} 件見つかりました。削除します。")
-            main = handles[0]
-            for h in handles[1:]:
-                try:
+            logger.info(f"不要ウィンドウ {len(handles)-1}件 → 削除")
+            current = self._driver.current_window_handle
+
+            for h in handles:
+                if h != current:
                     self._driver.switch_to.window(h)
                     self._driver.close()
-                except Exception:
-                    pass
-            self._driver.switch_to.window(main)
+
+            self._driver.switch_to.window(current)
 
     #-----------------------------------------------------------------
     def _wait(self, time:int):
+
         return WebDriverWait(self._driver, time)
+
+    #-----------------------------------------------------------------
