@@ -7,7 +7,7 @@ from pathlib    import Path
 from typing     import Iterable, Iterator, List, Optional, Tuple, Dict
 from curl_cffi  import requests
 from bs4        import BeautifulSoup, FeatureNotFound, XMLParsedAsHTMLWarning
-import argparse, re, sqlite3, shutil, lhafile, warnings, time, random
+import argparse, re, sqlite3, shutil, lhafile, warnings, time, random, sys
 import Dal as dal
 
 warnings.filterwarnings("ignore", category=XMLParsedAsHTMLWarning)
@@ -498,8 +498,8 @@ def iter_target_dates(args: argparse.Namespace) -> List[date]:
 
     return [jst_today()]
 
-# ==============================================================================
-def parse_args(argv=None):
+# ============================= メイン ===============================
+def main(argv=None) -> int:
 
     p = argparse.ArgumentParser(description="Bﾌｧｲﾙ取得Insert")
     p.add_argument("--date",                           help="対象日(YYYY-MM-DD)")
@@ -507,13 +507,8 @@ def parse_args(argv=None):
     p.add_argument("--date_to",                        help="期間終了(YYYY-MM-DD)")
     p.add_argument("--overwrite", action="store_true", help="上書きﾓｰﾄﾞ")
     p.add_argument("--html",                           help="HTML(PATH)指定")
+    args   = p.parse_args(argv)
 
-    return p.parse_args(argv)
-
-# ============================= メイン ===============================
-def main(argv=None) -> int:
-
-    args   = parse_args(argv)
     dates  = iter_target_dates(args)
     today  = jst_today()
 
@@ -570,4 +565,4 @@ def main(argv=None) -> int:
 
 #-------------------------------------------------------------------------------
 if __name__ == "__main__":
-    raise SystemExit(main())
+    sys.exit(main())

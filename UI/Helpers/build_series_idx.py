@@ -8,38 +8,23 @@ from collections import defaultdict
 import re, tkinter as tk
 
 from Helpers.Custum_func import cFr, cLbl, cBtn
-from Widgets.widgets     import clear_widgets
+from widgets import apply_absent_bg
 import Dal as dal
 
-RE_FINAL = re.compile(
-    r"(?<!準)(?:"
-    r"優勝戦"
-    r"|優\s*勝\s*戦"
-    r"|決勝戦"
-    r"|(?<=.{4})優勝"
-    r"|(?<=.{5})優"
-    r")(?!進出|進)"
-    r"|(?:王将位決定戦"
-    r"|初優勝決定戦"
-    r"|Ｇ・Ａ決定戦"
-    r"|賞金女王決定"
-    r"|賞金王決定戦"
-    r"|是政女王決定"
-    r"|是政王子決定"
-    r"|海の王者決定"
-    r"|是政名人決定"
-    r"|波乗り王決定"
-    r"|ヘビー級王決"
-    r"|王座決定戦"
-    r"|関ヶ原決戦"
-    r"|団体・優勝"
-    r"|オオムラＧＰ"
-    r"|是政プリンス"
-    r"|澤乃井ファイ"
-    r"|ファイナル\s*$"
-    r")",re.I          )
+RE_FINAL = re.compile(    r"(?<!準)"
+                          r"(?!進出|進)"
+                          r"(?:優勝戦|優\s*勝\s*戦|決勝戦|(?<=.{4})優勝"
+                                                       r"|(?<=.{5})優)"
+                       r"|(?:王将位決定戦|初優勝決定戦"
+                          r"|賞金女王決定|賞金王決定戦"
+                          r"|是政女王決定|是政王子決定|是政名人決定|是政プリンス"
+                          r"|海の王者決定|波乗り王決定|ヘビー級王決"
+                          r"|オオムラＧＰ|Ｇ・Ａ決定戦"
+                          r"|関ヶ原決戦|王座決定戦|団体・優勝"
+                          r"|澤乃井ファイ|ファイナル\s*$)",re.I )
 
-FRAME_COLORS   = { 1: dict(bg="#FFFFFF", fg="#000000"),
+FRAME_COLORS   = { 0: dict(bg="white",   fg="#000000"),
+                   1: dict(bg="#FFFFFF", fg="#000000"),
                    2: dict(bg="#000000", fg="#FFFFFF"),
                    3: dict(bg="#D40000", fg="#FFFFFF"),
                    4: dict(bg="#0066CC", fg="#FFFFFF"),
@@ -57,8 +42,16 @@ GUI, MUI, HNH, CBR = "Yu Gothic UI", "Meiryo UI", "Helvetica Neue Heavy", "Cambr
 GR, SD, RD, RA, BD = "groove", "solid", "ridge", "raised", "bold"
 ALL, CT            = "nsew", "center"
 
-HDR_COLOR  = "#d0e3ff"
-BG_COLOR   = "#e9f1f2"
+BG_COLOR  = "#E9F1F2"
+BLANK_BG  = "#D0E3FF"
+HDR_BG    = "#2B4A7A"
+HDR_FG    = "#FFFFFF"
+HDR_F     = dict(bg="#2B4A7A")
+HDR_L     = dict(bg="#2B4A7A", fg="#FFFFFF")
+BTN_OPT   = dict(bg="#4A6A9A", fg="#FFFFFF", relief=RA, bd=1, cursor="hand2")
+
+TODAY = dict(fg="black", bg=BLANK_BG)
+OTHER = dict(fg="white", bg=HDR_BG)
 
 # ------------------
 def today_iso() -> str:
@@ -217,26 +210,21 @@ def get_other_race(d_iso:str, venue_id:int, player_id:int, race_no:int):
 # ----------------- 日程ヘッダ 表示/更新 -------------------
 def update_series_idx(self, d_iso:str, venue_id:int, race_no:int):
 
-    clear_widgets(self, s_index=True) 
-
     lineup    = get_lineup(self.entry_rows)
     _, slots  = build_day_lbl(d_iso, venue_id)
     today_idx = sum(1 for n in range(7) if slots[n]) -1
 
     for lane in range(1, 7):
-        cells = self.widgets_main[lane]["R_hdr"]
+        cells = self.widgets_idx[lane]["R_hdr"]
         for i in range(7):
-            cell = cells[i]
+            hedr = cells[i]
             info = slots[i]
-            if not info: continue
-
-            dn   = info.get("day_no")
-            text = "初  日" if dn == 1           else f"{dn}日目"
-            text = "最終日" if info["final_day"] else text
-
-            bg   = {"bg":"#b3ffd4"} if i == today_idx else {"bg":HDR_COLOR}
-
-            cLbl(cell, text=text, Anc=CT, font=(MUI,8), **bg, Jst=CT)._pack(Exp=True, fill="both")
+            hedr.config(text="", bg="#F0F4FA")
+            if info:
+                dn   = info.get("day_no")
+                text = "初  日" if dn == 1           else f"{dn}日目"
+                text = "最終日" if info["final_day"] else text
+                hedr.config(text=text, **TODAY if i == today_idx else OTHER)
 
     _assign_series_idx(self, slots, lineup)
     _assign_other_run(self, lineup)
@@ -296,7 +284,12 @@ def _assign_series_idx(self, slots, lineup):
     # --------------
     for lane in range(1, 7):
         p_id  = lineup[self.frame_order[lane -1]]
-        cells = self.widgets_main[lane]["R_bdy"]
+        cells = self.widgets_idx[lane]["R_bdy"]
+
+        for col_cells in cells:
+            col_cells[0].unbind("<Button-1>")
+            for r in range(4):
+                col_cells[r].config(text="", bg="white", fg="black")
 
         for i in range(7):
             info  = slots[i]
@@ -311,42 +304,39 @@ def _assign_series_idx(self, slots, lineup):
             if R: _paint_abcd(self, cells[i*2 +1], R[0], R[1], R[2], R[3], R[4], d_iso)
 
 # ----------------------------------------------------------
-def _paint_abcd(self, cells:list, r_no:int, course:int, st:str, rank:str, f_no:int, d_iso:str):
+def _paint_abcd(self, cells:list, r_no:int, course:int, st:str, rank:str, f_no:int, d:str):
 
-    if not r_no: return
+    col = FRAME_COLORS[f_no]
+    fg  = "red" if rank in ("F", "L", "S", "K") else "black"
 
-    fr_col = FRAME_COLORS[f_no]
-    fg     = "red" if rank in ("F", "L", "S", "K") else "black"
-
-    lbl = cLbl(cells[0], text=f"{r_no}R", bg="white", Anc=CT, font=(MUI,8), cursor="hand2")
-    lbl.bind("<Button-1>", lambda e:self._reload_for(d_iso, self.venue_id, r_no, result=True))
-    lbl.pack(expand=True, fill="both")
-
-    cLbl( cells[1], text=course,    font=(MUI,8,BD), **fr_col, Bd=(1,RD), Anc=CT
-         )._pack(expand=True, fill="both", px=1)
-    cLbl( cells[2], text=w_txt(st), font=(MUI,8),     fg=fg, bg="white",  Anc=CT
-         )._pack(expand=True, fill="both")
-    cLbl( cells[3], text=rank,      font=(GUI,10,BD), fg=fg, bg="white",  Anc=CT
-         )._pack(expand=True, fill="both")
+    cells[0].config(text=f"{r_no:2d}R", font=(MUI,8),         bg="white", cursor="hand2")
+    cells[1].config(text=course,        font=(MUI,8,BD),  **col)
+    cells[2].config(text=w_txt(st),     font=(MUI,8),     fg=fg, bg="white")
+    cells[3].config(text=rank,          font=(MUI,8,BD), fg=fg, bg="white")
+    cells[0].bind("<Button-1>", lambda e:self._reload_for(d, self.venue_id, r_no, result=True))
 
 # --------------- 2走インデックス 表示/更新 ----------------
 def _assign_other_run(self, lineup):
 
     for lane in range(1, 7):
+        cells = self.widgets_idx[lane]["R_idx"]
+        cells[0].unbind("<Button-1>")
+        for i in range(3):
+            cells[i].config(text="", bg=HDR_BG, relief="flat", bd=0)
+
         p_id  = lineup[self.frame_order[lane -1]]
-        cells = self.widgets_main[lane]["R_idx"]
         other = get_other_race(self.date, self.venue_id, p_id, self.race_no)
         if other[0] == 0: continue
 
-        opts1 = dict(font=(GUI,10,BD), bg=BG_COLOR)
-        opts2 = FRAME_COLORS[other[1]] | dict(font=(GUI,10,BD))
-
-        cLbl(cells[0],      text=f"{other[0]}R", **opts1, Anc=CT)._pack(          py=(25, 0))
-        cLbl(cells[1], H=2, text=other[1],       **opts2, Anc=CT)._pack(fill="x", py=(10,10))
+        opts1 = dict(font=(GUI,10,BD), bg=HDR_BG)
+        opts2 = FRAME_COLORS[other[1]] | dict(font=(MUI,8,BD), relief=RD, bd=1)
         #-----------
         def _go(d=self.date, v_id=self.venue_id, r_no=other[0]):
             self._reload_for(d, v_id, r_no, result=True)
         #-----------
-        ttk.Button(cells[2], text=">", style="Thin.TButton", command=_go).pack(pady=(0,5))
+        cells[0].config(text=f"{other[0]}R", **opts1)
+        cells[1].config(text=other[1],       **opts2)
+        cells[2].config(text=">", font=(MUI,9,BD), **BTN_OPT, pady=8)
+        cells[2].bind("<Button-1>", lambda e:_go())
 
 # ----------------------------------------------------------

@@ -16,10 +16,9 @@ from Widgets.widgets        import set_player_image, framing_graph
 from Screens.classification import PlayerClassificationScreen
 
 
-GUI, MUI       = "Yu Gothic UI", "Meiryo UI"
-BD             = "bold"
-GR, SD, RA, RD = "groove", "solid", "raised", "ridge"
-ALL, CT        = "nsew", "center"
+GUI, MUI, HNH, CBR     = "Yu Gothic UI", "Meiryo UI", "Helvetica Neue Heavy", "Cambria"
+GR, SD, RD, RA, SK, BD = "groove", "solid", "ridge", "raised", "sunken", "bold"
+ALL, CT                = "nsew", "center"
 
 VENUES    = [ " 桐生 "," 戸田 ","江戸川","平和島","多摩川","浜名湖"," 蒲郡 "," 常滑 ","　津　",
               " 三国 ","びわこ","住之江"," 尼崎 "," 鳴門 "," 丸亀 "," 児島 "," 宮島 "," 徳山 ",
@@ -73,16 +72,28 @@ CLS_COLOR = { "A1": dict(fg="blue",    bg="white", font=(GUI,10,BD)),
               "B1": dict(fg="black",   bg="white", font=(GUI,10   )),
               "B2": dict(fg="red",     bg="white", font=(GUI,10,BD))  }
 
-BDFNT          = dict(font=(MUI,9,BD))
-NMFNT          = dict(font=(MUI,9   ))
+BDFNT     = dict( font=(MUI,9,BD) )
+NMFNT     = dict( font=(MUI,9   ) )
 
 COL1, COL2, COL3 = "#FFF4AA", "#33EE33", "#2A62FF"
-SRC_COL, SRS_COL = "#a463ff", "#505050"
-STC_COL, STR_COL = "#2A62FF", "#2a9a01"
-G_COL            = {0:"#616161", 1:"#616161", 2:"#00b008", 3:"#3f76ff", 4:"#3f76ff", 5:"red"}
-NOR_COL          = {"bg":"white", "fg":"black"}
-HDR_COL          = "#e0e1f4"
-HL_COL           = "#cce8ff"
+SRC_COL, SRS_COL = "#A463FF", "#505050"
+STC_COL, STR_COL = "#2A62FF", "#2A9A01"
+G_COL            = {0:"#616161", 1:"#616161", 2:"#00B008", 3:"#3F76FF", 4:"#3F76FF", 5:"RED"}
+NOR_COL          = dict(bg="white", fg="black")
+
+HDR_COL = "#E0E1F4"
+YELL    = "#fff6b0"
+
+HDR_BG  = "#2B4A7A"
+HDR_FG  = "#FFFFFF"
+HDR_B   = dict(bg="#2B4A7A")
+BTN_BF  = dict(bg="#ebebeb", fg="black")                    # gray
+HDR_BF  = dict(bg="#2B4A7A", fg="#FFFFFF")
+BTN_OPT = dict(bg="#ebebeb", fg="black",   bd=1, relief=RA) # gray
+HDR_OPT = dict(bg="#2B4A7A", fg="#FFFFFF", bd=2, relief=RA)
+
+HL_BLUE = dict(bg="#CCE8FF", fg="black", bd=1, relief=GR)
+HL_YELL = dict(bg="#fff6b0", fg="black", bd=1, relief=SK, font=(MUI,8))
 
 CEL_W  = 65
 CEL_H  = 27
@@ -93,8 +104,9 @@ C_W    = 72
 CLW    = (C_W *5)+2
 
 # ----------------------------
-def wid_txt(s: str) -> str:
+def wid_txt(s:str) -> str:
 
+    s = str(s)
     hair = "\u200A" 
     return hair.join(list(s))
 # ----------------------------
@@ -116,9 +128,6 @@ class PlayerAnalysisScreen(tk.Toplevel):
         self.title("")
         self.geometry("1201x970+750+200")
         self.resizable(False, False)
-        style = ttk.Style()
-        style.configure("r.TButton",    font=(MUI,9), anchor="center")
-        style.configure("dist.TButton", font=(MUI,8), width=7, anchor="center")
 
         self.date_from  = date.today()
         self.date_to    = date.today()
@@ -141,14 +150,15 @@ class PlayerAnalysisScreen(tk.Toplevel):
 
         self.grade_state  = { (0, 1):True, (2,):True, (3, 4):True, (5,):True }
 
-        self.trend_state  = { "sr_single":True,  "sr_cumltv":False,
-                              "st_single":False, "st_cumltv":False  }
+        self.trend_state  = {  "sr_single":True,   "sr_cumltv":False,
+                               "st_single":False,  "st_cumltv":False  }
 
         self.filter_state = {   "str_wind":False,      "local":False,
                               "all_ladies":False, "not_ladies":False,
                                     "rain":False,  "sea_water":False,
                              "fresh_water":False,      "river":False,
-                                "brackish":False, "has_flying":False, }
+                                "brackish":False, "has_flying":False, 
+                                "point_up":False,                     }
 
         self.filter_dict  = {   "str_wind":("wind_spd",        5),
                                    "local":("venue_id", self.venue_id),
@@ -159,7 +169,8 @@ class PlayerAnalysisScreen(tk.Toplevel):
                              "fresh_water":("water_type", "淡水"),
                                    "river":("water_type", "河川"),
                                 "brackish":("brackish",   "汽水"),
-                              "has_flying":("flying",       True),      }
+                              "has_flying":("flying",       True),
+                                "point_up":("point_up",     True),   }
 
         self._build_ui()
         self._load_player_basic(self.player_id)
@@ -190,10 +201,10 @@ class PlayerAnalysisScreen(tk.Toplevel):
 
         fr_plyr  = cFr(fr_left, W= 390, H=210)
         fr_clss  = cFr(fr_left, W= CLW, H= 66)
-        fr_btnA  = cFr(fr_left, W= 390, H= 30)
-        fr_btnB  = cFr(fr_left, W= 390, H= 30)
-        fr_btnC  = cFr(fr_left, W= 390, H= 30)
-        fr_btnD  = cFr(fr_left, W= 390, H= 30)
+        fr_btnA  = cFr(fr_left, W= 390, H= 26)
+        fr_btnB  = cFr(fr_left, W= 390, H= 26)
+        fr_btnC  = cFr(fr_left, W= 390, H= 26)
+        fr_btnD  = cFr(fr_left, W= 390, H= 26)
 
         fr_imag  = cFr(fr_plyr, W= 140, H=198)
         fr_prof  = cFr(fr_plyr, W= 218, H=205, Bd=(1,SD))
@@ -219,10 +230,10 @@ class PlayerAnalysisScreen(tk.Toplevel):
         fr_imag._grid( R=0, C=0                       )  ; fr_imag.Pgate()
         fr_prof._grid( R=0, C=1, px=(15,10),py=( 3, 0))  ; fr_prof.Pgate()
         fr_clss._grid( R=1, C=0,            py=(10,10))  ; fr_clss.Pgate()
-        fr_btnA._grid( R=2, C=0,            py=( 0, 2))  ; fr_btnA.Pgate()
-        fr_btnB._grid( R=3, C=0,            py=( 0, 2))  ; fr_btnB.Pgate()
-        fr_btnC._grid( R=4, C=0,            py=( 0, 2))  ; fr_btnC.Pgate()
-        fr_btnD._grid( R=5, C=0,            py=( 0, 2))  ; fr_btnD.Pgate()
+        fr_btnA._grid( R=2, C=0,            py=( 0, 6))  ; fr_btnA.Pgate()
+        fr_btnB._grid( R=3, C=0,            py=( 0, 6))  ; fr_btnB.Pgate()
+        fr_btnC._grid( R=4, C=0,            py=( 0, 6))  ; fr_btnC.Pgate()
+        fr_btnD._grid( R=5, C=0,            py=( 0, 6))  ; fr_btnD.Pgate()
         fr_trnd._grid( R=0, C=1                       )  ; fr_grph.Pgate()
         fr_Gbtn._grid( R=1, C=0                       )  ; fr_Gbtn.Pgate()
         fr_Tbtn._grid( R=1, C=1                       )  ; fr_Tbtn.Pgate()
@@ -230,9 +241,8 @@ class PlayerAnalysisScreen(tk.Toplevel):
         self.bar._grid(R=0, C=0)
         self.achievement._grid(R=0, C=1)                 ; self.achievement.Pgate()
 
-        # 優勝実績 (G2以上) --------------------
         lbl_ach_hdr = cLbl( self.achievement, text="タイトル 実績",
-                            bg=HDR_COL, font=(MUI,9), Anc=CT      )
+                            **HDR_BF, font=(MUI,9), Anc=CT      )
         lbl_ach_hdr._grid(R=0, C=0, py=(0,3), Stk=ALL)
 
         fr_ach_body = cFr(self.achievement, W=380, H=222)
@@ -264,6 +274,9 @@ class PlayerAnalysisScreen(tk.Toplevel):
         lb_img = cLbl(fr_imag)
         lb_img._grid(R=0, C=0)
         set_player_image(lb_img, self.player_id, (140, 198))
+        for r in range(7):
+            fr_prof.Rconf(r, Min=29)
+        fr_prof.Cconf(0, Min=70) ;fr_prof.Cconf(1, Min=146)
 
         self.basic_vars = {          "name": tk.StringVar(value=""),
                                 "player_id": tk.StringVar(value=""),
@@ -278,12 +291,10 @@ class PlayerAnalysisScreen(tk.Toplevel):
                  ("所属支部","regions"), ("出身地",   "birthplace"   ),  
                  ("選手歴", "career")                                   ]
 
-        opt = dict(Anc=CT, Bd=(1,GR), font=(MUI,10))
-
         for r,(cap,key) in enumerate(rows):
-            cLbl(fr_prof, text=cap, W=8, bg=HDR_COL, py=5, **opt)._grid(R=r, C=0, Stk="e")
-            lbl = cLbl(fr_prof, textvariable=self.basic_vars[key], bg="white", width=18, py=5, **opt)
-            lbl._grid(R=r, C=1, Stk="w")
+            cLbl(fr_prof, text=cap, **HDR_OPT, font=(MUI,8,BD), py=5)._grid(R=r, C=0, Stk=ALL)
+            lbl = cLbl(fr_prof, Txtv=self.basic_vars[key], font=(MUI,8),Bd=(1,GR))
+            lbl._grid(R=r, C=1, Stk=ALL)
             if r == 3:
                 lbl.bind("<Button-1>",lambda e:self._same_period())
                 lbl.config(cursor="hand2")
@@ -305,9 +316,9 @@ class PlayerAnalysisScreen(tk.Toplevel):
             frA.Cconf(0, W=1); frA.Rconf(0, W=1)
             frB.Cconf(0, W=1); frB.Rconf(0, W=1)
             frC.Cconf(0, W=1); frC.Rconf(0, W=1)
-            l_a = cLbl(frA, text="", font=(MUI, 9), Bd=(1,RA), bg=HDR_COL) ;l_a._grid(R=0, C=0, Stk=ALL)
+            l_a = cLbl(frA, text="", font=(MUI, 8,BD),        **HDR_OPT) ;l_a._grid(R=0, C=0, Stk=ALL)
             l_b = cLbl(frB, text="", font=(GUI,10), Bd=(1,GR)          ) ;l_b._grid(R=0, C=0, Stk=ALL)
-            l_c = cLbl(frC, text="", font=(MUI, 9), Bd=(1,GR)          ) ;l_c._grid(R=0, C=0, Stk=ALL)
+            l_c = cLbl(frC, text="", font=(MUI, 8), Bd=(1,GR)          ) ;l_c._grid(R=0, C=0, Stk=ALL)
 
             key = y_s[4-c]
             l_a.config(cursor= "hand2")
@@ -327,70 +338,71 @@ class PlayerAnalysisScreen(tk.Toplevel):
         self.cells = {}
         # ----------
         def make_cell(r:int, c:int, text:str, f:str):
-            opt = {"bg":HDR_COL, "Bd":(1,RD)} if r==0 else {"bg":"white", "Bd":(1,GR)}
+            opt = HDR_OPT if (r==0 or c==0) else {"bg":"white", "Bd":(1,GR)}
             lbl = cLbl(self.fr_tbl, text=text, font=f, Anc=CT, **opt)
             lbl._grid(R=r, C=c, Stk=ALL)
             self.cells[(r,c)] = lbl
         #-----------
         make_cell(0, 0, text="", f=(MUI,10))
         for c, cap in enumerate(COL_KEYS, start=1):
-            make_cell(0, c, text=cap, f=(MUI,10))
+            make_cell(0, c, text=cap, f=(MUI,8,BD))
         for r, (_, cap) in enumerate(ROW_KEYS, start=1):
-            make_cell(r, 0, text=cap, f=(GUI,10))
+            make_cell(r, 0, text=cap, f=(MUI,8,BD))
         for r in range(1, len(ROW_KEYS) +1):
             for c in range(1, len(COL_KEYS) +1):
-                make_cell(r, c, text="-", f=(MUI,10))
+                make_cell(r, c, text="-", f=(MUI,9))
 
         # ボタン -------------
         self.btns  = [{}, {}, {}, {}, {}]
         # ----------
         def mk_btn(frm, text, key, idx, w, px):
-            b = ttk.Button( frm, text=text, width=w, style="r.TButton",
-                                command=lambda k=key: self._on_switch(k, idx) )
-            b.pack(side=tk.LEFT, padx=px)
+            b = cBtn( frm, W=w, H=1, text=text, font=(MUI,8), **BTN_BF,
+                             Com=lambda k=key:self._on_switch(k,idx) )
+            b._pack(side=tk.LEFT, px=px)
             self.btns[idx][key] = b
             return b
         # ----------
         mk_btn(fr_btnA, "全期間",  "ALL", 0,7,0)
         mk_btn(fr_btnA, "今期",   "THIS", 0,7,(1,6))
-        mk_btn(fr_btnA, "1 年",     "1Y", 0,7,1)
-        for m in [9,6,3]: mk_btn(fr_btnA, f"{m}ヶ月", f"{m}M", 0,7,1)
+        mk_btn(fr_btnA, "1 年",     "1Y", 0,6,2)
+        for m in [9,6,3]: mk_btn(fr_btnA, f"{m}ヶ月", f"{m}M", 0,6,2)
         mk_btn(fr_btnB, "指定期間","adjust", 0,7,(0,10))
         mk_btn(fr_btnB, "<<", "pre_y", 4,3,0) ;mk_btn(fr_btnB, "<",   "pre_m", 4,3,0)
         self.lb_period = cLbl(fr_btnB, text=" 1 年  0 ヶ月", font=(MUI,9), Bd=(1,GR), bg="white")
         self.lb_period._pack(side=tk.LEFT, px=3)
         mk_btn(fr_btnB, ">", "next_m", 4,3,0) ;mk_btn(fr_btnB, ">>", "next_y", 4,3,0)
 
-        mk_btn(fr_btnC, "当 地",           "local", 3,  6, 2)
-        mk_btn(fr_btnC, "海水",        "sea_water", 3,  6, 2)
-        mk_btn(fr_btnC, "淡水",      "fresh_water", 3,  6, 2)
-        mk_btn(fr_btnC, "河川",            "river", 3,  6, 2)
-        mk_btn(fr_btnC, "混合戦",     "not_ladies", 3,  6, 2)
-        mk_btn(fr_btnC, "女子戦",     "all_ladies", 3,  6, 2)
+        mk_btn(fr_btnC, "当 地",      "local",       3,  6, 2)
+        mk_btn(fr_btnC, "海水",       "sea_water",   3,  6, 2)
+        mk_btn(fr_btnC, "淡水",       "fresh_water", 3,  6, 2)
+        mk_btn(fr_btnC, "河川",       "river",       3,  6, 2)
+        mk_btn(fr_btnC, "混合戦",     "not_ladies",  3,  6, 2)
+        mk_btn(fr_btnC, "女子戦",     "all_ladies",  3,  6, 2)
 
-        mk_btn(fr_btnD, "強 風",        "str_wind", 3,  6, 2)
-        mk_btn(fr_btnD, "雨",               "rain", 3,  6, 2)
-        mk_btn(fr_btnD, "ﾌﾗｲﾝｸﾞ",     "has_flying", 3,  6, 2)
+        mk_btn(fr_btnD, "強 風",      "str_wind",    3,  6, 2)
+        mk_btn(fr_btnD, "雨",         "rain",        3,  6, 2)
+        mk_btn(fr_btnD, "ﾌﾗｲﾝｸﾞ",     "has_flying",  3,  6, 2)
+        mk_btn(fr_btnD, "点増し",     "point_up",    3,  6, 30)
 
-        mk_btn(fr_Gbtn, "SG",                 (5,), 1,  6, 2)
-        mk_btn(fr_Gbtn, "G1",               (3, 4), 1,  6, 2)
-        mk_btn(fr_Gbtn, "G2",                 (2,), 1,  6, 2)
-        mk_btn(fr_Gbtn, "一般/G3",          (0, 1), 1,  7, 2)
+        mk_btn(fr_Gbtn, "SG",                  (5,), 1,  6, 2)
+        mk_btn(fr_Gbtn, "G1",                (3, 4), 1,  6, 2)
+        mk_btn(fr_Gbtn, "G2",                  (2,), 1,  6, 2)
+        mk_btn(fr_Gbtn, "一般/G3",           (0, 1), 1,  7, 2)
 
-        mk_btn(fr_Tbtn, "勝率 (単)",   "sr_single", 2, 11, 4)
-        mk_btn(fr_Tbtn, "勝率 (累積)", "sr_cumltv", 2, 11, 4)
-        mk_btn(fr_Tbtn, "ＳＴ (単)",   "st_single", 2, 11, 4)
-        mk_btn(fr_Tbtn, "ＳＴ (累積)", "st_cumltv", 2, 11, 4)
+        mk_btn(fr_Tbtn, "勝率 (単)",   "sr_single",  2, 11, 4)
+        mk_btn(fr_Tbtn, "勝率 (累積)", "sr_cumltv",  2, 11, 4)
+        mk_btn(fr_Tbtn, "ＳＴ (単)",   "st_single",  2, 11, 4)
+        mk_btn(fr_Tbtn, "ＳＴ (累積)", "st_cumltv",  2, 11, 4)
 
         # サイド =======================
-        frm   = cFr(fr_side, W=379, H=35, bg=HDR_COL, Bd=(1,RD))       #379  700
+        frm   = cFr(fr_side, W=379, H=35, **HDR_B, Bd=(1,RD))       #379  700
         frm._grid(R=0, C=0,Cspan=2, Stk=ALL) ; frm.Pgate()
 
         # 節間成績------------
         self.btn_y_prev = cBtn(frm, text="＜", W=5, font=(MUI,6,BD), Com=lambda:self._on_series_btn(+1))
         self.btn_y_next = cBtn(frm, text="＞", W=5, font=(MUI,6,BD), Com=lambda:self._on_series_btn(-1))
 
-        self.lbl_y_disp = cLbl(frm, text="---- 年", font=(MUI,9,BD), bg=HDR_COL, Anc=CT)
+        self.lbl_y_disp = cLbl(frm, text="---- 年", font=(MUI,9,BD), **HDR_BF, Anc=CT)
 
         self.btn_y_prev._pack(side=tk.LEFT, px=(70, 0), py=0, expand=False)
         self.lbl_y_disp._pack(side=tk.LEFT, px=( 0, 0), py=2, expand=True)
@@ -440,17 +452,19 @@ class PlayerAnalysisScreen(tk.Toplevel):
     def _update_toggle_btn_state(self, idx:int, filter_dict:dict):
 
         for k, b in self.btns[idx].items():
-            if filter_dict.get(k): b.state(['pressed'])
-            else:                  b.state(['!pressed'])
+            if filter_dict.get(k): b.config(**HL_BLUE)
+            else:                  b.config(**BTN_OPT)
+
     # --------------------------------------------
     def _update_radio_btn_state(self, idx:int, key:str|tuple):
 
         for k, b in self.btns[idx].items():
-            if k == key: b.state(["pressed"])
-            else:        b.state(["!pressed"])
+            if k == key: b.config(**HL_YELL)
+            else:        b.config(**BTN_BF, bd=1, relief=RD)
         for k, lbl in self.season.items():
-            if k == key: lbl.config(bg=HL_COL,  bd=1, relief=GR)
-            else:        lbl.config(bg=HDR_COL, bd=1, relief=RA)
+            if k == key: lbl.config(**HL_YELL)
+            else:        lbl.config(**HDR_OPT)
+
     # --------------------------------------------
     def _on_switch(self, key:str ,idx:int):
 
@@ -622,8 +636,8 @@ class PlayerAnalysisScreen(tk.Toplevel):
 
             for r, val in enumerate(cells, start=1):
                 if (c in [2,3,4]) and (r == 6) and (s["victory"] >= 1):
-                    self.cells[(r, c)].config(text=str(val), fg="blue", bg="white", font=(MUI,10,BD))
-                else: self.cells[(r, c)].config(text=str(val), fg="black", bg="white")
+                    self.cells[(r, c)].config(text=wid_txt(val), fg="blue", bg="white", font=(MUI,10,BD))
+                else: self.cells[(r, c)].config(text=wid_txt(val), fg="black", bg="white")
 
     #------------------------ ｺｰｽ別ｸﾞﾗﾌ描画 --------------------------
     def _refresh_bar_graph(self):
@@ -638,13 +652,14 @@ class PlayerAnalysisScreen(tk.Toplevel):
         for ln in range(6):
             cnt     = row[ln+1]["cnt"]
             v       = row[ln+1]["st_ave"]
+            fg      = "red" if cnt < 10 else "black"
             label_A = f"{ln+1} コース"
             label_B = f"   / {cnt} "
             label_C = "ー" if v is None else v
 
-            cLbl(lb1, text=label_A, anchor="w", font=(MUI,8)).place(x=0, y=ln*41)
-            cLbl(lb1, text=label_B, anchor="w", font=(MUI,8,BD)).place(x=0, y=ln*41+15)
-            cLbl(lb2, text=label_C, anchor="w", font=(MUI,8)).place(x=0, y=ln*41+5)
+            cLbl(lb1, anchor="w", text=label_A, font=(MUI,8   )         ).place(x=0, y=ln*41   )
+            cLbl(lb1, anchor="w", text=label_B, font=(MUI,8,BD), fg=fg, ).place(x=0, y=ln*41+15)
+            cLbl(lb2, anchor="w", text=label_C, font=(MUI,8   )         ).place(x=0, y=ln*41 +5)
 
     #------------------------ 折れ線グラフ描画 -----------------------
     def _refresh_trend_graph(self):
@@ -784,7 +799,7 @@ class PlayerAnalysisScreen(tk.Toplevel):
                 slit  = f"{item['s_adj']:.2f}"[1:] if item['s_adj'] else ""
                 rank  = convert_rank(item["finish"], item["is_fnl"], item["prefnl"])
                 fcolr = ("red" if rank in ("F","L","S","K","(F)","(L)","(S)","(K)") else "black")
-                bg    = HL_COL if cour == self.course else "white"
+                bg    = YELL if cour == self.course else "white"
                 opt   = { 0: dict(text=cour, **FRM_COLOR[frn],     font=(GUI, 9,BD) ),
                           1: dict(text=slit, fg=fcolr, bg="white", font=(MUI, 8   ) ),
                           2: dict(text=rank, fg=fcolr, bg=bg,      font=(GUI,10,BD) ), }
@@ -865,8 +880,8 @@ class PlayerAnalysisScreen(tk.Toplevel):
         fr_right = cFr(self.win, W=330, H=250)
 
         for r in range(7):
-            fr_left.Rconf(r, minsize=30)
-            fr_right.Rconf(r, minsize=30)
+            fr_left.Rconf(r, minsize=28)
+            fr_right.Rconf(r, minsize=28)
             for c in range(7):
                 fr_left.Cconf(c, minsize=55)
                 if c <= 5:
@@ -885,19 +900,19 @@ class PlayerAnalysisScreen(tk.Toplevel):
                                           ("抜き",       "抜き"),
                                           ("恵まれ",     "恵まれ"),    ],  }
 
-        self.lb_totl = cLbl(fr_left, text="", font=(MUI,8,BD), bg="#cce8ff", Bd=(1,RA))
+        self.lb_totl = cLbl(fr_left, text="", font=(MUI,8,BD), bg="#4A6A9A", fg="white", Bd=(1,RA))
         self.lb_totl._grid(R=0, C=0, px=1, py=1, Stk=ALL)
         self.lb_totl.bind("<Button-1>",lambda e:self._change_disp())
 
         for rk in range(1, 7):
-            rbtn = ttk.Button( fr_left, text=f"{rk} 着", style="dist.TButton",
-                               command=lambda _rk=rk: self._toggle_subject_rank(_rk) )
+            rbtn = cBtn( fr_left, text=f"{rk} 着", font=(MUI,8), **HDR_OPT,
+                             Com=lambda _rk=rk: self._toggle_subject_rank(_rk) )
             rbtn.grid(row=0, column=rk, padx=1, pady=1, sticky=tk.NSEW)
             self.dist_refs["rank_btn"][rk] = rbtn
 
         for c in range(1, 7):
-            cbtn = ttk.Button( fr_left, text=f"{c}コース", style="dist.TButton",
-                               command=lambda _c=c:self._on_subject_course_btn(_c)   )
+            cbtn = cBtn( fr_left, text=f"{c}コース", font=(MUI,8,BD), **HDR_OPT,
+                              Com=lambda _c=c:self._on_subject_course_btn(_c) )
             cbtn.grid(row=c, column=0, padx=(0, 1), pady=0, sticky=tk.NSEW)
             self.dist_refs["course_btn"][c] = cbtn
 
@@ -907,7 +922,7 @@ class PlayerAnalysisScreen(tk.Toplevel):
                 self.dist_refs["cells"][(c, rk)] = cell
 
         for j, (label, keys) in enumerate(self.dist_refs["move_cols"]):
-            cLbl(fr_right, text=label, py=4, font=(MUI,8), Bd=(1,RD), bg=HDR_COL, Anc=CT
+            cLbl(fr_right, text=label, py=4, font=(MUI,8,BD), **HDR_OPT, Anc=CT
                  )._grid(R=0, C=j, py=(0,2), Stk=ALL)
 
         for r in range(1, 7):
@@ -934,12 +949,12 @@ class PlayerAnalysisScreen(tk.Toplevel):
         starts  = self.data_rows["starts"]
 
         for c, b in self.dist_refs["course_btn"].items():
-            if subj_c == c: b.state(["pressed"])
-            else:           b.state(["!pressed"])
+            if subj_c == c: b.config(**HL_BLUE)
+            else:           b.config(**HDR_OPT)
 
         for rk, b in self.dist_refs["rank_btn"].items():
-            if subj_r == rk: b.state(["pressed"])
-            else:            b.state(["!pressed"])
+            if subj_r == rk: b.config(**HL_BLUE)
+            else:            b.config(**HDR_OPT)
 
         total = own_cnt[subj_c][subj_r] if subj_r else starts[subj_c]
         self.lb_totl.config(text=f"{total}")
@@ -961,8 +976,8 @@ class PlayerAnalysisScreen(tk.Toplevel):
                     v = oth_by[subj_c][subj_r][c][rk]
 
                 if self.disp == 1:
-                    if rk == 1: f=(MUI,9,BD)
-                    else:       f=(MUI,9)
+                    if rk == 1: f=(MUI,8,BD)
+                    else:       f=(MUI,8)
                 else:
                     if rk == 1: f=(MUI,8,BD)
                     else:       f=(MUI,8)

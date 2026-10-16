@@ -188,7 +188,7 @@ class OddsWindow(tk.Tk):
         d     = dt.fromisoformat(self.date).strftime("%Y 年 %#m 月 %#d 日")
         venue = VENUES[self.venue_id]
 
-        self.lbl_title1 = cLbl(tb_L, text=f" {d}    {venue}   ",
+        self.lbl_title1 = cLbl(tb_L, text=f"   {venue} ",
                                    bg=HDR_BG, fg=HDR_FG, font=(MUI,10))
         self.lbl_title1._pack(side="left", py=4, Anc="w")
         self.lbl_title2 = cLbl( tb_L, text=f"{self.race_no} R    ",
@@ -533,8 +533,8 @@ class OddsWindow(tk.Tk):
         self.grid_items.clear()
         if hasattr(self, "sub_pannel_widgets"): self.sub_pannel_widgets.clear()
 
-        d = dt.fromisoformat(self.date).strftime("%Y 年 %#m 月 %#d 日")
-        self.lbl_title1.config(text=f" {d}    {VENUES[self.venue_id]}   ")
+
+        self.lbl_title1.config(text=f"   {VENUES[self.venue_id]}   ")
         self.lbl_title2.config(text=f"{self.race_no} R    ")
         self._update_race_btn_style()
         self._fetch_Players(self.date, self.venue_id, self.race_no)

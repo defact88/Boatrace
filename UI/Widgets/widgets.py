@@ -11,7 +11,7 @@ from PIL     import Image, ImageTk
 GUI, MUI, HNH      = "Yu Gothic UI", "Meiryo UI", "Helvetica Neue Heavy"
 GR, SD, RD, RA, BD = "groove", "solid", "ridge", "raised", "bold"
 ALL, CT            = "nsew", "center"
-HDR_COLOR          = "#e9f1f2"
+HDR_COLOR          = "#2B4A7A"
 
 WEATHER_DIR     = r"C:\boatrace\tmp\Icons\weather_icon"
 H_TYPE_ICON_DIR = r"C:\boatrace\tmp\Icons\held_type_icon"
@@ -445,7 +445,7 @@ def set_player_image(label:tk.Label, player_id:int, size:tuple[int, int]):
     label.configure(image=img, text="")
     label._player_photo_ref = img
 
-# ============================ 欠場ﾌﾚｰﾑ ﾏｽｸ処理 ================================
+# ======================= 欠場ﾌﾚｰﾑ ﾏｽｸ処理 ===========================
 def apply_absent_bg(frame:tk.Misc, gray:str="#cfcfcf"):
 
     #---------------
@@ -458,43 +458,25 @@ def apply_absent_bg(frame:tk.Misc, gray:str="#cfcfcf"):
         try:
             w.configure(background=gray)
             w.configure(fill=gray)
-        except: pass
+        except Exception: pass
 
-#============================ ウィジェット初期化 ===============================
-def clear_widgets(self, main:bool=False, s_index:bool=False, center_wdg:bool=False,
-                            figA:bool=False, graph:bool=False, figB:bool=False           ):
+# ====================================================================
+def reset_absent_bg(self):
 
     for lane in range(1, 7):
-        wdg_m = self.widgets_main[lane]
+        wdg = self.widgets_main[lane]["fr_left"]
+        #-----------
+        def _walk(root):
+            yield root
+            for ch in getattr(root, "winfo_children", lambda:[])():
+                yield from _walk(ch)
+        #-----------
+        for w in _walk(wdg):
+            try: 
+                w.configure(background="white")
+                w.configure(fill="white")
+            except Exception: pass
 
-        if s_index:
-            for fr_hdr in wdg_m["R_hdr"]:
-                for child in fr_hdr.winfo_children(): child.destroy()
-            for row_cells in wdg_m["R_bdy"]:
-                for fr_cell in row_cells:
-                    for child in fr_cell.winfo_children(): child.destroy()
-            for fr_idx in wdg_m["R_idx"]:
-                for child in fr_idx.winfo_children(): child.destroy()
-
-        if center_wdg:
-            for child in wdg_m["fr_Ctr"].winfo_children(): child.destroy()
-
-        if main:
-            #-----------
-            def _walk(w):
-                yield w
-                for ch in w.winfo_children(): yield from _walk(ch)
-            #-----------
-            if self.is_absent:
-                for w in _walk(wdg_m["Lane"]):
-                    try: w.configure(bg="white")
-                    except Exception: pass
-
-    wdg_list = ["Graph","Fig_A","Fig_B","wthr","wdir"]
-    wdg_s = self.widgets_sub[0]
-    for key, flag in zip(wdg_list, [graph, figA, figB, figB, figB]):
-        if flag:
-            for child in wdg_s[key].winfo_children(): child.destroy()
 
 # ============================ 開催種アイコン表示 ==============================
 def framing_held_type_icon(self, lbl:tk.Label, h_type:int):

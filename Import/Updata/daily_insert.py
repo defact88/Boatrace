@@ -13,8 +13,8 @@ import Dal as dal
 
 BASE      = Path(r"C:\boatrace")
 LOG_PATH  = Path(r"C:\boatrace\Archive\logs\daily_insert")
-BEF_PATH  = Path(r"C:\boatrace\UI\Updata\ETL_Before_info.py")
-ODDS_PATH = Path(r"C:\boatrace\UI\Updata\ETL_odds_data.py")
+BEF_PATH  = Path(r"C:\boatrace\Import\Updata\ETL_Before_info.py")
+ODDS_PATH = Path(r"C:\boatrace\Import\Updata\ETL_odds_data.py")
 
 # ===========  共通ヘルパー  ===========
 def today_iso() -> str:
@@ -179,12 +179,12 @@ def update_overall(d_iso:str, overwrite:bool=False):
 def main():
 
     p = argparse.ArgumentParser()
-    p.add_argument("--date",       type=date.fromisoformat, help="対象日(yyyy)")
-    p.add_argument("--date_from",  type=date.fromisoformat, help="開始日(YYYY-MM-DD)")
-    p.add_argument("--date_to",    type=date.fromisoformat, help="終了日(YYYY-MM-DD)")
-    p.add_argument("--days",       type=int,                help="直近n日間不足日補填")
-    p.add_argument("--overwrite",  action="store_true",     help="上書きﾓｰﾄﾞ")
-    p.add_argument("--background", action="store_true",     help="BGモード")
+    p.add_argument("--date",       type=str,            help="対象日(yyyy)")
+    p.add_argument("--date_from",  type=str,            help="開始日(YYYY-MM-DD)")
+    p.add_argument("--date_to",    type=str,            help="終了日(YYYY-MM-DD)")
+    p.add_argument("--days",       type=int,            help="直近n日間不足日補填")
+    p.add_argument("--overwrite",  action="store_true", help="上書きﾓｰﾄﾞ")
+    p.add_argument("--background", action="store_true", help="BGモード")
     args  = p.parse_args()
 
     if args.date and (args.date_from or args.date_to):

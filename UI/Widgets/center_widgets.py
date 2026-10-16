@@ -5,19 +5,25 @@ from Helpers.Custum_func import cFr, cLbl, cBtn, cCvs
 from tkinter             import ttk
 import tkinter as tk
 
-GUI, MUI, HNH, CBR = "Yu Gothic UI", "Meiryo UI", "Helvetica Neue Heavy", "Cambria"
-GR, SD, RD, RA, BD = "groove", "solid", "ridge", "raised", "bold"
-ALL, CT            = "nsew", "center"
+GUI, MUI, HNH, CBR     = "Yu Gothic UI", "Meiryo UI", "Helvetica Neue Heavy", "Cambria"
+GR, SD, RD, RA, SK, BD = "groove", "solid", "ridge", "raised", "sunken", "bold"
+ALL, CT                = "nsew", "center"
 
-HDR_C              = "#e0e1f4"
-HL_COL             = "#cce8ff"
+HDR_C   = "#e0e1f4"
+HL_COL  = "#cce8ff"
 
-BDFNT              = dict(font=(MUI,7,BD))
-NMFNT              = dict(font=(MUI,7   ))
+HDR_BG  = "#2B4A7A"
+HDR_FG  = "#FFFFFF"
+HDR     = dict(bg="#2B4A7A")
+HDR_BF  = dict(bg="#2B4A7A", fg="#FFFFFF")
+BTN_OPT = dict(bg="#4A6A9A", fg="#FFFFFF", Bd=(1,RA))
 
-OPT                = [dict(font=(MUI,8,BD), bg="#cce8ff"),
-                      dict(font=(MUI,8,  ), bg="white"),
-                      dict(font=(MUI,8,  ), bg="#e9e6e6"),]
+BDFNT   = dict(font=(MUI,7,BD))
+NMFNT   = dict(font=(MUI,7   ))
+
+OPT     = [ dict(font=(MUI,8,BD), bg="#cce8ff"),
+            dict(font=(MUI,8,  ), bg="white"),
+            dict(font=(MUI,8,  ), bg="#e9e6e6"), ]
 #===============================================================================
 class LaneCenterManager:
     def __init__(self, lane:int=None):
@@ -54,14 +60,14 @@ class LaneCenterManager:
         style.configure("d.TButton", font=(MUI,7), anchor="center")
 
         for rnk in range(1, 4):
-            rbtn = cLbl(self.frame, text=f"{rnk} 着", width=6, font=(GUI,8), Bd=(1,RA), bg="#f3f5ff")
+            rbtn = cLbl(self.frame, W=6, text=f"{rnk} 着", font=(GUI,8,BD), **BTN_OPT)
             rbtn.bind("<Button-1>",lambda e, rk=rnk: self._toggle_subject_rank(rk))
             rbtn._grid(R=0, C=rnk, Stk=ALL)
             self.dist_refs["rank_btn"][rnk] = rbtn
 
         for cou in range(1, 7):
-            cbtn = ttk.Button(self.frame, text=f"{cou}コース", width=5, style="d.TButton",
-                               command=lambda c=cou: self._on_subject_course_btn(c))
+            cbtn = cBtn(self.frame, W=1, text=f"{cou} コース", font=(MUI,7,BD), **BTN_OPT,
+                               Com=lambda c=cou: self._on_subject_course_btn(c))
             cbtn.grid(row=cou, column=0, sticky=ALL)
             self.dist_refs["course_btn"][cou] = cbtn
 
@@ -72,7 +78,7 @@ class LaneCenterManager:
                 self.dist_refs["cells"][(cou, rnk)] = cv
 
         for col, (label, _) in enumerate(self.move_cols):
-            cLbl(self.frame, text=label, font=(GUI,8), Bd=(1,RD), bg=HDR_C, Anc=CT
+            cLbl(self.frame, text=label, font=(GUI,8,BD), Bd=(1,RD), **HDR_BF
                  )._grid(R=0, C=col+4, Stk=ALL)
 
         for row in range(1, 7):
@@ -95,10 +101,13 @@ class LaneCenterManager:
         starts    = self.rows["starts"]
 
         for rk, b in self.dist_refs["rank_btn"].items():
-            b.configure(bg="#cce8ff" if self.subj_r == rk else "#f3f5ff",
-                         relief=GR if self.subj_r == rk else RA)
+            b.configure( bg="#cce8ff" if self.subj_r == rk else "#2B4A7A",
+                         relief=SK    if self.subj_r == rk else RA,
+                         fg="black"   if self.subj_r == rk else "white")
         for c, b in self.dist_refs["course_btn"].items():
-            b.state(["pressed"] if self.subj_c == c else ["!pressed"])
+            b.configure( bg="#cce8ff" if self.subj_c == c  else "#4A6A9A",
+                         relief=SK    if self.subj_c == c  else RA,
+                         fg="black"   if self.subj_c == c  else "white")
 
         total = own_cnt[self.subj_c][self.subj_r] if self.subj_r else starts[self.subj_c]
         fg = "red" if total < 10 else "black"
@@ -162,7 +171,7 @@ class LaneCenterManager:
         self.disp   = 1
 
 #===============================================================================
-def framing_center_widgets(self, fr:tk.Frame, lane:int, rows:dict, wdgt_no:int):
+def framing_center_widgets(self, fr:tk.Frame, lane:int, rows:dict, wdgt_no:int, reload:bool=False):
 
     if lane not in self.lane_managers:
         self.lane_managers[lane] = LaneCenterManager(lane)

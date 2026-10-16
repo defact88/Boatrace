@@ -43,10 +43,10 @@ def make_rows(self):
         d_f  = self.date_from
 
         opt  = {}
-        if self.flying and (row['flying_st'] or row['late_st']):
+        if self.flying and (row["flying"] or row["late_st"]):
             opt |= dict(flying=True)
             d_f  = days_ago(self.date, 730)
-        if self.not_flying and not (row['flying_st'] or row['late_st']):
+        if self.not_flying and not (row["flying"] or row["late_st"]):
             opt |= dict(not_flying=True)
         if self.exclude_edo:
             opt |= dict(exclude_venue=3)
@@ -111,7 +111,7 @@ def make_sub_rows(self):
         rslt  = query_result(     frn, self.date, self.venue_id, self.race_no)
         ortn  = query_oriten(     frn, self.date, self.venue_id, self.race_no)
         repr  = [s.strip() for s in (befr["repr"] or "").split(",") if s]
-        d_cou = 6 if (befr["absn"] and not bef["cour"]) else befr["cour"] or frn
+        d_cou = 6 if (befr["absn"] and not befr["cour"]) else befr["cour"] or frn
         r_cou = 6 if rslt["f_code"] == "K" else rslt["cour"]
         tilt  = "0" if befr["tilt"] == 0 else befr["tilt"] or ""
         fin   = rslt["f_code"] or "" if not rslt["f_rank"] else rslt["f_rank"]
@@ -129,7 +129,6 @@ def make_sub_rows(self):
                               "w_move":rslt["w_move"],
                                 "absn":befr["absn"],   }
         rows["ortn"][frn] = {   "turn":ortn["turn"],
-                               "accel":ortn["accel"],
                                  "lap":ortn["lap"],    }
  
         if frn == 1:
@@ -278,10 +277,8 @@ def query_oriten(frame_no:int, d_iso:str, venue_id:int, race_no:int):
 
     cur = dal._cursor()
     row = cur.execute("""
-        SELECT time_turning      AS turn,
-               time_acceleration AS accel,
-               time_lap          AS lap
-
+        SELECT COALESCE(time_turning,0) + COALESCE(time_acceleration,0) AS turn,
+               time_lap                                                 AS lap
           FROM Oriten
          WHERE date     = ?
            AND venue_id = ?

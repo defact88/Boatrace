@@ -2,8 +2,37 @@
 # C:\boatrace\Inport\update_FLstate.py
 
 from __future__ import annotations
-from datetime   import datetime, date
-import sys
+from datetime   import datetime as dt, date, timedelta
+import sys, Dal as dal
+
+# ===========  共通ヘルパー  ===========
+def today_iso() -> str:
+
+    JST = timezone(timedelta(hours=9))
+
+    return dt.now(JST).date().strftime("%Y-%m-%d")
+
+#-------------------
+def yesterday(x) -> str:
+
+    if isinstance(x, date): return to_str(x -timedelta(days=1))
+    if isinstance(x,  str): return to_str(to_date(x) -timedelta(days=1))
+
+# ------------------
+def to_str(x) -> str:
+
+    if isinstance(x,  str): return x
+    if isinstance(x, date): return x.strftime("%Y-%m-%d")
+
+    raise ValueError("str conv error")
+
+# ------------------
+def to_date(x) -> date:
+
+    if isinstance(x, date): return x
+    if isinstance(x,  str): return date.fromisoformat(x)
+
+    raise ValueError("date conv error")
 
 #---------------------------------------------------------------------
 def term_range_for_today(today:date) -> tuple[date, date]:
@@ -63,7 +92,7 @@ def write_back(counts:dict[int, tuple[int,int]]) -> None:
 
     params = [(fly, late, pid) for pid, (fly, late) in counts.items()]
 
-    dal.executemany("""
+    cnt = dal.executemany("""
         UPDATE Players
            SET flying_st =?,
                late_st   =?
@@ -71,11 +100,16 @@ def write_back(counts:dict[int, tuple[int,int]]) -> None:
         """,
         params)
 
+    print(f"{cnt} players update F_L states done.")
+
 #=====================================================================
 def update_FLstate():
 
-    today      = datetime.now().date()
+    today      = dt.today().date()
     start, end = term_range_for_today(today)
+    counts     = cnt_FL_st(start, end)
+
+    write_back(counts)
 
 #---------------------------------------------------------------------
 if __name__ == "__main__":

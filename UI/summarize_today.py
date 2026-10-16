@@ -6,11 +6,11 @@ from dataclasses import dataclass, field
 from datetime    import datetime, timedelta, timezone, date
 from typing      import Dict, List, Optional, Tuple
 from pathlib     import Path
-from Scraper.scraper_odds import fetch_all_odds
-from Scraper.scrape_original_info import SUPPORTED as ORI_VENUES
-from Helpers.ev_scanner   import evaluate_ev, insert_odds_snapshot, ProbabilityProvider
-
 import sqlite3, subprocess, threading, time, sys, os, signal, argparse, re, json, ctypes
+
+from scraper_odds       import fetch_all_odds
+from get_oriten_info    import SUPPORTED as ORI_VENUES
+from Helpers.ev_scanner import evaluate_ev, insert_odds_snapshot, ProbabilityProvider
 import Dal as dal
 
 VENUES = [ "桐   生",  "戸   田", "江戸川", "平和島", "多摩川", "浜名湖", "蒲   郡", "常   滑",
@@ -22,7 +22,7 @@ DB_PATH        = Path(r"C:\boatrace\boatrace.db")
 SP_INFO        = Path(r"C:\boatrace\UI\Scraper\get_today_info.py")
 SP_BEFORE      = Path(r"C:\boatrace\UI\Scraper\get_Before_info.py")
 SP_RESULT      = Path(r"C:\boatrace\UI\Scraper\get_results_today.py")
-SP_ORI         = Path(r"C:\boatrace\UI\Scraper\import_original_info.py")
+SP_ORI         = Path(r"C:\boatrace\UI\Scraper\get_oriten_info.py")
 LOCK_PATH      = Path(r"C:\boatrace\tmp\json\summarizer.lock")
 # 定数
 CHANGE_INTERVAL = 300  #   変更: n秒 間隔で巡回

@@ -9,28 +9,6 @@ UI,Main_Unit,Management_gui.py,         C:\boatrace\Management\Management_gui.py
 UI,Main_Unit,schema,                    C:\boatrace\Schema\schema_all.sql,1
 UI,Main_Unit,PROJECT_MAP,               C:\boatrace\PROJECT_MAP.md
 
-UI,Screens,DBopsScreen,                 C:\boatrace\UI\Screens\db_ops.py,0
-UI,Screens,DBSchemScreen,               C:\boatrace\UI\Screens\db_schem.py,0
-UI,Screens,DBQueryScreen,               C:\boatrace\UI\Screens\DB_query.py,0
-UI,Screens,PlayerAnalysisScreen,        C:\boatrace\UI\Screens\analysis_player.py,1
-UI,Screens,VenueAnalysisScreen,         C:\boatrace\UI\Screens\analysis_venue.py,0
-UI,Screens,MotorAnalysisScreen,         C:\boatrace\UI\Screens\analysis_motor.py,0
-UI,Screens,Classification,              C:\boatrace\UI\Screens\classification.py,0
-UI,Screens,__init__,                    C:\boatrace\UI\Screens\__init__.py,0
-
-UI,Window,RaceWindow,                   C:\boatrace\UI\Window\race_window.py
-UI,Window,RaceSelectWindow,             C:\boatrace\UI\Window\race_select.py
-
-UI,Scraper,get_today_info.py,           C:\boatrace\UI\Scraper\get_today_info.py,1
-UI,Scraper,get_Before_info.py,          C:\boatrace\UI\Scraper\get_Before_info.py,1
-UI,Scraper,get_results_today.py,        C:\boatrace\UI\Scraper\get_results_today.py,1
-UI,Scraper,scraper_odds,                C:\boatrace\UI\Scraper\scraper_odds.py,0
-UI,Scraper,selenium_buyer,              C:\boatrace\UI\Scraper\selenium_buyer.py,1
-UI,Scraper,get_payouts.py,              C:\boatrace\UI\Scraper\get_payouts.py,0
-UI,Scraper,import_original_info.py,     C:\boatrace\UI\Scraper\import_original_info.py
-UI,Scraper,scrape_original_info.py,     C:\boatrace\UI\Scraper\scrape_original_info.py
-UI,Scraper,__init__,                    C:\boatrace\UI\Scraper\__init__.py,0
-
 UI,Helpers,build_rows,                  C:\boatrace\UI\Helpers\build_rows.py,1
 UI,Helpers,build_series_idx,            C:\boatrace\UI\Helpers\build_series_idx.py,1
 UI,Helpers,sub_window,                  C:\boatrace\UI\Helpers\sub_window.py,0
@@ -44,6 +22,27 @@ UI,Widgets,center_widgets.py,           C:\boatrace\UI\Widgets\center_widgets.py
 UI,Widgets,placeholder.py,              C:\boatrace\UI\Widgets\placeholder.py,1
 UI,Widgets,__init__,                    C:\boatrace\UI\Widgets\__init__.py,0
 
+UI,Window,RaceWindow,                   C:\boatrace\UI\Window\race_window.py
+UI,Window,RaceSelectWindow,             C:\boatrace\UI\Window\race_select.py
+
+UI,Screens,DBopsScreen,                 C:\boatrace\UI\Screens\db_ops.py,0
+UI,Screens,DBSchemScreen,               C:\boatrace\UI\Screens\db_schem.py,0
+UI,Screens,DBQueryScreen,               C:\boatrace\UI\Screens\DB_query.py,0
+UI,Screens,PlayerAnalysisScreen,        C:\boatrace\UI\Screens\analysis_player.py,1
+UI,Screens,VenueAnalysisScreen,         C:\boatrace\UI\Screens\analysis_venue.py,0
+UI,Screens,MotorAnalysisScreen,         C:\boatrace\UI\Screens\analysis_motor.py,0
+UI,Screens,Classification,              C:\boatrace\UI\Screens\classification.py,0
+
+UI,Scraper,get_today_info.py,           C:\boatrace\UI\Scraper\get_today_info.py,1
+UI,Scraper,get_Before_info.py,          C:\boatrace\UI\Scraper\get_Before_info.py,1
+UI,Scraper,get_results_today.py,        C:\boatrace\UI\Scraper\get_results_today.py,1
+UI,Scraper,scraper_odds,                C:\boatrace\UI\Scraper\scraper_odds.py,0
+UI,Scraper,selenium_buyer,              C:\boatrace\UI\Scraper\selenium_buyer.py,1
+UI,Scraper,get_payouts.py,              C:\boatrace\UI\Scraper\get_payouts.py,0
+UI,Scraper,get_oriten_info.py,          C:\boatrace\UI\Scraper\get_oriten_info.py
+
+
+
 Import,Import_B,import_B_txt.py,        C:\boatrace\Import\B\import_B_txt.py,1
 Import,Import_K,ETL_K_results.py,       C:\boatrace\Import\K\ETL_K_results.py,1
 Import,Import_K,parse_and_upsert.py,    C:\boatrace\Import\K\parse_and_upsert.py,1
@@ -52,7 +51,6 @@ Import,Import_K,make_grade_txt.py,      C:\boatrace\Import\K\make_grade_txt.py,0
 Import,Import_FAN,import_Fan.py,        C:\boatrace\Import\FAN\import_Fan.py,0
 Import,Import_FAN,DL_player_img.py,     C:\boatrace\Import\FAN\DL_player_img.py,0
 Import,Import_FAN,insert_newcomer.py,   C:\boatrace\Import\FAN\insert_newcomer.py,0
-
 Import,Updata,daily_insert.py,          C:\boatrace\Import\Updata\daily_insert.py,1
 Import,Updata,delete_data.py,           C:\boatrace\Import\Updata\delete_data.py
 Import,Updata,update_FLstate.py,        C:\boatrace\Import\Updata\update_FLstate.py,0

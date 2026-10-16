@@ -37,6 +37,7 @@ class Query():
                      fault_level:Optional[int]=None,
                         slit_ADJ:Optional[int]=None,
                       water_type:Optional[int]=None,
+                        point_up:Optional[bool]=False,
 
                    exclude_venue:Optional[int]=None,
                           flying:Optional[bool]=False,
@@ -50,6 +51,7 @@ class Query():
         self.date_to        = self.to_str(date_to)
         self.player_id      = player_id
         self.exclude_rookie = exclude_rookie
+        self.point_up       = point_up
 
         self.parts = {   "player_id":(" AND e.player_id   = ?", lambda s:[player_id]),
                              "grade":(" AND r.grade IN (%s)" % ",".join("?"*len(grade))
@@ -83,7 +85,7 @@ class Query():
                 for_distribute:bool=False   ):
 
         if   by_grade:
-            out = self._packing_by_grade(self.rows1)
+            out = self._packing_by_grade(self.rows1, self.point_up)
         elif by_course:
             out = self._packing_by_course(self.rows1)
         elif by_series:
@@ -194,7 +196,7 @@ class Query():
         return (own_rows, oths_rows)
 
     # ------------------------------------------------------
-    def _packing_by_grade(self, rows):  # 選手成績一覧
+    def _packing_by_grade(self, rows, point_up:bool=False):  # 選手成績一覧
 
         out = { g:{   "starts":0,  "series":0,
                     "to_final":0, "victory":0,
@@ -225,7 +227,10 @@ class Query():
                     c["st_cnt"] += 1
 
                 if flevel != 0 or rank != 0:
-                    p = self._point_for(0, is_final, rank, s_title) # grade別成績にgrade加点しない
+                    if point_up:
+                        p = self._point_for(grade, is_final, rank, s_title)
+                    else:
+                        p = self._point_for(0, is_final, rank, s_title) # grade別成績にgrade加点しない
                     c["sc_sum"] += p
                     c["sc_cnt"] += 1
 

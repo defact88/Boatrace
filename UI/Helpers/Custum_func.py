@@ -71,7 +71,8 @@ class cFr(tk.Frame):
 # カスタム短縮表記ラベル -----------------------------------
 class cLbl(tk.Label):
     def __init__( self, master=None, *, Anc=None, W=None, H=None, Bd=None, Rel=None, Jst=None,
-                  Wrap=None, HLbg=None, HLth=None, px=None, py=None, bg=None, **kwargs        ):
+                  Wrap=None, HLbg=None, HLth=None, px=None, py=None, bg=None,
+                  Txtv=None, **kwargs        ):
 
         if W:    kwargs['width']               = W
         if H:    kwargs['height']              = H
@@ -84,6 +85,7 @@ class cLbl(tk.Label):
         if px:   kwargs['padx']                = px
         if py:   kwargs['pady']                = py
         if Wrap: kwargs['wraplength']          = Wrap
+        if Txtv: kwargs['textvariable']        = Txtv
 
         kwargs['background'] = bg if bg else MAIN_BG
 
@@ -224,6 +226,24 @@ class cBtn(tk.Button):
         if py  is not None: kwargs['pady']   = py
 
         self.pack(**kwargs)
+
+    # ------------------------
+    def _config(self, Anc=None, W=None, H=None, Bd=None, Rel=None, Jst=None,
+                  Wrap=None, HLbg=None, HLth=None, px=None, py=None, bg=None, **kwargs ):
+
+        if W:    kwargs['width']               = W
+        if H:    kwargs['height']              = H
+        if Anc:  kwargs['anchor']              = Anc
+        if Bd:   kwargs['bd']                  = Bd[0] ;kwargs['relief'] = Bd[1]
+        if Rel:  kwargs['relief']              = Rel
+        #if Jst:  kwargs['justify']             = Jst
+        #if HLbg: kwargs['highlightbackground'] = hlbg
+        #if HLth: kwargs['highlightthickness']  = hlth
+        if px:   kwargs['padx']                = px
+        if py:   kwargs['pady']                = py
+        #if Wrap: kwargs['wraplength']          = Wrap
+
+        self.configure(**kwargs)
 
 # カスタム短縮表記tkキャンバス------------------------------
 class cCvs(tk.Canvas):

@@ -115,7 +115,7 @@ class SeleniumBuyer:
     def _navigate_to_bet_window(self):
 
         self._driver.set_window_size(1000, 950)
-        self._driver.set_window_position(1000, 300)
+        self._driver.set_window_position(1000, 450)
 
         self._driver.get(TOP_PAGE)
         logger.info(f"トップページ アクセス →")
@@ -408,7 +408,7 @@ class SeleniumBuyer:
                          (By.CSS_SELECTOR, "#btnOK a"),
                          (By.CSS_SELECTOR, ".btnOk a"),
                          (By.CSS_SELECTOR, ".popupBtn a"),                      ]
-        time.sleep(0.2)
+        time.sleep(0.5)
         for by, sel in ok_selectors:
             try:
                 ok_el = WebDriverWait(self._driver, 3).until(EC.element_to_be_clickable((by, sel)))
@@ -418,7 +418,7 @@ class SeleniumBuyer:
                 break
             except (TimeoutException, NoSuchElementException):
                 continue
-
+        time.sleep(0.5)
         if not ok_clicked:
             try:
                 WebDriverWait(self._driver, 3).until(EC.alert_is_present())

@@ -92,9 +92,9 @@ get_results_today.py,      --race,       required=False
 get_results_today.py,      --ALL_venue,  required=False
 get_results_today.py,      --ALL_race,   required=False
 
-import_original_info.py,   --date,       required=True
-import_original_info.py,   --venue,      required=True
-import_original_info.py,   --race,       required=True
+get_oriten_info.py,        --date,       required=True
+get_oriten_info.py,        --venue,      required=True
+get_oriten_info.py,        --race,       required=True
 
 ETL_Before_info.py,        --date,       required=False
 ETL_Before_info.py,        --date_from,  required=False
@@ -113,6 +113,7 @@ ETL_payouts_data.py,       --venue,      required=False
 ETL_payouts_data.py,       --race,       required=False
 ETL_payouts_data.py,       --from_html,  required=False
 ETL_payouts_data.py,       --overwrite,  required=False
+ETL_payouts_data.py,       --check,      required=False
 
 get_today_info.py,          flag,        required=True
 get_today_info.py,          --date,      required=True

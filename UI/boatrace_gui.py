@@ -143,8 +143,8 @@ class App(tk.Tk):
         if   name == "DBO": self.geometry("1800x1200")
         elif name == "DBS": self.geometry("1300x900")
         elif name == "DBQ": self.geometry("1350x900")
-        elif name == "RSW": self.geometry( "800x650+500+400")
-        else:               self.geometry( "600x500+300+150")
+        elif name == "RSW": self.geometry( "800x650+350+300")
+        else:               self.geometry( "600x500+90+0")
 
         if hasattr(scr, "on_show"):
             try: scr.on_show()
