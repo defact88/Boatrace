@@ -11,32 +11,47 @@ from Helpers.build_series_idx import build_day_lbl
 #-----------------------------------------------------------
 DB = r"C:\boatrace\boatrace.db"
 
-GUI, MUI, HNH      = "Yu Gothic UI", "Meiryo UI", "Helvetica Neue Heavy"
-GR, SD, RD, RA, BD = "groove", "solid", "ridge", "raised", "bold"
-ALL, CT            = "nsew", "center"
+GUI, MUI, HNH          = "Yu Gothic UI", "Meiryo UI", "Helvetica Neue Heavy"
+GR, SD, RD, RA, SK, BD = "groove", "solid", "ridge", "raised", "sunken", "bold"
+ALL, CT                = "nsew", "center"
 
 VENUES = [ "", "桐生", "戸田", "江戸川", "平和島", "多摩川", "浜名湖",  "蒲郡", "常滑",
                  "津", "三国", "びわこ", "住之江",   "尼崎",   "鳴門",  "丸亀", "児島",
                "宮島", "徳山",   "下関",   "若松",   "芦屋",   "福岡",  "唐津", "大村", ]
 
-MAIN_HDR_BG = "#2B4A7A"
-MAIN_HDR_FG = "#FFFFFF"
+FAULT_FG  = "#D40000"
+ABSENT_BG = "#CCCCCC"
+BAR_COLOR = "#0069D5"
 
-HDR_COLOR   = {"bg":"#2F75B5", "fg":"#FFFFFF"}
-PAY_ROW_BG  = ["#FFFFFF", "#F4F8FF"]
+MAIN_BG = "#F0F4FA"
+HDR_BG  = "#2B4A7A"
+BTN_BG  = "#4A6A9A"
+
+WHITE   = "#FFFFFF"
+YELLOW1 = "#FFD700"
+YELLOW2 = "#F1EE62"
+GRAY1   = "#ECECEC"
+GRAY2   = "#CFCFCF"
+BLACK1  = "#000000"
+BLACK2  = "#222222"
+BLUE    = "#ff7474"
+ORANGE  = "#E67E22"
+LIT_RED = "#ff5b5b"
+
+HDR_B   = dict(bg=HDR_BG)
+BTN_B   = dict(bg=BTN_BG)
+HDR_BF  = dict(bg=HDR_BG,  fg=WHITE)
+BTN_BF  = dict(bg=BTN_BG,  fg=WHITE)
+BTN_OFF = dict(bg=BTN_BG,  fg=WHITE,  Bd=(1,RA))
+GRY_OFF = dict(bg=GRAY1,   fg=BLACK1, Bd=(1,RA))
+YEL1_ON = dict(bg=YELLOW1, fg=BLACK2, Bd=(1,GR))
+YEL2_ON = dict(bg=YELLOW2, fg=BLACK2, Bd=(1,SK))
+
 PAY_AMT_FG  = "#D40000"
 PAY_AMT_FG2 = "#000000"
-
+PAY_ROW_BG  = ["#FFFFFF", "#F4F8FF"]
 FRM_BG      = {1:"#FFFFFF", 2:"#333333", 3:"#D40000", 4:"#0066CC", 5:"#FFD400", 6:"#008A2E"}
 FRM_FG      = {1:"#000000", 2:"#FFFFFF", 3:"#FFFFFF", 4:"#FFFFFF", 5:"#000000", 6:"#FFFFFF"}
-MAIN_BG     = "#F0F4FA"
-FAULT_FG    = "#D40000"
-ABSENT_BG   = "#CCCCCC"
-NAME_BG     = "#FFFFFF"
-PANEL_BG    = "#F0F4FA"
-
-BAR_COLOR   = "#0069D5"
-BAR_TRACK   = "#FFFFFF"
 
 PAY_HDR_H   = 25   # 払戻一覧 ヘッダー  高さ
 PAY_ROW_H   = 32   # 払戻一覧 セル      高さ
@@ -86,7 +101,7 @@ class ResultsWindow(tk.Tk):
         self.title("")
         self.geometry("1150x1400+1295+0")
         self.resizable(False, False)
-        self.configure(bg=PANEL_BG)
+        self.config(bg=MAIN_BG)
 
         self.date                 = date
         self.venue_id             = venue_id
@@ -155,26 +170,26 @@ class ResultsWindow(tk.Tk):
     # --------------------- UI 構築 ------------------------
     def _build_ui(self):
 
-        hdr = cFr(self, bg=MAIN_HDR_BG, H=35) ;hdr._pack(fill="x", side="top")
+        hdr = cFr(self, bg=HDR_BG, H=35) ;hdr._pack(fill="x", side="top")
 
-        self.lbl_title = cLbl(hdr, text="", bg=MAIN_HDR_BG, fg=MAIN_HDR_FG, font=(MUI,9,BD))
+        self.lbl_title = cLbl(hdr, text="", font=(MUI,9,BD), **HDR_BF)
         self.lbl_title._pack(side="left", px=10, py=2)
 
-        cBtn( hdr, text=" 更   新 ", Com=self._on_refresh, bg="#4A7ACC", fg="white",
-                  font=(GUI,9,BD), Rel=RA, px=8 )._pack(side="right", px=(0, 10), py=4)
+        cBtn( hdr, text=" 更   新 ", Com=self._on_refresh, font=(GUI,9,BD), **BTN_OFF, px=8
+             )._pack(side="right", px=(0,10), py=4)
 
         self.btn_mode = cBtn( hdr, text=" 単  日 ", font=(GUI,9,BD), bg="#2F75B5", fg="white",
                               Com=self._toggle_summary_mode, Rel=RA, px=8 )
-        self.btn_mode._pack(side="right", px=(10,2), py=4)
+        self.btn_mode._pack(side="right", px=(3,10), py=4)
 
-        self.btn_fr = cFr(hdr, bg=MAIN_HDR_BG, H=35) ;self.btn_fr._pack(side="left", px=30)
+        self.btn_fr = cFr(hdr, bg=HDR_BG, H=35) ;self.btn_fr._pack(side="left", px=30)
         self._mk_day_buttons(self.btn_fr)
 
-        body = cFr(self, bg=PANEL_BG) ;body._pack(fill="both", expand=True)
+        body = cFr(self, bg=MAIN_BG) ;body._pack(fill="both", expand=True)
 
-        self.payout_frame = cFr(body, bg=PANEL_BG)
-        self.top_frame    = cFr(body, bg=PANEL_BG)
-        self.bottom_frame = cFr(body, bg=PANEL_BG)
+        self.payout_frame = cFr(body, bg=MAIN_BG)
+        self.top_frame    = cFr(body, bg=MAIN_BG)
+        self.bottom_frame = cFr(body, bg=MAIN_BG)
 
         self.payout_frame._pack(fill="x",              side="top", px=10, py=(8,5))
         self.top_frame._pack(   fill="x",              side="top",        py=(0,0))
@@ -185,10 +200,10 @@ class ResultsWindow(tk.Tk):
 
         if self.summary_mode == "day":
             self.summary_mode = "series"
-            self.btn_mode.config(text=" 節  間 ", bg="#E67E22")
+            self.btn_mode._config(text=" 節  間 ", bg=ORANGE)
         else:
             self.summary_mode = "day"
-            self.btn_mode.config(text=" 単  日 ", bg="#2F75B5")
+            self.btn_mode._config(text=" 単  日 ", bg="#2F75B5")
 
         for w in self.bottom_frame.winfo_children():
             w.destroy()
@@ -294,7 +309,7 @@ class ResultsWindow(tk.Tk):
         d     = to_date(self.date).strftime("%Y 年 %#m 月 %#d 日")
         venue = VENUES[self.venue_id] if 0 <= self.venue_id < len(VENUES) else ""
 
-        self.lbl_title.config(text=f" {d}    {venue}   レース結果一覧 ")
+        self.lbl_title._config(text=f" {d}    {venue}   レース結果一覧 ")
 
         for w in self.payout_frame.winfo_children():  w.destroy()
         for w in self.top_frame.winfo_children():     w.destroy()
@@ -315,7 +330,7 @@ class ResultsWindow(tk.Tk):
                      ("",        "combo_KK2", "payout_KK2", PAY_KK_W),
                      ("",        "combo_KK3", "payout_KK3", PAY_KK_W), ]
 
-        tbl = cFr(parent, bg=PANEL_BG, Bd=(1,SD)) ;tbl._pack(side="top")
+        tbl = cFr(parent, bg=MAIN_BG, Bd=(1,SD)) ;tbl._pack(side="top")
 
         tbl.Rconf(0, minsize=PAY_HDR_H)
         tbl.Cconf(0, minsize=PAY_LBL_W)
@@ -323,7 +338,7 @@ class ResultsWindow(tk.Tk):
         for col, (_, _, _, w) in enumerate(bet_cols):
             tbl.Cconf(col + 1, minsize=w)
 
-        cLbl(tbl, text="", **HDR_COLOR, Bd=(1,RD))._grid(R=0, C=0, Stk=ALL)
+        cLbl(tbl, text="", **HDR_BF, Bd=(1,RD))._grid(R=0, C=0, Stk=ALL)
 
         span = {}
 
@@ -331,7 +346,7 @@ class ResultsWindow(tk.Tk):
             if col  > 3:  break
             if col == 3: span = dict(Cspan=3)
 
-            cLbl( tbl, text=label, font=(MUI,9), Anc=CT, Bd=(1,RD), **HDR_COLOR,
+            cLbl( tbl, text=label, font=(MUI,9), Anc=CT, Bd=(1,RD), **HDR_BF,
                  )._grid(R=0, C=col +1, **span, Stk=ALL)
 
         for row in range(1, 13):
@@ -341,7 +356,7 @@ class ResultsWindow(tk.Tk):
             row_bg = PAY_ROW_BG[(row) % 2]
             pd     = self.payout_rows.get(row)
 
-            cLbl( tbl, text=f"{row} R    ", font=(MUI,8,BD) , Anc="e", Bd=(1,RD), **HDR_COLOR
+            cLbl( tbl, text=f"{row} R    ", font=(MUI,8,BD) , Anc="e", Bd=(1,RD), **HDR_BF
                  )._grid(R=row, C=0, Stk=ALL)
 
             for col, (_, ck, pk, _) in enumerate(bet_cols):
@@ -376,7 +391,7 @@ class ResultsWindow(tk.Tk):
     # -------------------- 着順テーブル --------------------
     def _render_race_table(self, parent):
 
-        tbl = cFr(parent, bg=PANEL_BG) ;tbl._pack(side="top")
+        tbl = cFr(parent, bg=MAIN_BG) ;tbl._pack(side="top")
 
         tbl.Cconf(0, minsize=RES_LBL_W)
         tbl.Cconf(7, minsize=RES_MOVE_W)
@@ -389,7 +404,7 @@ class ResultsWindow(tk.Tk):
     # ------------------------------------------------------
     def _render_race_row(self, tbl, row, r_no, data):
 
-        cLbl( tbl, text=f"{r_no:2} R", font=(MUI,9,BD), bg=PANEL_BG, Anc="e"
+        cLbl( tbl, text=f"{r_no:2} R", font=(MUI,9,BD), bg=MAIN_BG, Anc="e"
              )._grid(R=row, C=0, px=(0,20), Stk=ALL)
 
         for i in range(6):
@@ -398,23 +413,21 @@ class ResultsWindow(tk.Tk):
 
         w_m = next((e["win_move"] for e in data if e.get("f_rank") == 1 and e.get("win_move")), "" )
 
-        cLbl( tbl, text=wid_txt(w_m), font=(MUI,9), bg=PANEL_BG, Anc=CT
+        cLbl( tbl, text=wid_txt(w_m), font=(MUI,9), bg=MAIN_BG, Anc=CT
              )._grid(R=row, C=7, px=(10,0), Stk=ALL)
 
     # ------------------------------------------------------
     def _render_boat_cell(self, tbl, row, col, entry):
 
-        cell = cFr(tbl, bg=PANEL_BG) ;cell._grid(R=row, C=col, Stk=ALL, px=0, py=7)
+        cell = cFr(tbl, bg=MAIN_BG) ;cell._grid(R=row, C=col, Stk=ALL, px=0, py=6)
 
-        if entry is None:
-            return
+        if entry is None: return
 
         frame_no = entry["frame_no"]
         course   = entry["course"]
-        bg       = FRM_BG.get(frame_no, "#CCCCCC")
-        fg       = FRM_FG.get(frame_no, "#000000")
+        opt      = dict(bg=FRM_BG.get(frame_no,"#CCCCCC"), fg=FRM_FG.get(frame_no,"#000000"))
 
-        cLbl( cell, text=str(course), bg=bg, fg=fg, font=(MUI,10,BD), W=3, Anc=CT, Bd=(1,RA)
+        cLbl( cell, W=3, Anc=CT, text=str(course), font=(MUI,10,BD), **opt, Bd=(3,RA)
              )._pack(side="left", fill="y")
 
         is_fault = entry["fault_code"] != "N"
@@ -432,8 +445,8 @@ class ResultsWindow(tk.Tk):
     # ----------------- コース別着順分布 -------------------
     def _render_course_summary(self, parent):
 
-        fr1 = cFr(parent, bg=PANEL_BG, Bd=(1,SD)) ;fr1._pack(side="top", pady=(0,0))
-        fr2 = cFr(parent, bg=PANEL_BG, Bd=(1,SD)) ;fr2._pack(side="top", pady=(0,0))
+        fr1 = cFr(parent, bg=MAIN_BG, Bd=(1,SD)) ;fr1._pack(side="top", pady=(0,0))
+        fr2 = cFr(parent, bg=MAIN_BG, Bd=(1,SD)) ;fr2._pack(side="top", pady=(0,0))
 
         fr1.Cconf(0, Min=SUM_LBL_W) ;fr1.Rconf(0, Min=SUM_HDR_H)
         fr2.Cconf(0, Min=SUM_LBL_W)
@@ -458,7 +471,7 @@ class ResultsWindow(tk.Tk):
             frame = fr1  if rank <= 3 else fr2
             row   = rank if rank <= 3 else rank-4
 
-            cLbl( frame, text=f"{rank} 着", **HDR_COLOR, font=(MUI,9), Anc=CT, Bd=(1,RD)
+            cLbl( frame, text=f"{rank} 着", **HDR_BF, font=(MUI,9), Anc=CT, Bd=(1,RD)
                  )._grid(R=row, C=0, Stk=ALL)
 
             for course in range(1, 7):
@@ -468,19 +481,19 @@ class ResultsWindow(tk.Tk):
 
                 if rank <= 3: rate3[course] += pct
 
-        cLbl(fr1, text="", **HDR_COLOR, Bd=(1,RA))._grid(R=0, C=0, Stk=ALL)
+        cLbl(fr1, text="", **HDR_BF, Bd=(1,RA))._grid(R=0, C=0, Stk=ALL)
         for course in range(1, 7):
             r  = rate3[course]
-            cv = cCvs(fr1, W=172, H=30, Bd=(1,RA) ,bg="#2F75B5", HLth=0) ;cv._grid(R=0, C=course)
+            cv = cCvs(fr1, W=172, H=30, Bd=(1,RA) ,**HDR_B, HLth=0) ;cv._grid(R=0, C=course)
             cv.create_text( 60, 15, font=(MUI,9,BD), fill="white",  text=f"{course} コース")
             cv.create_text(140, 15, font=(MUI,9,BD), fill="yellow", text=f"{r:.0f} % ")
 
     # ------------------------------------------------------
     def _render_pct_cell(self, parent, row, col, pct):
 
-        cell = cFr(parent, bg="#FFFFFF", Bd=(1,GR)) ;cell._grid(R=row, C=col, Stk=ALL)
+        cell = cFr(parent, bg=WHITE, Bd=(1,GR)) ;cell._grid(R=row, C=col, Stk=ALL)
 
-        bar_track = cFr(cell, bg=BAR_TRACK, W=BAR_TRACK_W, H=BAR_H)
+        bar_track = cFr(cell, bg=WHITE, W=BAR_TRACK_W, H=BAR_H)
         bar_track._pack(py=(14,4)) ;bar_track.pack_propagate(False)
 
         bar_w = int(BAR_TRACK_W * max(0.0, min(100.0, pct)) / 100.0)
@@ -488,7 +501,7 @@ class ResultsWindow(tk.Tk):
             cFr(bar_track, bg=BAR_COLOR, W=bar_w, H=BAR_H)._pack(side="left", fill="y")
 
             txt = f"{pct:.0f} %" if pct else "" 
-            cLbl(cell, text=txt , bg="#FFFFFF", font=(MUI,9))._pack(py=(0,6))
+            cLbl(cell, text=txt , bg=WHITE, font=(MUI,9))._pack(py=(0,6))
 
     #------------------- 日程切替 ボタン -------------------
     def _mk_day_buttons(self, parent:tk.Frame):
@@ -506,7 +519,7 @@ class ResultsWindow(tk.Tk):
             txt  = "初 日"  if dn == 1           else f"{dn}日目"
             txt  = "最終日" if info["final_day"] else txt
 
-            btn  = cBtn(parent, text=txt, width=7, Com=lambda d=d:self._switch_day(d) )
+            btn  = cBtn(parent, W=7, text=txt, Com=lambda d=d:self._switch_day(d) )
             btn._grid(R=0, C=col, px=2)
 
             self._day_btns[d] = btn
@@ -527,9 +540,9 @@ class ResultsWindow(tk.Tk):
 
         for d, btn in self._day_btns.items():
             if d == to_date(self.date):
-                btn.config(bg="#FFD700", fg="#222222", font=(MUI,8,BD), relief=GR)
+                btn._config(**YEL2_ON, font=(MUI,8,BD))
             else:
-                btn.config(bg="#4A6A9A", fg="#FFFFFF", font=(MUI,8,BD), relief=RA)
+                btn._config(**BTN_OFF, font=(MUI,8,BD))
 
 #=================== エントリポイント ======================
 def main():

@@ -41,17 +41,24 @@ RNK_BY_C_POINT = { 1:{1:0, 2:-1, 3:-2, 4:-3, 5:-3, 6:-4},
 GUI, MUI, HNH, CBR = "Yu Gothic UI", "Meiryo UI", "Helvetica Neue Heavy", "Cambria"
 GR, SD, RD, RA, BD = "groove", "solid", "ridge", "raised", "bold"
 ALL, CT            = "nsew", "center"
+"#E9F1F2"
 
-BG_COLOR  = "#E9F1F2"
-BLANK_BG  = "#D0E3FF"
-HDR_BG    = "#2B4A7A"
-HDR_FG    = "#FFFFFF"
-HDR_F     = dict(bg="#2B4A7A")
-HDR_L     = dict(bg="#2B4A7A", fg="#FFFFFF")
-BTN_OPT   = dict(bg="#4A6A9A", fg="#FFFFFF", relief=RA, bd=1, cursor="hand2")
+BG_COL   = "#F0F4FA"
+HL_BLU   = "#D0E3FF"
+BLUE2    = "#0D7DDA"
+WHITE    = "#FFFFFF"
+BLACK    = "#000000"
+HDR_BG   = "#2B4A7A"
+BTN_BG   = "#4A6A9A"
+R_N_OPT = dict(bg="#bacae2", fg="BLACK", Bd=(1,GR))
 
-TODAY = dict(fg="black", bg=BLANK_BG)
-OTHER = dict(fg="white", bg=HDR_BG)
+HDR_B    = dict(bg=HDR_BG)
+HDR_BF   = dict(bg=HDR_BG, fg=WHITE)
+BTN_BF   = dict(bg=BTN_BG, fg=WHITE)
+BTN_OPT  = dict(bg=BTN_BG, fg=WHITE, Bd=(1,RA), Csr="hand2")
+
+TODAY = dict(fg=WHITE, bg="#006cc5", Bd=(1,RD))
+OTHER = dict(fg=WHITE, bg=HDR_BG,    Bd=(1,GR))
 
 # ------------------
 def today_iso() -> str:
@@ -219,12 +226,12 @@ def update_series_idx(self, d_iso:str, venue_id:int, race_no:int):
         for i in range(7):
             hedr = cells[i]
             info = slots[i]
-            hedr.config(text="", bg="#F0F4FA")
+            hedr.config(text="", bg=BG_COL)
             if info:
                 dn   = info.get("day_no")
                 text = "初  日" if dn == 1           else f"{dn}日目"
                 text = "最終日" if info["final_day"] else text
-                hedr.config(text=text, **TODAY if i == today_idx else OTHER)
+                hedr._config(text=text, **TODAY if i == today_idx else OTHER, Anc="n", py=5)
 
     _assign_series_idx(self, slots, lineup)
     _assign_other_run(self, lineup)
@@ -289,14 +296,16 @@ def _assign_series_idx(self, slots, lineup):
         for col_cells in cells:
             col_cells[0].unbind("<Button-1>")
             for r in range(4):
-                col_cells[r].config(text="", bg="white", fg="black")
+                col_cells[r]._config(text="", bg=BG_COL, Bd=(1,GR), fg="black", Csr="")
 
         for i in range(7):
             info  = slots[i]
             if not info: continue
-
             d_iso = info.get("date")
             row   = _filter_rows(d_iso, result_map.get((p_id, d_iso), []))[:2]
+            if d_iso < self.date and len(row) >= 1:
+                cells[i*2 +1][0]._config(text="", **R_N_OPT)
+
             L     = _conv_one(row[0]) if len(row) >= 1 else None
             R     = _conv_one(row[1]) if len(row) >= 2 else None
 
@@ -309,10 +318,10 @@ def _paint_abcd(self, cells:list, r_no:int, course:int, st:str, rank:str, f_no:i
     col = FRAME_COLORS[f_no]
     fg  = "red" if rank in ("F", "L", "S", "K") else "black"
 
-    cells[0].config(text=f"{r_no:2d}R", font=(MUI,8),         bg="white", cursor="hand2")
-    cells[1].config(text=course,        font=(MUI,8,BD),  **col)
-    cells[2].config(text=w_txt(st),     font=(MUI,8),     fg=fg, bg="white")
-    cells[3].config(text=rank,          font=(MUI,8,BD), fg=fg, bg="white")
+    cells[0]._config(text=w_txt(f"{r_no}R"), font=(GUI,8,BD), **R_N_OPT, Csr="hand2", Anc="n", py=5)
+    cells[1]._config(text=course,            font=(GUI,9,BD), **col, Bd=(3,GR))
+    cells[2]._config(text=st,                font=(MUI,8),    fg=fg, bg=WHITE, Bd=(1,GR))
+    cells[3]._config(text=rank,              font=(GUI,9,BD), fg=fg, bg=WHITE, Bd=(1,GR))
     cells[0].bind("<Button-1>", lambda e:self._reload_for(d, self.venue_id, r_no, result=True))
 
 # --------------- 2走インデックス 表示/更新 ----------------
@@ -320,23 +329,23 @@ def _assign_other_run(self, lineup):
 
     for lane in range(1, 7):
         cells = self.widgets_idx[lane]["R_idx"]
-        cells[0].unbind("<Button-1>")
+        cells[2].unbind("<Button-1>")
         for i in range(3):
-            cells[i].config(text="", bg=HDR_BG, relief="flat", bd=0)
+            cells[i]._config(text="", bg=HDR_BG, Bd=(1,"flat"))
 
         p_id  = lineup[self.frame_order[lane -1]]
         other = get_other_race(self.date, self.venue_id, p_id, self.race_no)
         if other[0] == 0: continue
 
         opts1 = dict(font=(GUI,10,BD), bg=HDR_BG)
-        opts2 = FRAME_COLORS[other[1]] | dict(font=(MUI,8,BD), relief=RD, bd=1)
+        opts2 = FRAME_COLORS[other[1]] | dict(font=(MUI,8,BD), Bd=(1,RD))
         #-----------
-        def _go(d=self.date, v_id=self.venue_id, r_no=other[0]):
-            self._reload_for(d, v_id, r_no, result=True)
+        def _go(rno):
+            self._reload_for(self.date, self.venue_id, rno, result=True)
         #-----------
-        cells[0].config(text=f"{other[0]}R", **opts1)
-        cells[1].config(text=other[1],       **opts2)
-        cells[2].config(text=">", font=(MUI,9,BD), **BTN_OPT, pady=8)
-        cells[2].bind("<Button-1>", lambda e:_go())
+        cells[0]._config(text=f"{other[0]}R", **opts1)
+        cells[1]._config(text=other[1],       **opts2)
+        cells[2]._config(text=">",     font=(MUI,9,BD), **BTN_OPT, py=8)
+        cells[2].bind("<Button-1>", lambda e, rno=other[0]:_go(rno))
 
 # ----------------------------------------------------------

@@ -29,17 +29,9 @@ GUI, MUI, HNH, CBR     = "Yu Gothic UI", "Meiryo UI", "Helvetica Neue Heavy", "C
 GR, SD, RD, RA, SK, BD = "groove", "solid", "ridge", "raised", "sunken", "bold"
 ALL, CT                = "nsew", "center"
 
-MAIN_BG = "#F0F4FA"  #"SystemButtonFace"
-HDR_BG  = "#2B4A7A"
-HDR_FG  = "#FFFFFF"
-HDR     = dict(bg="#2B4A7A")
-HDR_L   = dict(bg="#2B4A7A", fg="#FFFFFF")
-BTN_COL = dict(bg="#4A6A9A", fg="#FFFFFF")
-
 VENUES    = [ "桐生",  "戸田",  "江戸川", "平和島", "多摩川", "浜名湖", "蒲郡", "常滑",  "津",
               "三国", "びわこ", "住之江",  "尼崎",   "鳴門",   "丸亀",  "児島", "宮島", "徳山",
               "下関",  "若松",   "芦屋",   "福岡",   "唐津",   "大村",                         ]
-VENUE_ID  = { name: i+1 for i, name in enumerate(VENUES) }
 
 GRADE_IDX = { 0:"一般", 1:"G3", 2:"G2", 3:"G1", 4:"PG1", 5:"SG" }
 
@@ -50,10 +42,10 @@ FRM_COLOR = { 1: dict(bg="#FFFFFF", fg="#000000"),
               5: dict(bg="#FFD400", fg="#000000"),
               6: dict(bg="#008A2E", fg="#FFFFFF"), }
 
-CLS_COLOR = { "A1": dict(fill="#74b7ff"),
-              "A2": dict(fill="green"),
-              "B1": dict(fill="grey"),
-              "B2": dict(fill="red"), }
+CLS_COLOR = { "A1": dict(fill="#2c9cff"),
+              "A2": dict(fill="#00bb3a"),
+              "B1": dict(fill="#a7a7a7"),
+              "B2": dict(fill="red"),     }
 
 RATE_OPT  = { 0:{"font":(MUI,8,BD), "fg":"black"},
               1:{"font":(MUI,8,BD), "fg":"blue" },
@@ -67,6 +59,29 @@ FAULT_OPT = { 0:{"font":(MUI, 8   ),"fg":"black"},
               1:{"font":(MUI, 9,BD),"fg":"red"  }, 
               2:{"font":(MUI, 9,BD),"fg":"red"  }, 
               3:{"font":(MUI, 9,BD),"fg":"red"  }, } 
+
+#"SystemButtonFace"
+
+MAIN_BG = "#F0F4FA"
+HDR_BG  = "#2B4A7A"
+BTN_BG  = "#4A6A9A"
+WHITE   = "#FFFFFF"
+YELL1   = "#FFD700"
+YELL2   = "#F1EE62"
+GRAY1   = "#ECECEC"
+GRAY2   = "#CFCFCF"
+BLACK1  = "#000000"
+BLACK2  = "#222222"
+BLUE    = "#ff7474"
+LIT_RED = "#ff5b5b"
+
+HDR_B   = dict(bg=HDR_BG)
+HDR_BF  = dict(bg=HDR_BG, fg=WHITE)
+BTN_BF  = dict(bg=BTN_BG, fg=WHITE)
+BTN_OFF = dict(bg=BTN_BG, fg=WHITE,  Bd=(1,RA))
+GRY_OFF = dict(bg=GRAY1,  fg=BLACK1, Bd=(1,RA))
+YEL1_ON = dict(bg=YELL1,  fg=BLACK2, Bd=(1,GR))
+YEL2_ON = dict(bg=YELL2,  fg=BLACK2, Bd=(1,SK))
 
 # ===========  共通ヘルパー  ===========
 def today_iso() -> str:
@@ -98,7 +113,7 @@ def days_ago(d:str, range:int)-> str:
     return to_str(d -timedelta(days=range))
 
 # ----------------------------
-def wid_txt(s:str) -> str:
+def w_txt(s:str) -> str:
 
     hair = "\u200A" 
     return hair.join(list(s))
@@ -134,7 +149,7 @@ class RaceWindow(tk.Toplevel):
         self.flying      = False
         self.not_flying  = False
         self.exclude_edo = True if venue_id != 3 else False
-        self.on_mark     = True
+        self.on_mark     = False
         self.limited_grade = False
         self.s_lane      = 0
         self.disp_oriten = False
@@ -151,14 +166,14 @@ class RaceWindow(tk.Toplevel):
 
         root  = cFr(self, W=1220, H=1400, px=10) ;root._grid(R=0, C=0) ;root.Pgate()
         top   = cFr(root, W=1200, H=  60)         ;top._grid(R=0, C=0)  ;top.Pgate()
-        # Header =======================
-        hedr1 = cFr(top, W=400, H=30, bg=HDR_BG) ;hedr1._grid(R=0, C=0, Stk=ALL) ;hedr1.Pgate()
-        hedr2 = cFr(top, W=400, H=30, bg=HDR_BG) ;hedr2._grid(R=1, C=0, Stk=ALL) ;hedr2.Pgate()
+        # Header =============
+        hedr1 = cFr(top, W=400, H=30, **HDR_B) ;hedr1._grid(R=0, C=0, Stk=ALL) ;hedr1.Pgate()
+        hedr2 = cFr(top, W=400, H=30, **HDR_B) ;hedr2._grid(R=1, C=0, Stk=ALL) ;hedr2.Pgate()
 
-        btns1 = cFr(top, W=730, H=30, bg=HDR_BG) ;btns1._grid(R=0, C=1, Stk=ALL) ;btns1.Pgate()
-        btns2 = cFr(top, W=730, H=30, bg=HDR_BG) ;btns2._grid(R=1, C=1, Stk=ALL) ;btns2.Pgate()
+        btns1 = cFr(top, W=730, H=30, **HDR_B) ;btns1._grid(R=0, C=1, Stk=ALL) ;btns1.Pgate()
+        btns2 = cFr(top, W=730, H=30, **HDR_B) ;btns2._grid(R=1, C=1, Stk=ALL) ;btns2.Pgate()
 
-        btns3 = cFr(top, W= 70, H=60, bg=HDR_BG) ;btns3._grid(R=0, C=2, Rspan=2, Stk=ALL) ;btns3.Pgate()
+        btns3 = cFr(top, W= 70, H=60, **HDR_B) ;btns3._grid(R=0, C=2, Rspan=2, Stk=ALL) ;btns3.Pgate()
 
         hedr1.Cconf(0, Min= 40) ;hedr1.Rconf(0, Min=30)
         hedr1.Cconf(1, Min=305)
@@ -169,37 +184,36 @@ class RaceWindow(tk.Toplevel):
         hedr2.Cconf(3, Min=125)
         hedr2.Cconf(4, Min=105)
 
-        self.lb_1A = cLbl(hedr1, font=(MUI,9,BD), **HDR_L); self.lb_1A._grid(R=0, C=0, py=(5,0))
-        self.lb_1B = cLbl(hedr1, font=(MUI,9,BD), **HDR_L); self.lb_1B._grid(R=0, C=1, py=(5,0))
-        self.lb_1C = cLbl(hedr1, font=(MUI,9,BD), **HDR_L); self.lb_1C._grid(R=0, C=2, py=(5,0))
-        self.lb_2A = cLbl(hedr2, font=(MUI,8),    **HDR_L); self.lb_2A._grid(R=0, C=0, py=(0,3))
-        self.lb_2B = cLbl(hedr2, font=(MUI,8,BD), **HDR_L); self.lb_2B._grid(R=0, C=1, py=(0,2))
-        self.lb_2C = cLbl(hedr2, font=(MUI,9,BD), **HDR_L); self.lb_2C._grid(R=0, C=2, py=(0,2))
-        self.lb_2D = cLbl(hedr2, font=(MUI,8)   , **HDR_L); self.lb_2D._grid(R=0, C=3, py=(0,3))
-        self.lb_2E = cLbl(hedr2, font=(MUI,8),    **HDR_L); self.lb_2E._grid(R=0, C=4, py=(0,3))
+        self.lb_1A = cLbl(hedr1, font=(MUI,9,BD), **HDR_BF); self.lb_1A._grid(R=0, C=0, py=(5,0))
+        self.lb_1B = cLbl(hedr1, font=(MUI,9,BD), **HDR_BF); self.lb_1B._grid(R=0, C=1, py=(5,0))
+        self.lb_1C = cLbl(hedr1, font=(MUI,9,BD), **HDR_BF); self.lb_1C._grid(R=0, C=2, py=(5,0))
+        self.lb_2A = cLbl(hedr2, font=(MUI,8),    **HDR_BF); self.lb_2A._grid(R=0, C=0, py=(0,3))
+        self.lb_2B = cLbl(hedr2, font=(MUI,8,BD), **HDR_BF); self.lb_2B._grid(R=0, C=1, py=(0,2))
+        self.lb_2C = cLbl(hedr2, font=(MUI,9,BD), **HDR_BF); self.lb_2C._grid(R=0, C=2, py=(0,2))
+        self.lb_2D = cLbl(hedr2, font=(MUI,8)   , **HDR_BF); self.lb_2D._grid(R=0, C=3, py=(0,3))
+        self.lb_2E = cLbl(hedr2, font=(MUI,8),    **HDR_BF); self.lb_2E._grid(R=0, C=4, py=(0,3))
 
         self._mk_day_buttons (btns1)
         self._mk_race_buttons(btns2)
 
-        bg  = "#F1EE62" if self.sub_window[0] else "#ececec"
-        rel = SK        if self.sub_window[0] else RA
+        opt = YEL2_ON if self.sub_window[0] else GRY_OFF
 
-        self.bt_change_sub = cBtn( btns3, W=8, text=" SUB 切替 ", font=(MUI,7,BD), Rel=RA, px=3,
-                                   **BTN_COL,  Com=lambda:self._change_sub_window() )
-        self.bt_toggle_sub = cBtn( btns3, W=8, text=wid_txt(" ODDS "), font=(MUI,7), Rel=rel, px=3,
-                                   bg=bg, Com=lambda:self._toggle_sub_window(d_iso, venue_id, 1) )
+        self.bt_change_sub = cBtn( btns3, W=8, text=" SUB 切替 ",    font=(MUI,7,BD), px=3,
+                                   **BTN_OFF, Com=lambda:self._change_sub_window() )
+        self.bt_toggle_sub = cBtn( btns3, W=8, text=w_txt(" ODDS "), font=(MUI,7),    px=3,
+                                   **opt, Com=lambda:self._toggle_sub_window(d_iso, venue_id, 1) )
 
         self.bt_change_sub._grid(R=0, C=0, py=(7,0), Stk="w")
         self.bt_toggle_sub._grid(R=1, C=0, py=(5,0), Stk="w")
 
-        # Body(Main/Sub) ===============
+        # Body(Main/Sub)======
         body = cFr(root, W=1200, H=1340); body._grid(R=1, C=0, Cspan=2); body.Pgate()
 
         self.frm_main = cFr(body, W=1200, H=1002)
         self.frm_sub  = cFr(body, W=1200, H= 318)
 
-        self.frm_main._grid(R=0, C=0, pady=(2, 0)) ;self.frm_main.Pgate()
-        self.frm_sub._grid (R=1, C=0, pady=(8,10)) ;self.frm_sub.Pgate()
+        self.frm_main._grid(R=0, C=0, pady=(3, 0)) ;self.frm_main.Pgate()
+        self.frm_sub._grid (R=1, C=0, pady=(3,10)) ;self.frm_sub.Pgate()
 
         self.widgets_main: dict[int, dict[str, tk.Widget]] = {}
         self.widgets_sub:  dict[int, dict[str, tk.Widget]] = {}
@@ -208,7 +222,7 @@ class RaceWindow(tk.Toplevel):
         build_main_placeholder(self, self.frm_main)
         build_sub_placeholder (self, self.frm_sub)
 
-        # 初期表示更新 ********
+        # 初期表示更新
         self._reload_for(self.date, self.venue_id, self.race_no)
         self.app.bind_all("<Button-4>", self._assaign_button)
 
@@ -257,14 +271,14 @@ class RaceWindow(tk.Toplevel):
     def _highright_D_btn(self, d_iso:str):
 
         for key, btn in self._day_btns.items():
-            if key == d_iso : btn.config(bg="#FFD700", fg="#222222", relief=GR)
-            else:             btn.config(**BTN_COL, relief=RA)
+            if key == d_iso : btn._config(**YEL1_ON)
+            else:             btn._config(**BTN_OFF)
     # ----------------------------------
     def _highright_R_btn(self, on:int):
     
         for idx, btn in enumerate(self._race_btns, start=1):
-            if on == idx: btn.config(bg="#FFD700", fg="#222222", relief=GR)
-            else:         btn.config(**BTN_COL, relief=RA)
+            if on == idx: btn._config(**YEL1_ON)
+            else:         btn._config(**BTN_OFF)
     # ----------------------------------
     def _assaign_button(self, event):
 
@@ -276,7 +290,7 @@ class RaceWindow(tk.Toplevel):
         if self.sub_window[0] == False:
             # ------ 表示 ON ------
             self.sub_window[0] = True
-            self.bt_toggle_sub.config(bg="#F1EE62", relief=SK)
+            self.bt_toggle_sub._config(**YEL2_ON)
 
             if self.sub_window[1] == 0:
                 if self._odds_proc and self._odds_proc.poll() is None:
@@ -472,7 +486,6 @@ class RaceWindow(tk.Toplevel):
             regn_opt = dict(font=(MUI,9,BD), fill="blue") if home else dict(font=(MUI,9))
             flyg_opt = FAULT_OPT[row['flyg']]
             late_opt = FAULT_OPT[row['late']]
-            vcnt_opt = dict(fill="red", font=(GUI,8)) if row['v_cnt'] < 10 else dict(fill="white", font=(GUI,8,BD))
 
             if         row["stav"]  == ""  : stav_opt = ST_OPT[0]
             elif float(row["stav"]) >= 0.2 : stav_opt = ST_OPT[2]
@@ -480,7 +493,7 @@ class RaceWindow(tk.Toplevel):
             else:                            stav_opt = ST_OPT[0]
 
             if   row["rate1"] >= 33.3:      rate1_opt = RATE_OPT[1]
-            elif row["rate1"] <= 8:        rate1_opt = RATE_OPT[2]
+            elif row["rate1"] <= 8:         rate1_opt = RATE_OPT[2]
             else:                           rate1_opt = RATE_OPT[0]
             if   row["rate2"] >= 55:        rate2_opt = RATE_OPT[1]
             elif row["rate2"] <= 20:        rate2_opt = RATE_OPT[2]
@@ -496,46 +509,48 @@ class RaceWindow(tk.Toplevel):
             wdg_m["rate3"].config(text= f"{row['rate3']:.1f}",     **rate3_opt)
             wdg_m["late" ].config(text= f"L{row['late']}",         **late_opt )
             wdg_m["flyg" ].config(text= f"F{row['flyg']}",         **flyg_opt )
-            wdg_m["stav" ].config(text= f"{wid_txt(row['stav'])}", **stav_opt )
-            wdg_m["mo_av"].config(text= f"{wid_txt(row['mo_av'])}"            )
-            wdg_m["bo_av"].config(text= f"{wid_txt(row['bo_av'])}"            )
+            wdg_m["stav" ].config(text= f"{w_txt(row['stav'])}", **stav_opt )
+            wdg_m["mo_av"].config(text= f"{w_txt(row['mo_av'])}"            )
+            wdg_m["bo_av"].config(text= f"{w_txt(row['bo_av'])}"            )
             set_player_image(wdg_m["photo"], row.get("pid"), (112, 160))
             wdg_m["photo"].bind( "<Button-1>",lambda e, p=row["pid"], c=lane:
                                  self.app.open_p_analys(p, self.venue_id, self.date, c) )
-
             wdg_m["mo_av"].bind( "<Button-1>",lambda e, m=row["mo_no"], um=self.entry_prg["upd_m"]: 
                                  self.app.open_m_analys(m, self.venue_id, um)                      )
 
             wdg_m["cv1"].delete("all") ;wdg_m["cv2"].delete("all") ;wdg_m["cv3"].delete("all")
 
-            #for x, y in [(-1, 0), (1, 0), (0, -1), (0, 1)]:
-               #wdg_m["cv1"].create_text(23+x, 13+y, text=row["clss"], font=(CBR,13,BD), fill="red")
+            vcnt_opt = dict(fill="yellow") if row['v_cnt'] < 10 else dict(fill="white")
+            if   (row["v_cnt"] >= 30) and (float(row["scav"]) -float(row["v_ave"]) >= 0.75):
+                vave_opt = dict(fill ="yellow")
+            elif (row["v_cnt"] >= 30) and (float(row["scav"]) -float(row["v_ave"]) <= -0.50):
+                vave_opt = dict(fill="#87c1ff")
+            else: vave_opt = dict(fill="white")
 
             wdg_m["cv1"].create_rectangle(8, 19, 42, 22, width=0, **CLS_COLOR[row["clss"]])
             wdg_m["cv1"].create_text( 23, 13, text=row["clss" ], font=(CBR,12,BD), fill="white")
             wdg_m["cv1"].create_text( 72, 14, text=row["scav" ], font=(MUI, 9,BD), fill="white")
-            wdg_m["cv1"].create_text(132, 15, text=row["v_ave"], font=(MUI, 8,BD), fill="white")
-            wdg_m["cv1"].create_text(161, 15, text=f"/ {row["v_cnt"]}",              **vcnt_opt)
+            wdg_m["cv1"].create_text(132, 15, text=row["v_ave"], font=(MUI, 8,BD),   **vave_opt)
+            wdg_m["cv1"].create_text(161, 15, text=f"/ {row["v_cnt"]}", font=(GUI,9,BD), **vcnt_opt)
             wdg_m["cv2"].create_text( 23, 18, text=row["regp" ], font=(MUI, 9),    fill="black")
             wdg_m["cv2"].create_text( 92, 17, text=row["pid"  ], font=(MUI, 9),    fill="black")
-            wdg_m["cv2"].create_text(160, 16, text=row["rgns" ],                      **regn_opt)
+            wdg_m["cv2"].create_text(160, 16, text=row["rgns" ],                     **regn_opt)
             wdg_m["cv3"].create_text( 23, 20, text=row["age"  ], font=(MUI, 9),    fill="black")
             wdg_m["cv3"].create_text( 88, 20, text=row["heig" ], font=(MUI, 8),    fill="black")
             wdg_m["cv3"].create_text(151, 20, text=row["wkg"  ], font=(MUI, 8),    fill="black")
 
             f_l     = int(row["flyg"] or 0) + int(row["late"] or 0)
-            cnt_opt = dict(fg="#ff6d6d" if row["cnt"][lane] < 10 else "white")
-            bg= "#cfcfcf" if frn in self.is_absent else "white"
+            cnt_opt = dict(fg=LIT_RED if row["cnt"][lane] < 10 else "white")
+            bg= GRAY2 if frn in self.is_absent else "white"
 
-            wdg_s["frno"].config(text= str(frn), **FRM_COLOR[frn]        )
-            wdg_s["name"].config(text= f"{row.get('name')}", bg=bg       )
-            wdg_s["flyg"].config(text= f"{f_l}" if f_l else ""           )
+            wdg_s["frno"].config(text= str(frn), **FRM_COLOR[frn]         )
+            wdg_s["name"].config(text= f"{row.get('name')}", bg=bg        )
+            wdg_s["flyg"].config(text= f"{f_l}" if f_l else ""            )
             wdg_s["cnt" ].config(text= f" / {row['cnt'][lane]}", **cnt_opt)
 
-            for child in wdg_m["fr_Ctr"].winfo_children(): child.destroy()
             framing_center_widgets(self, wdg_m["fr_Ctr"], lane, d_row, wdgt_no=self.wdgt_no)
 
-            if bool(row["absn"]): apply_absent_bg(wdg_m["fr_left"])
+            if bool(row["absn"]): apply_absent_bg(wdg_m["absent_fr"])
 
     #--------------- widgets_Sub 表示/更新 -----------------
     def _update_sub_entries(self, figA:bool=True, graph:bool=True, P_O:bool=True, figB:bool=True,
@@ -568,23 +583,14 @@ class RaceWindow(tk.Toplevel):
             tilt            = row[frn]["tilt"] if row[frn]["tilt"] != -0.5 else "-"
             exhi            = f"{row[frn]['exhi']:.2f}" if row[frn]['exhi'] else ""
 
-            if   float(row[frn]["exhi"] or 0) <= fast_ex -0.08: e_color="#0000ff"
+            if   float(row[frn]["exhi"] or 0) <= fast_ex -0.08: e_color= BLUE
             elif float(row[frn]["exhi"] or 0) >= fast_ex +0.10: e_color="red" 
             else:                                               e_color="black"
 
             self.widgets_sub[lane]["tilt"].config(text=f"{tilt}")
-            self.widgets_sub[lane]["exhi"].config(text=wid_txt(exhi), fg=e_color)
+            self.widgets_sub[lane]["exhi"].config(text=w_txt(exhi), fg=e_color)
 
-            g_p = ("プロペラ","キャリボ","シャフト")
-            if self.disp_parts:
-                for n, p in enumerate(row[frn]["repr"]):
-                    p_opt = dict(fill="red" if p in g_p else "black")
-                    x     = 35 if n % 2 == 0 else 95
-
-                    if   n < 2: cv.create_text(x, 21, text=f"{p}", font=(MUI,8), **p_opt)
-                    elif n < 4: cv.create_text(x,  7, text=f"{p}", font=(MUI,8), **p_opt)
-                    elif n < 6: cv.create_text(x, 35, text=f"{p}", font=(MUI,8), **p_opt)
-            else:
+            if self.disp_oriten:
                 #-------------
                 def get_grid_color(diff, max_d, worse):
 
@@ -600,19 +606,29 @@ class RaceWindow(tk.Toplevel):
                 trn_val        = ortn[frn]["turn"] or 0
                 trn            = f"{trn_val:.2f}" if trn_val else ""
                 lap            = f"{lap_val:.2f}" if lap_val else ""
-                lap_bg, lap_fg = get_grid_color(lap_val -min_lap, 0.40, 1.00)
+                lap_bg, lap_fg = get_grid_color(lap_val -min_lap, 0.50, 1.00)
                 trn_bg, trn_fg = get_grid_color(trn_val -min_trn, 0.25, 0.50)
 
                 if exhi: cv.create_rectangle( 3, 2,  39, 41, fill="#f6f6f6", outline="")
                 if lap:  cv.create_rectangle(44, 2,  91, 41, fill=lap_bg,    outline="")
                 if trn:  cv.create_rectangle(96, 2, 140, 41, fill=trn_bg,    outline="")
 
-                cv.create_text( 20, 20, text=wid_txt(exhi), font=(MUI,8,BD), fill=e_color)
-                cv.create_text( 68, 20, text=wid_txt(lap),  font=(MUI,8,BD), fill=lap_fg )
-                cv.create_text(117, 20, text=wid_txt(trn),  font=(MUI,8,BD), fill=trn_fg )
+                cv.create_text( 20, 20, text=w_txt(exhi), font=(MUI,8,BD), fill=e_color)
+                cv.create_text( 68, 20, text=w_txt(lap),  font=(MUI,8,BD), fill=lap_fg )
+                cv.create_text(117, 20, text=w_txt(trn),  font=(MUI,8,BD), fill=trn_fg )
                 
                 cv.create_line(41, 0, 41, 44, fill="black", width=1)
                 cv.create_line(93, 0, 93, 44, fill="black", width=1)
+
+            else:
+                g_p = ("プロペラ","キャリボ","シャフト")
+                for n, p in enumerate(row[frn]["repr"]):
+                    p_opt = dict(fill="red" if p in g_p else "black")
+                    x     = 35 if n % 2 == 0 else 95
+
+                    if   n < 2: cv.create_text(x, 21, text=f"{p}", font=(MUI,8), **p_opt)
+                    elif n < 4: cv.create_text(x,  7, text=f"{p}", font=(MUI,8), **p_opt)
+                    elif n < 6: cv.create_text(x, 35, text=f"{p}", font=(MUI,8), **p_opt)
 
         wdg_hdr = self.widgets_sub[0]
         wspd    = row[0]["wspd"] or 0
@@ -623,35 +639,35 @@ class RaceWindow(tk.Toplevel):
         b_pas   = ( to_date(self.date).month -int(prg["upd_b"]) )%12
         vname   = "　 ".join(prg["vname"]) if len(prg["vname"]) < 3 else  prg["vname"]
 
-        wdg_hdr["vname"].config(text=f"BR  {vname}" )
-        wdg_hdr["w_typ"].config(text=f"{'　'.join(prg['w_typ'])} ")
-        wdg_hdr["upd_m"].config(text=f" {m_pas}  ヶ月 ")
-        wdg_hdr["upd_b"].config(text=f" {b_pas}  ヶ月 ")
-        wdg_hdr["wspd" ].config(text=f"風 速  {wspd}  m", fg="red" if wspd >=5 else HDR_FG, **HDR)
-        wdg_hdr["wave" ].config(text=f"波 高  {wave} cm", **HDR_L)
+        wdg_hdr["venue"].config(text=f"BR  {vname}  {'　'.join(prg['w_typ'])} ")
+        wdg_hdr["upd_m"].config(text=f"{m_pas:2} ヶ月")
+        wdg_hdr["upd_b"].config(text=f"{b_pas:2} ヶ月")
+        wdg_hdr["wspd" ].config(text=f"風 速  {wspd}  m", fg="red" if wspd >=5 else "white", **HDR_B)
+        wdg_hdr["wave" ].config(text=f"波 高  {wave} cm", **HDR_BF)
         wdg_hdr["stab" ].config(text="安 定 版 装着"  if stab else "", bg="yellow" if stab else "#dce8f9")
         wdg_hdr["shlp" ].config(text="周回短縮 1200m" if  lap else "", bg="yellow" if  lap else "#dce8f9")
-        wdg_hdr["deadl"].config(text=f"  {prg['deadline'].strftime('%H：%M')}  ")
+        wdg_hdr["deadl"].config(text=f"  {prg['deadline'].strftime('%H： %M')}  ")
         # --------------
         def _update_clock():
 
             if self.clock_id is not None:
                 self.widgets_sub[0]["now"].after_cancel(self.clock_id)
-                self.widgets_sub[0]["last"].config(font=(MUI,9,BD))
+                self.widgets_sub[0]["last"].config(font=(GUI,11,BD))
 
-            _now = dt.now().strftime("%H : %M")
-            last = int( (prg["deadline"] - dt.now()).total_seconds() )
+            now = dt.now().strftime("%H :  %M")
+            self.widgets_sub[0]["now"].config(text=f"  {now}  ")
 
-            self.widgets_sub[0]["now"].config(text=f"  {_now}  ")
+            sec = int((prg["deadline"] - dt.now()).total_seconds())
+            txt = f"{int(sec / 60):2}  : {(sec % 60):02}"
 
-            if  300 <  last <= 1800:
-                self.widgets_sub[0]["last"].config(text=f"{int(last / 60)} 分", fg="black")
-            elif 60 <  last <=  300:
-                self.widgets_sub[0]["last"].config(text=f"{int(last / 60)} 分", fg="red")                
-            elif  0 <= last <=   60:
-                self.widgets_sub[0]["last"].config(text=f"{int(last)     } 秒", fg="red")
-            elif  0 >= last:
-                self.widgets_sub[0]["last" ].config(text="投票 締切", fg="red", font=(MUI,8,BD))
+            if   300 <  sec <= 3600:
+                self.widgets_sub[0]["last"].config(text=txt, fg="white")
+            elif 180 <  sec <=  300:
+                self.widgets_sub[0]["last"].config(text=txt, fg="yellow")
+            elif   0 <  sec <=  180:
+                self.widgets_sub[0]["last"].config(text=txt, fg="#ff5757")
+            elif   0 >= sec:
+                self.widgets_sub[0]["last" ].config(text="締 切", fg=LIT_RED, font=(MUI,10,BD))
             else: self.widgets_sub[0]["last"].config(text="")
 
             self.clock_id = self.widgets_sub[0]["now"].after(1000, _update_clock)

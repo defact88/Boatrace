@@ -321,7 +321,7 @@ def framing_figure(self, fig_frame:tk.Frame, frame_order:list, rowA:dict=None, r
             txt = f"{tx[1:]}" if st >= 0 else f"{tx[2:]}"
 
         t_col = "red" if st < 0 else "black"
-        cv.create_text( 242+adW, (lane-1)*44+22, text=_wid(list(txt)), fill=t_col,
+        cv.create_text( 241+adW, (lane-1)*44+22, text=_wid(list(txt)), fill=t_col,
                                           font=(GUI,10,BD), tags=(f"text1_{lane}",) )
         cv.create_text( 217+adW, (lane-1)*44+23, text="",              fill=t_col,
                                           font=(GUI, 9,BD), tags=(f"text2_{lane}",) )
@@ -464,7 +464,7 @@ def apply_absent_bg(frame:tk.Misc, gray:str="#cfcfcf"):
 def reset_absent_bg(self):
 
     for lane in range(1, 7):
-        wdg = self.widgets_main[lane]["fr_left"]
+        wdg = self.widgets_main[lane]["absent_fr"]
         #-----------
         def _walk(root):
             yield root

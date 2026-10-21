@@ -10,7 +10,7 @@ from collections            import defaultdict
 from datetime               import datetime as dt, date, time, timedelta
 import os, tkinter as tk, Dal as dal
 
-from Helpers.Custum_func    import cFr, cLbl, cBtn
+from Helpers.Custum_func    import cFr, cLbl, cBtn, cCvs
 from Helpers.queries        import Query
 from Widgets.widgets        import set_player_image, framing_graph
 from Screens.classification import PlayerClassificationScreen
@@ -23,6 +23,7 @@ ALL, CT                = "nsew", "center"
 VENUES    = [ " 桐生 "," 戸田 ","江戸川","平和島","多摩川","浜名湖"," 蒲郡 "," 常滑 ","　津　",
               " 三国 ","びわこ","住之江"," 尼崎 "," 鳴門 "," 丸亀 "," 児島 "," 宮島 "," 徳山 ",
               " 下関 "," 若松 "," 芦屋 "," 福岡 "," 唐津 "," 大村 ",                           ]
+
 GRADE     = ["一般", " G3 ", " G2 ", " G1 ", "PG1", " SG "]
 COL_KEYS  = ["全", "SG", "G1", "G2", "一 般"]
 
@@ -54,10 +55,10 @@ PREFINAL_RNK = { 1:"[ 1 ]", 2:"[ 2 ]", 3:"[ 3 ]", 4:"[ 4 ]", 5:"[ 5 ]", 6:"[ 6 ]
 
 GOPT      = { 0: dict(text="一般",            font=(MUI,8   )),
               1: dict(text="G3",              font=(MUI,8   )), 
-              2: dict(text="G2",  fg="green", font=(MUI,9,BD)),
-              3: dict(text="G1",  fg="blue",  font=(MUI,9,BD)),
-              4: dict(text="PG1", fg="blue",  font=(MUI,9,BD)),
-              5: dict(text="SG",  fg="red",   font=(MUI,9,BD))  }
+              2: dict(text="G2",  fg="green", font=(MUI,8,BD)),
+              3: dict(text="G1",  fg="blue",  font=(MUI,8,BD)),
+              4: dict(text="PG1", fg="blue",  font=(MUI,8,BD)),
+              5: dict(text="SG",  fg="red",   font=(MUI,8,BD))  }
 
 FRM_COLOR = { 0: dict(bg="SystemButtonFace", fg=  "black"),
               1: dict(bg="#FFFFFF",          fg="#000000"),
@@ -72,28 +73,28 @@ CLS_COLOR = { "A1": dict(fg="blue",    bg="white", font=(GUI,10,BD)),
               "B1": dict(fg="black",   bg="white", font=(GUI,10   )),
               "B2": dict(fg="red",     bg="white", font=(GUI,10,BD))  }
 
-BDFNT     = dict( font=(MUI,9,BD) )
-NMFNT     = dict( font=(MUI,9   ) )
-
-COL1, COL2, COL3 = "#FFF4AA", "#33EE33", "#2A62FF"
 SRC_COL, SRS_COL = "#A463FF", "#505050"
 STC_COL, STR_COL = "#2A62FF", "#2A9A01"
-G_COL            = {0:"#616161", 1:"#616161", 2:"#00B008", 3:"#3F76FF", 4:"#3F76FF", 5:"RED"}
-NOR_COL          = dict(bg="white", fg="black")
+
+G_COL   = {0:"#616161", 1:"#616161", 2:"#00B008", 3:"#3F76FF", 4:"#3F76FF", 5:"RED"}
+NOR_COL = dict(bg="white", fg="black")
 
 HDR_COL = "#E0E1F4"
 YELL    = "#fff6b0"
-
 HDR_BG  = "#2B4A7A"
 HDR_FG  = "#FFFFFF"
-HDR_B   = dict(bg="#2B4A7A")
-BTN_BF  = dict(bg="#ebebeb", fg="black")                    # gray
-HDR_BF  = dict(bg="#2B4A7A", fg="#FFFFFF")
-BTN_OPT = dict(bg="#ebebeb", fg="black",   bd=1, relief=RA) # gray
-HDR_OPT = dict(bg="#2B4A7A", fg="#FFFFFF", bd=2, relief=RA)
 
-HL_BLUE = dict(bg="#CCE8FF", fg="black", bd=1, relief=GR)
-HL_YELL = dict(bg="#fff6b0", fg="black", bd=1, relief=SK, font=(MUI,8))
+HDR_B   = dict(bg="#2B4A7A")
+BTN_BF  = dict(bg="#ebebeb", fg="black")              # gray
+HDR_BF  = dict(bg="#2B4A7A", fg="#FFFFFF")
+BTN_OPT = dict(bg="#ebebeb", fg="black",   Bd=(1,RA)) # gray
+HDR_OPT = dict(bg="#2B4A7A", fg="#FFFFFF", Bd=(2,RA))
+
+HL_BLUE = dict(bg="#CCE8FF", fg="black", Bd=(1,GR))
+HL_YELL = dict(bg="#fff6b0", fg="black", Bd=(1,SK), font=(MUI,8))
+
+TITLE_B  = dict(bg="#4A6A9A")
+TITLE_BF = dict(bg="#4A6A9A", fg="#FFFFFF")
 
 CEL_W  = 65
 CEL_H  = 27
@@ -267,7 +268,7 @@ class PlayerAnalysisScreen(tk.Toplevel):
         self.ach_canvs.bind("<Configure>", _ach_on_conf)
 
         # グラフ -------------
-        self.cv_trend_graph  = tk.Canvas(fr_trnd, width=480, height=260)
+        self.cv_trend_graph  = cCvs(fr_trnd, W=480, H=260)
         self.cv_trend_graph.place( x=0, y=0)
 
         # 選手ﾌﾟﾛﾌｨｰﾙ --------
@@ -293,7 +294,7 @@ class PlayerAnalysisScreen(tk.Toplevel):
 
         for r,(cap,key) in enumerate(rows):
             cLbl(fr_prof, text=cap, **HDR_OPT, font=(MUI,8,BD), py=5)._grid(R=r, C=0, Stk=ALL)
-            lbl = cLbl(fr_prof, Txtv=self.basic_vars[key], font=(MUI,8),Bd=(1,GR))
+            lbl = cLbl(fr_prof, Txtv=self.basic_vars[key], font=(MUI,9),Bd=(1,GR))
             lbl._grid(R=r, C=1, Stk=ALL)
             if r == 3:
                 lbl.bind("<Button-1>",lambda e:self._same_period())
@@ -452,18 +453,18 @@ class PlayerAnalysisScreen(tk.Toplevel):
     def _update_toggle_btn_state(self, idx:int, filter_dict:dict):
 
         for k, b in self.btns[idx].items():
-            if filter_dict.get(k): b.config(**HL_BLUE)
-            else:                  b.config(**BTN_OPT)
+            if filter_dict.get(k): b._config(**HL_BLUE)
+            else:                  b._config(**BTN_OPT)
 
     # --------------------------------------------
     def _update_radio_btn_state(self, idx:int, key:str|tuple):
 
         for k, b in self.btns[idx].items():
-            if k == key: b.config(**HL_YELL)
-            else:        b.config(**BTN_BF, bd=1, relief=RD)
+            if k == key: b._config(**HL_YELL)
+            else:        b._config(**BTN_BF, Bd=(1,RD))
         for k, lbl in self.season.items():
-            if k == key: lbl.config(**HL_YELL)
-            else:        lbl.config(**HDR_OPT)
+            if k == key: lbl._config(**HL_YELL)
+            else:        lbl._config(**HDR_OPT)
 
     # --------------------------------------------
     def _on_switch(self, key:str ,idx:int):
@@ -689,10 +690,10 @@ class PlayerAnalysisScreen(tk.Toplevel):
 
         cv.create_rectangle(L, T, L+XW, T+YH, outline="#a4b7cb", width=1, fill="white")
 
-        if show_sr:                 # 右軸ﾗﾍﾞﾙ
+        if show_sr:                 
             for yv in [0, 3.0, 6.0, 10]:
                 y = T + YH - int( (yv / 10.0) * YH )
-                cv.create_text(W-R +5, y, text=f"{yv}", anchor="w", font=(GUI, 9))
+                cv._crtxt(W-R +5, y, text=f"{yv}", Anc="w", font=(GUI,9)) # 右軸ﾗﾍﾞﾙ
                 if yv == 6.0:
                     cv.create_line(L, y, XW+L, y, fill="#c1c1c1", width=1)
                 if yv in [3.0]:
@@ -701,11 +702,11 @@ class PlayerAnalysisScreen(tk.Toplevel):
                 cv.create_text(L+XW / 2, YH+T / 2, text="データなし", font=(MUI, 10))
                 return
 
-        if show_st:                  # 左軸ﾗﾍﾞﾙ
+        if show_st:
             for tv in [0, 0.10, 0.15, 0.20, 0.50]:
                 lbl = f"{tv:.2f}"[1:] if tv != 0 else tv
                 y   = _fixed(tv)
-                cv.create_text(20, y, text=lbl, anchor="e", font=(GUI, 9, BD), fill=STC_COL)
+                cv._crtxt(20, y, text=lbl, Anc="e", font=(GUI,9,BD), fill=STC_COL) # 左軸ﾗﾍﾞﾙ
                 if tv not in [0, 0.5]:
                     cv.create_line(L, y, L+XW, y, fill="#b3d4ff", width=1)
 
@@ -721,7 +722,7 @@ class PlayerAnalysisScreen(tk.Toplevel):
                 cv.create_line(x1, y1, x2, y2, fill=color, width=1)
             for i,(x,y) in enumerate(pts):
                 g = grade[i]
-                cv.create_oval(x-1.5, y-1.5, x+1.5, y+1.5, fill=G_COL[g], outline="")
+                cv.create_oval(x-1.8, y-1.8, x+1.8, y+1.8, fill=G_COL[g], outline="")
         #-----------
         if self.trend_state.get("sr_cumltv"): draw_line(xs, ys_sr_c, SRC_COL)
         if self.trend_state.get("sr_single"): draw_line(xs, ys_sr_s, SRS_COL)
@@ -771,15 +772,17 @@ class PlayerAnalysisScreen(tk.Toplevel):
         for r, seri in enumerate(reversed(row.values())):
             d_min, d_max, title, grade, _, slots = seri.values()
 
-            fr_grid  = cFr(self.body, W=352, H= 145, Bd=(1,SD))
-            fr_term  = cFr(fr_grid,   W=350, H=  37, bg="white")
-            fr_grde  = cFr(fr_grid,   W= 50, H=  22, Bd=(1,RD))
-            fr_titl  = cFr(fr_grid,   W=300, H=  22, bg="white")
+            fr_grid = cFr(self.body, W=352, H= 146, **TITLE_B, Bd=(1,SD))
+            fr_term = cFr(fr_grid,   W=350, H=  22, **TITLE_B, px=30)
+            fr_grde = cFr(fr_grid,   W= 46, H=  20, Bd=(1,RD))
+            fr_titl = cFr(fr_grid,   W=300, H=  22, **TITLE_B)
+            fr_cell = cFr(fr_grid,   W=350, H=  90, Bd=(1,GR))
 
-            fr_grid._grid(R=r, C=0,           Stk=ALL) ; fr_grid.Pgate()
-            fr_term._grid(R=0, C=0, Cspan=14, Stk=ALL) ; fr_term.Pgate()
-            fr_grde._grid(R=1, C=0, Cspan= 2, Stk=ALL) ; fr_grde.Pgate()
-            fr_titl._grid(R=1, C=2, Cspan=12, Stk=ALL) ; fr_titl.Pgate()
+            fr_grid._grid(R=r, C=0,          Stk=ALL,           py=(10,0)) ;fr_grid.Pgate()
+            fr_term._grid(R=0, C=0, Cspan=2, Stk=ALL,           py=(1,2))  ;fr_term.Pgate()
+            fr_grde._grid(R=1, C=0,          Stk=ALL, px=(4,0), py=(3,4))  ;fr_grde.Pgate()
+            fr_titl._grid(R=1, C=1,          Stk=ALL,           py=(0,7))  ;fr_titl.Pgate()
+            fr_cell._grid(R=2, C=0, Cspan=2, Stk=ALL                     ) ;fr_cell.Pgate()
 
             fr_grde.Rconf(0, W=1) ; fr_grde.Cconf(0, W=1)
             fr_term.Rconf(0, W=1) ; fr_term.Cconf(0, W=1)
@@ -788,9 +791,9 @@ class PlayerAnalysisScreen(tk.Toplevel):
             term  = f"{self._jp_date(d_min, md=True)}  ～  {self._jp_date(d_max, md=True)}"
 
             cLbl(fr_grde, **GOPT[grade], Anc= CT)._grid(R=0, C=0, Stk=ALL)
-            cLbl( fr_term, text=term,  Anc="w", bg="white", font=(MUI,9)
-                 )._grid(R=0, C=0, px=(10,0), py=(12,3), Stk=ALL)
-            cLbl( fr_titl, text=title, Anc="w", bg="white", font=(GUI,9)
+            cLbl( fr_term, text=term, font=(MUI,8,BD),  Anc="w", **TITLE_BF
+                 )._grid(R=0, C=0, px=(10,0), Stk=ALL)
+            cLbl( fr_titl, text=title, font=(MUI,8,BD), Anc="w", **TITLE_BF
                  )._grid(R=0, C=0, px=(20,0), Stk=ALL)
 
             for col, item in enumerate(slots):
@@ -800,18 +803,18 @@ class PlayerAnalysisScreen(tk.Toplevel):
                 rank  = convert_rank(item["finish"], item["is_fnl"], item["prefnl"])
                 fcolr = ("red" if rank in ("F","L","S","K","(F)","(L)","(S)","(K)") else "black")
                 bg    = YELL if cour == self.course else "white"
-                opt   = { 0: dict(text=cour, **FRM_COLOR[frn],     font=(GUI, 9,BD) ),
-                          1: dict(text=slit, fg=fcolr, bg="white", font=(MUI, 8   ) ),
-                          2: dict(text=rank, fg=fcolr, bg=bg,      font=(GUI,10,BD) ), }
-
                 if item["is_fnl"]: opt[2]["font"] = (GUI,11,BD)
 
-                for row in range(3):
-                    fr_cell = cFr(fr_grid, bg=bg if row == 2 else "white", W=25, H=28, Bd=(1,GR))
-                    fr_cell._grid(R=row+2, C=col, Stk=ALL) ;fr_cell.Pgate()
-                    fr_cell.Rconf(row, W=1) ;fr_cell.Cconf(0, W=1)
+                fr_cell.Cconf(col, Min=25)
 
-                    cLbl(fr_cell, **opt[row], anc=CT)._grid(R=0, C=0, Stk=ALL)
+                for row in range(3):
+                    opt = { 0: dict(text=cour, **FRM_COLOR[frn],     font=(GUI, 9,BD) ),
+                            1: dict(text=slit, fg=fcolr, bg="white", font=(MUI, 8   ) ),
+                            2: dict(text=rank, fg=fcolr, bg=bg,      font=(GUI,10,BD) ), }
+
+                    fr_cell.Rconf(row, Min=30) ;
+
+                    cLbl(fr_cell, **opt[row], Anc=CT, Bd=(1,GR))._grid(R=row, C=col, Stk=ALL, px=1, py=1)
 
         self.canvs.configure(scrollregion= self.canvs.bbox("all"))
 
@@ -949,12 +952,12 @@ class PlayerAnalysisScreen(tk.Toplevel):
         starts  = self.data_rows["starts"]
 
         for c, b in self.dist_refs["course_btn"].items():
-            if subj_c == c: b.config(**HL_BLUE)
-            else:           b.config(**HDR_OPT)
+            if subj_c == c: b._config(**HL_BLUE)
+            else:           b._config(**HDR_OPT)
 
         for rk, b in self.dist_refs["rank_btn"].items():
-            if subj_r == rk: b.config(**HL_BLUE)
-            else:            b.config(**HDR_OPT)
+            if subj_r == rk: b._config(**HL_BLUE)
+            else:            b._config(**HDR_OPT)
 
         total = own_cnt[subj_c][subj_r] if subj_r else starts[subj_c]
         self.lb_totl.config(text=f"{total}")
@@ -1002,7 +1005,7 @@ class PlayerAnalysisScreen(tk.Toplevel):
                 if cou == subj_c: bg="#cce8ff"
                 elif col >= 4:    bg="#e9e6e6"
                 else:             bg="white"
-                lb_wm.config(text=cnt if cnt else "", bg=bg, **NMFNT)
+                lb_wm.config(text=cnt if cnt else "", font=(MUI,9), bg=bg)
 
     #-----------------------------------
     def _change_disp(self):

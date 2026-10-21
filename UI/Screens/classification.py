@@ -18,11 +18,8 @@ BD             = "bold"
 GR, SD, RA, RD = "groove", "solid", "raised", "ridge"
 ALL, CT        = "nsew", "center"
 
-BDFNT          = dict(font=(MUI,9,BD))
-NMFNT          = dict(font=(MUI,9   ))
-
 COLS           = [ ("player_id", "登番"     ),
-                   ("name",      "氏名"     ),
+                   ("name",      "選手名"   ),
                    ("age",       "年齢"     ),
                    ("regions",   "所属支部" ),
                    ("class_now", "現適用級" ),
@@ -34,9 +31,13 @@ COLS           = [ ("player_id", "登番"     ),
                    ("win_G1",    "G1 優勝"  ),
                    ("win_SG",    "SG 優勝"  ), ]
 
+BDFNT   = dict(font=(MUI,9,BD))
+NMFNT   = dict(font=(MUI,9   ))
+HDR_BF  = dict(bg="#2B4A7A", fg="#FFFFFF")
+BTN_BF  = dict(bg="#4A6A9A", fg="#FFFFFF")
+BTN_OPT = dict(bg="#4A6A9A", fg="#FFFFFF", Bd=(1,RA))
+
 HL_COL    = "#cce8ff"
-HDR_COLOR = "#e0e1f4"
-NML_COL   = "SystemButtonFace"
 
 CEL_W = 70
 CEL_H = 30
@@ -50,6 +51,7 @@ P_SG_PRE   = [0, 12, 10, 8, 6, 4, 3]
 P_SG_FIN   = [0, 13, 11, 9, 8, 6, 5]
 
 BT_KEY = "ファン感謝３Ｄａｙｓボートレースバトルトーナメント"
+
 #---------------------------------------
 def _point_for(grade:int, final:int, rank:int, s_name:str):
 
@@ -59,6 +61,7 @@ def _point_for(grade:int, final:int, rank:int, s_name:str):
     else:                        tbl = P_GEN_FIN if final else P_GEN_PRE
 
     return tbl[rank or 0]
+
 #---------------------------------------
 def _this_season_start(today:date) -> date:
 
@@ -66,6 +69,7 @@ def _this_season_start(today:date) -> date:
     if      today.month >= 11: return date(today.year, 11, 1)
 
     return date(today.year-1, 11, 1)
+
 #===============================================================================
 class PlayerClassificationScreen(tk.Toplevel):
 
@@ -77,10 +81,11 @@ class PlayerClassificationScreen(tk.Toplevel):
         self.resizable(False, False)
         self.regist_period = regist_period
         self.region        = region
-        self.key = regist_period if regist_period else region
+        self.key           = regist_period if regist_period else region
+
         self.build_ui()
         self._refresh_players_data()
-
+    # ------------------------------------------------------
     def build_ui(self):
 
         fr_main = cFr(self, W=866, H=970, px=9, py=5)
@@ -88,7 +93,7 @@ class PlayerClassificationScreen(tk.Toplevel):
 
         fr_info      = cFr(fr_main,  W=848, H= 50)
         fr_hdr       = cFr(fr_main,  W=832, H= 30, Bd=(1,SD))
-        self.canvas       = cCvs(fr_main, W=832, H=870)
+        self.canvas  = cCvs(fr_main, W=832, H=870)
         self.fr_body = cFr(self.canvas,   W=832, Bd=(1,SD))
         scr_bar      = cSrb(fr_main, orient="vertical", Com=self.canvas.yview)
         self.canvas.config(yscrollcommand=scr_bar.set)
@@ -106,11 +111,10 @@ class PlayerClassificationScreen(tk.Toplevel):
         fr_hdr.Rconf(0, minsize=CEL_H)
 
         if isinstance(self.key, int):
-            ttk.Button( fr_info, text="＜", command=self._preview
-                       ).grid(row=0, column=0, padx=(260,0))
-            self.lb_info = cLbl(fr_info, font=(MUI,11), text=f"   {self.key} 期  ")
-            self.lb_info._grid(R=0, C=1, Stk=ALL)
-            ttk.Button(fr_info, text="＞", command=self._next).grid(row=0, column=2)
+            cBtn(fr_info, W=6, text="＜", font=(MUI,9,BD), **BTN_BF, Com=self._preview)._grid(R=0, C=0, px=(320,0))
+            self.lb_info = cLbl(fr_info, font=(MUI,10,BD), text=f"   {self.key}  期  ")
+            self.lb_info._grid(R=0, C=1, px=(10,10), Stk=ALL)
+            cBtn(fr_info, W=6, text="＞", font=(MUI,9,BD), **BTN_BF, Com=self._next)._grid(R=0, C=2)
         else:
             cLbl(fr_info, font=(MUI,11), text=f"   {self.key} 支部  ", Anc=CT)._grid(R=0, C=0, Stk=ALL)
 
@@ -122,7 +126,7 @@ class PlayerClassificationScreen(tk.Toplevel):
             self._cells[(r,c)] = lbl
         #-----------
         for c, cap in enumerate(COLS):      # ヘッダ
-            cLbl(fr_hdr, text=cap[1], font=(MUI,10), bg=HDR_COLOR, Bd=(1,RD))._grid(R=0, C=c, Stk=ALL)
+            cLbl(fr_hdr, text=cap[1], font=(MUI,10), **HDR_BF, Bd=(1,RD))._grid(R=0, C=c, Stk=ALL)
         #-----------
         def _mw(e):
             self.canvas.yview_scroll(int(-1 *(e.delta / 120)), "units")
@@ -140,12 +144,14 @@ class PlayerClassificationScreen(tk.Toplevel):
         self.key -= 1
         self.lb_info.config(text=f"   {self.key} 期  ")
         self._refresh_players_data()
+
     #-------------------------------------------------------
     def _next(self):
 
         self.key += 1
         self.lb_info.config(text=f"   {self.key} 期  ")
         self._refresh_players_data()
+
     #-------------------------------------------------------
     def _refresh_players_data(self):
 
@@ -293,6 +299,7 @@ class PlayerClassificationScreen(tk.Toplevel):
             self.fr_body.Rconf(r, minsize=CEL_H)
             has_major_win = (data[10] >= 1 or data[11] >= 1)
             bg            = HL_COL if has_major_win else "white"
+            font          = (MUI,10,BD) if has_major_win else (MUI,10)
 
             for c, val in enumerate(data):
                 self.fr_body.Cconf(c, minsize=CELLS[c])
@@ -304,7 +311,7 @@ class PlayerClassificationScreen(tk.Toplevel):
                 if c == 0:
                     pid = val
                 if c == 1:
-                    self._cells[(r, c)].config(text=str(val), cursor="hand2", bg=bg, font=f)
+                    self._cells[(r, c)].config(text=str(val), cursor="hand2", bg=bg, font=font)
                     self._cells[(r, c)].bind("<Button-1>",lambda e, p=pid:self._player_screen(p))
                 else:
                     self._cells[(r, c)].config(text=str(val), bg=bg, font=f)

@@ -119,7 +119,7 @@ class FileManagementGUI(tk.Tk):
         BACKUP_DIR   = r"C:\boatrace\Backup"
 
         BAT_COMMIT   = Path(r"C:\boatrace\Management\bat_files\Gitcommit.bat")
-        DAILY_PATH   = Path(r"C:\boatrace\UI\Updata\daily_insert.py")
+        DAILY_PATH   = Path(r"C:\boatrace\Import\Updata\daily_insert.py")
 
         base_size    = (1760, 950, 800, 500)
 

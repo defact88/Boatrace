@@ -21,11 +21,19 @@ BD             = "bold"
 GR, SD, RA, RD = "groove", "solid", "raised", "ridge"
 ALL, CT        = "nsew", "center"
 
-HDR_C          = "#e0e1f4"
-HL_COL         = "#cce8ff"
-PREFIN         = "#e2ffe1"
-PLAYER         = "#fffcec"
-INFO           = "#f2fdff"
+HL_COL  = "#cce8ff"
+PREFIN  = "#e2ffe1"
+PLAYER  = "#fffcec"
+INFO    = "#f2fdff"
+
+HDR_BG  = "#2B4A7A"
+HDR_FG  = "#FFFFFF"
+BTN_BG  = "#4A6A9A"
+
+BTN_B   = dict(bg=BTN_BG)
+HDR_B   = dict(bg=HDR_BG)
+HDR_BF  = dict(bg=HDR_BG, fg=HDR_FG)
+BTN_BF  = dict(bg=BTN_BG, fg=HDR_FG)
 
 FRM  = { 0: dict(bg="SystemButtonFace", fg=  "black", font=(MUI,8,BD), Anc=CT),
          1: dict(bg="#FFFFFF",          fg="#000000", font=(MUI,8,BD), Anc=CT),
@@ -35,12 +43,12 @@ FRM  = { 0: dict(bg="SystemButtonFace", fg=  "black", font=(MUI,8,BD), Anc=CT),
          5: dict(bg="#FFD400",          fg="#000000", font=(MUI,8,BD), Anc=CT),
          6: dict(bg="#008A2E",          fg="#FFFFFF", font=(MUI,8,BD), Anc=CT), }
 
-GOPT = { 0: dict(text="一般戦",          bg=INFO, font=(MUI,9    )),
-         1: dict(text="G3",              bg=INFO, font=(MUI,9    )),
-         2: dict(text="G2",  fg="green", bg=INFO, font=(MUI,10,BD)),
-         3: dict(text="G1",  fg="blue",  bg=INFO, font=(MUI,10,BD)),
-         4: dict(text="PG1", fg="blue",  bg=INFO, font=(MUI,10,BD)),
-         5: dict(text="SG",  fg="red",   bg=INFO, font=(MUI,10,BD))  }
+GOPT = { 0: dict(text="一般",            font=(MUI,8    )),
+         1: dict(text="G3",              font=(MUI,8    )),
+         2: dict(text="G2",  fg="green", font=(MUI,9,BD)),
+         3: dict(text="G1",  fg="blue",  font=(MUI,9,BD)),
+         4: dict(text="PG1", fg="blue",  font=(MUI,9,BD)),
+         5: dict(text="SG",  fg="red",   font=(MUI,9,BD))  }
 
 CLS  = { "A1": dict(text="A1", fg="blue",    bg="white", font=(GUI,10,BD), Anc=CT),
          "A2": dict(text="A2", fg="#006625", bg="white", font=(GUI,10,BD), Anc=CT),
@@ -50,11 +58,16 @@ CLS  = { "A1": dict(text="A1", fg="blue",    bg="white", font=(GUI,10,BD), Anc=C
 FINAL = { 1:"①", 2:"②", 3:"③", 4:"④", 5:"⑤", 6:"⑥",
           "F":"(F)", "L":"(L)", "S":"(S)", "K":"(K)"       }
 
+PREFINAL = { 1:"[1]", 2:"[2]", 3:"[3]", 4:"[4]", 5:"[5]", 6:"[6]",
+             "F":"[F]", "L":"[L]", "S":"[S]", "K":"[K]"       }
+
 NAME =  dict(font=(MUI, 9,BD), bg="white", Anc=CT)
-TERM =  dict(font=(MUI, 9   ), bg=INFO,    Anc=CT)
-FIN  = [dict(font=(MUI, 8,BD), bg="white", Anc=CT),
-        dict(font=(MUI, 8,BD), bg=PREFIN,  Anc=CT),
-        dict(font=(MUI,11,BD), bg=HL_COL,  Anc=CT), ]
+
+FIN  = [ dict(font=(MUI, 8,BD), bg="white", Anc=CT),
+         dict(font=(MUI, 8,BD), bg=PREFIN,  Anc=CT),
+         dict(font=(MUI,11,BD), bg=HL_COL,  Anc=CT),
+         dict(font=(MUI, 8,BD), bg=HL_COL,  Anc=CT),]
+
 SLIT =  dict(font=(MUI, 7   ), bg="white", Anc=CT)
 
 SET_PARTS = {'ピストン×２', 'リング×４', 'シリンダーケース'}
@@ -106,7 +119,7 @@ class MotorAnalysisScreen(tk.Toplevel):
             fr1._grid(R=r, C=0, Stk=ALL) ;fr1.Pgate()
             fr2._grid(R=r, C=1, Stk=ALL) ;fr2.Pgate()
 
-            cLbl(fr1, text=text, bg="#e0e1f4", font=(MUI,9), Bd=(1,RD))._grid(R=0, C=0, Stk=ALL)
+            cLbl(fr1, text=text, **HDR_BF, font=(MUI,9), Bd=(1,RD))._grid(R=0, C=0, Stk=ALL)
             lb = cLbl(fr2, text="-", bg="white", font=(MUI,10), Bd=(1,GR))
             lb._grid(R=0, C=0, Stk=ALL)
             self.stat_labels[r] = lb
@@ -114,12 +127,11 @@ class MotorAnalysisScreen(tk.Toplevel):
         # --- 下部
         fr_cvs = cFr(self.main, W=366, H=680, Bd=(1,SD)) ;fr_cvs._grid(R=0, C=1, Stk=ALL) ;fr_cvs.Pgate()
 
-        fr_hdr = cFr(fr_cvs, W=364, H=30, Bd=(1,RD), bg="#e0e1f4")
+        fr_hdr = cFr(fr_cvs, W=364, H=30, Bd=(1,RD), **HDR_B)
         fr_hdr._grid(R=0, C=0, Cspan=2, Stk=ALL); fr_hdr.Pgate()
         fr_hdr.Rconf(0, W=1) ;fr_hdr.Cconf(0, W=1)
 
-        cLbl(fr_hdr, text="使用 履歴", font=(MUI,10), bg="#e0e1f4", Anc=CT
-             )._grid(R=0, C=0, Stk=ALL)
+        cLbl(fr_hdr, text="使用 履歴", font=(MUI,10), Anc=CT, **HDR_BF)._grid(R=0, C=0, Stk=ALL)
 
         self.canvas  = tk.Canvas(fr_cvs, width=337, height=648)
         self.scr_bar = ttk.Scrollbar(fr_cvs, orient="vertical", command=self.canvas.yview)
@@ -176,7 +188,7 @@ class MotorAnalysisScreen(tk.Toplevel):
 
         if rows1 and rows1['race_cnt'] > 0:
             rc = rows1['race_cnt']
-            self.stat_labels[0].config(text=str(self.motor_no))
+            self.stat_labels[0].config(text=f"{str(self.motor_no)} 号機")
             self.stat_labels[1].config(text=f"{rows1['series_cnt']} 節")
             self.stat_labels[2].config(text=f"{rc} 回")
             self.stat_labels[3].config(text=f"{(rows1['win1']/rc*100):.1f}%")
@@ -240,21 +252,21 @@ class MotorAnalysisScreen(tk.Toplevel):
 
         for r, rows in enumerate(series_groups):
 
-            fr_block = cFr(self.fr_body, W=337, H=140, Bd=(1,SD))
+            fr_block = cFr(self.fr_body, W=337, H=148, Bd=(1,SD))
             fr_block._grid(R=r, C=0, py=(0,20)) ;fr_block.Pgate()
 
-            fr_head  = cFr(fr_block, W=335, H=54)
-            fr_data  = cFr(fr_block, W=335, H=84, Bd=(1,GR))
+            fr_head  = cFr(fr_block, W=335, H=60)
+            fr_data  = cFr(fr_block, W=335, H=86, Bd=(1,GR))
             fr_head._grid(R=0, C=0) ;fr_head.Pgate()
             fr_data._grid(R=1, C=0) ;fr_data.Pgate()
 
-            fr_head1  = cFr(fr_head, W=335, H=24)
+            fr_head1  = cFr(fr_head, W=335, H=30)
             fr_head2  = cFr(fr_head, W=335, H=30)
             fr_head1._grid(R=0, C=0) ;fr_head1.Pgate()
             fr_head2._grid(R=1, C=0) ;fr_head2.Pgate()
 
-            fr_term  = cFr(fr_head1, W=285, H=30, bg=INFO,    Bd=(1,GR)) ;fr_term.Pgate()
-            fr_grad  = cFr(fr_head1, W= 50, H=30, bg=INFO,    Bd=(1,GR)) ;fr_grad.Pgate()
+            fr_term  = cFr(fr_head1, W=285, H=30, **BTN_B,    Bd=(1,GR)) ;fr_term.Pgate()
+            fr_grad  = cFr(fr_head1, W= 50, H=30,             Bd=(1,GR)) ;fr_grad.Pgate()
             fr_name  = cFr(fr_head2, W=135, H=30, bg="white", Bd=(1,GR)) ;fr_name.Pgate()
             fr_clas  = cFr(fr_head2, W= 40, H=30, bg="white", Bd=(1,GR)) ;fr_clas.Pgate()
             fr_sc_p  = cFr(fr_head2, W= 80, H=30, bg=PLAYER,  Bd=(1,GR)) ;fr_sc_p.Pgate()
@@ -272,7 +284,7 @@ class MotorAnalysisScreen(tk.Toplevel):
             txt1 = f"{head['name']}"
             txt2 = f"{self._date(rows[-1]['date'])}  ～  {self._date(rows[0]['date'], md=True)}"
 
-            cLbl(fr_term, text=txt2, **TERM,     px=0, py=0)._grid(R=0, C=0, Stk="n")
+            cLbl(fr_term, text=txt2, font=(MUI,9,BD), **BTN_BF, px=0, py=0)._grid(R=0, C=0, Stk=ALL)
             cLbl(fr_name, text=txt1, **NAME,     px=0, py=0)._grid(R=0, C=0, Stk=ALL)
             cLbl(fr_clas, **CLS[head['_class']], px=0, py=0)._grid(R=0, C=0, Stk=ALL)
             cLbl(fr_grad, **GOPT[head['grade']], px=0, py=0)._grid(R=0, C=0, Stk=ALL)
@@ -286,7 +298,7 @@ class MotorAnalysisScreen(tk.Toplevel):
 
                 fr_A = cFr(fr_data, W=26, H=28, Bd=(1,GR)) ;fr_A._grid(R=0, C=c) ;fr_A.Pgate()
                 fr_B = cFr(fr_data, W=26, H=28, Bd=(1,GR)) ;fr_B._grid(R=1, C=c) ;fr_B.Pgate()
-                fr_C = cFr(fr_data, W=26, H=28, Bd=(1,GR)) ;fr_C._grid(R=2, C=c) ;fr_C.Pgate()
+                fr_C = cFr(fr_data, W=26, H=30, Bd=(1,GR)) ;fr_C._grid(R=2, C=c) ;fr_C.Pgate()
                 fr_A.Rconf(0, W=1) ;fr_A.Cconf(0, W=1)
                 fr_B.Rconf(0, W=1) ;fr_B.Cconf(0, W=1)
                 fr_C.Rconf(0, W=1) ;fr_C.Cconf(0, W=1)
@@ -296,10 +308,14 @@ class MotorAnalysisScreen(tk.Toplevel):
                 else: slit = f"{row['slit']:.2f}"[2:]
                 fin  = row["rank"] if row["rank"] else row["fault"]
                 fg   = "red" if fin in ("F","L","S","K") else "black"
-                txt  = FINAL[fin] if row["final"] else fin
+                if row["prefinal"]: txt = PREFINAL[fin]
+                elif row["final"]:  txt = FINAL[fin]
+                else:               txt= fin
 
                 i = row["prefinal"]
-                if row["final"]: i = 2
+                if row["final"]:
+                    i = 3 if fin in ("F","L","S","K") else 2
+
 
                 cLbl(fr_A, text=row["cour"], **opt    )._grid(R=0, C=0, Stk=ALL)
                 cLbl(fr_B, text=slit, **SLIT          )._grid(R=0, C=0, Stk=ALL)

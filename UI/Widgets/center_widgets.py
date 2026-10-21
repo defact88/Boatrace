@@ -1,4 +1,5 @@
-﻿# Widgets/center_widgets.py
+﻿# -*- coding: utf-8 -*-
+# C:\boatrace\UI\Widgets\center_widgets.py
 
 from typing              import Union, Dict, List, Optional, Tuple, Any
 from Helpers.Custum_func import cFr, cLbl, cBtn, cCvs
@@ -9,27 +10,33 @@ GUI, MUI, HNH, CBR     = "Yu Gothic UI", "Meiryo UI", "Helvetica Neue Heavy", "C
 GR, SD, RD, RA, SK, BD = "groove", "solid", "ridge", "raised", "sunken", "bold"
 ALL, CT                = "nsew", "center"
 
-HDR_C   = "#e0e1f4"
-HL_COL  = "#cce8ff"
+BLANK_C  = "#E9E6E6"
+CNT_CEL  = "#E0E1F4"
 
-HDR_BG  = "#2B4A7A"
-HDR_FG  = "#FFFFFF"
-HDR     = dict(bg="#2B4A7A")
-HDR_BF  = dict(bg="#2B4A7A", fg="#FFFFFF")
-BTN_OPT = dict(bg="#4A6A9A", fg="#FFFFFF", Bd=(1,RA))
+HL_BLU   = "#CCE8FF"
+BLUE2    = "#0D7DDA"
+WHITE    = "#FFFFFF"
+BLACK    = "#000000"
+HDR_BG   = "#2B4A7A"
+BTN_BG   = "#4A6A9A"
 
-BDFNT   = dict(font=(MUI,7,BD))
-NMFNT   = dict(font=(MUI,7   ))
+HDR_B    = dict(bg=HDR_BG)
+HDR_BF   = dict(bg=HDR_BG, fg=WHITE)
+BTN_BF   = dict(bg=BTN_BG, fg=WHITE)
+HDR_OFF  = dict(bg=HDR_BG, fg=WHITE, Bd=(1,RA))
+BTN_OFF  = dict(bg=BTN_BG, fg=WHITE, Bd=(1,RA))
+BLUE1_ON = dict(bg=HL_BLU, fg=BLACK, Bd=(1,SK))
+BLUE2_ON = dict(bg=BLUE2,  fg=WHITE, Bd=(1,SK))
 
-OPT     = [ dict(font=(MUI,8,BD), bg="#cce8ff"),
-            dict(font=(MUI,8,  ), bg="white"),
-            dict(font=(MUI,8,  ), bg="#e9e6e6"), ]
+WM_OPTS  = [ dict(font=(MUI,8,BD), bg=HL_BLU),
+             dict(font=(MUI,8,  ), bg="white"),
+             dict(font=(MUI,8,  ), bg=BLANK_C), ]
+
 #===============================================================================
 class LaneCenterManager:
-    def __init__(self, lane:int=None):
+    def __init__(self, lane:int):
  
         self.rows      = {}
-        self.frame     = None
         self.subj_r    = 0
         self.subj_c    = lane
         self.disp      = 1
@@ -40,51 +47,44 @@ class LaneCenterManager:
     #-------------------------------------------------------
     def _build_distribute_ui(self, fr:tk.Frame):
 
-        self.frame     = fr
-        self.dist_refs = {"rank_btn":{}, "course_btn":{}, "cells":{}, "move_cells":{}}
-
-        for w in self.frame.winfo_children(): w.destroy()         #W=356, H=165
+        for child in fr.winfo_children(): child.destroy()
 
         for r in range(8):
-            if r == 0: self.frame.Rconf(r, W=1, minsize=21)
-            else:      self.frame.Rconf(r, W=1, minsize=24)
+            if r == 0: fr.Rconf(r, W=1, minsize=21)
+            else:      fr.Rconf(r, W=1, minsize=24)
         for c in range(8):
-            if c <= 3: self.frame.Cconf(c, W=1, minsize=51)
-            else:      self.frame.Cconf(c, W=1, minsize=38)
+            if c <= 3: fr.Cconf(c, W=1, minsize=51)
+            else:      fr.Cconf(c, W=1, minsize=38)
 
-        self.totl = cLbl(self.frame, text="", width=5, font=(MUI,8,BD), bg=HDR_C, Bd=(1,RD))
-        self.totl._grid(R=0, C=0, px=0, py=0, Stk=ALL)
+        self.totl = cLbl(fr, W=5, text="", font=(GUI,9,BD), **BTN_BF, Bd=(1,RD), Csr="hand2")
+        self.totl._grid(R=0, C=0, Stk=ALL, px=0, py=0)
         self.totl.bind("<Button-1>", lambda e: self._change_disp())
 
-        style = ttk.Style()
-        style.configure("d.TButton", font=(MUI,7), anchor="center")
-
         for rnk in range(1, 4):
-            rbtn = cLbl(self.frame, W=6, text=f"{rnk} 着", font=(GUI,8,BD), **BTN_OPT)
-            rbtn.bind("<Button-1>",lambda e, rk=rnk: self._toggle_subject_rank(rk))
+            rbtn = cLbl(fr, W=6, text=f"{rnk} 着", font=(GUI,8,BD), **HDR_OFF, Csr="hand2")
+            rbtn.bind("<Button-1>",lambda e, r=rnk: self._toggle_subject_rank(r))
             rbtn._grid(R=0, C=rnk, Stk=ALL)
             self.dist_refs["rank_btn"][rnk] = rbtn
 
         for cou in range(1, 7):
-            cbtn = cBtn(self.frame, W=1, text=f"{cou} コース", font=(MUI,7,BD), **BTN_OPT,
-                               Com=lambda c=cou: self._on_subject_course_btn(c))
-            cbtn.grid(row=cou, column=0, sticky=ALL)
+            cbtn = cBtn(fr, W=1, text=f"{cou} コース", font=(MUI,7,BD), **HDR_OFF, Csr="hand2",
+                                  Com=lambda c=cou: self._on_subject_course_btn(c) )
+            cbtn._grid(R=cou, C=0, Stk=ALL)
             self.dist_refs["course_btn"][cou] = cbtn
 
             for rnk in range(1, 4):
-                cell = cFr(self.frame, width=5)
+                cell = cFr(fr, W=5)
                 cell._grid(R=cou, C=rnk, Stk=ALL)
-                cv   = cCvs(cell, W=49, H=22, relief=RD, bd=1) ;cv.place(x=-2, y=-2)
+                cv   = cCvs(cell, W=49, H=22, Bd=(1,RD)) ;cv.place(x=-2, y=-2)
                 self.dist_refs["cells"][(cou, rnk)] = cv
 
         for col, (label, _) in enumerate(self.move_cols):
-            cLbl(self.frame, text=label, font=(GUI,8,BD), Bd=(1,RD), **HDR_BF
-                 )._grid(R=0, C=col+4, Stk=ALL)
+            cLbl(fr, text=label, font=(GUI,7,BD), Bd=(1,RD), **HDR_BF)._grid(R=0, C=col+4, Stk=ALL)
 
         for row in range(1, 7):
             for col, (label, _) in enumerate(self.move_cols):
-                bg = "#e9e6e6" if row >= 2 and col == 0 else "white"
-                cell = cLbl(self.frame, text="", width=4, Bd=(1,RD), bg=bg, Anc=CT)
+                bg   = BLANK_C if row >= 2 and col == 0 else "white"
+                cell = cLbl(fr, W=4, text="", bg=bg, Anc=CT, Bd=(1,RD))
                 cell._grid(R=row, C=col+4, Stk=ALL)
                 self.dist_refs["move_cells"][(row, label)] = cell
 
@@ -101,17 +101,13 @@ class LaneCenterManager:
         starts    = self.rows["starts"]
 
         for rk, b in self.dist_refs["rank_btn"].items():
-            b.configure( bg="#cce8ff" if self.subj_r == rk else "#2B4A7A",
-                         relief=SK    if self.subj_r == rk else RA,
-                         fg="black"   if self.subj_r == rk else "white")
+            b._config(**BLUE2_ON if self.subj_r == rk else HDR_OFF)
         for c, b in self.dist_refs["course_btn"].items():
-            b.configure( bg="#cce8ff" if self.subj_c == c  else "#4A6A9A",
-                         relief=SK    if self.subj_c == c  else RA,
-                         fg="black"   if self.subj_c == c  else "white")
+            b._config(**BLUE2_ON if self.subj_c == c  else HDR_OFF)
 
         total = own_cnt[self.subj_c][self.subj_r] if self.subj_r else starts[self.subj_c]
-        fg = "red" if total < 10 else "black"
-        self.totl.configure(text=f"{total}", fg=fg)
+        fg    = "red" if total < 10 else "white"
+        self.totl.config(text=f"{total}", fg=fg)
 
         for c in range(1, 7):
             vt = 0
@@ -119,11 +115,11 @@ class LaneCenterManager:
                 cv = self.dist_refs["cells"][(c, rk)] ;cv.delete("all")
 
                 if c  == self.subj_c and ((self.subj_r == 0) or (self.subj_r != 0 and rk == self.subj_r)):
-                    v = own_cnt[self.subj_c][rk]                ;bg="#cce8ff" ;f=(MUI,8,BD)
+                    v = own_cnt[self.subj_c][rk]                ;bg=HL_BLU  ;f=(MUI,8,BD)
                 elif self.subj_r == 0:
-                    v = oth_cnt[self.subj_c][c][rk]             ;bg="white"   ;f=(MUI,8)
+                    v = oth_cnt[self.subj_c][c][rk]             ;bg="white" ;f=(MUI,8)
                 else:
-                    v = oth_by[self.subj_c][self.subj_r][c][rk] ;bg="white"   ;f=(MUI,8)
+                    v = oth_by[self.subj_c][self.subj_r][c][rk] ;bg="white" ;f=(MUI,8)
                 vt += v
                 if v: text = f"{v}" if self.disp else f"{int(vt / total *100)}"
                 else: text = ""
@@ -144,14 +140,14 @@ class LaneCenterManager:
                 if row >= 2 and col == 0: continue
                 lb_wm = self.dist_refs["move_cells"][(row, label)]
                 cnt   = wmvs.get(key, 0)
-                opt   = OPT[0] if row == self.subj_c else OPT[1]
-                if col >= 4: opt = OPT[2]
+                opt   = WM_OPTS[0] if row == self.subj_c else WM_OPTS[1]
+                if col >= 4: opt = WM_OPTS[2]
                 lb_wm.config(text=cnt if cnt else "", **opt)
 
     #-------------------------------------------------------
     def _change_disp(self):
         self.disp = 1 - self.disp
-        self.totl.configure(relief=GR if self.disp else RD)
+        self.totl.config(relief=RD if self.disp else GR)
         self._render_distribute_table(self.rows)
 
     #-----------------------------------
@@ -171,14 +167,15 @@ class LaneCenterManager:
         self.disp   = 1
 
 #===============================================================================
-def framing_center_widgets(self, fr:tk.Frame, lane:int, rows:dict, wdgt_no:int, reload:bool=False):
-
-    if lane not in self.lane_managers:
-        self.lane_managers[lane] = LaneCenterManager(lane)
-
-    manager = self.lane_managers[lane]
+def framing_center_widgets(self, fr:tk.Frame, lane:int, rows:dict, wdgt_no:int):
 
     if wdgt_no == 1:
-        manager._build_distribute_ui(fr)
+        if lane not in self.lane_managers:
+            manager = LaneCenterManager(lane)
+            manager._build_distribute_ui(fr)
+        else:
+            manager = self.lane_managers[lane]
+
         manager._render_distribute_table(rows)
+        self.lane_managers[lane] = manager
 

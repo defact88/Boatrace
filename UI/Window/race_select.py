@@ -25,11 +25,8 @@ GRADE_IDX     = { 0:"一般戦", 1:"G3", 2:"G2", 3:"G1", 4:"PG1", 5:"SG" }
 HELD_TYPE_IDX = { 0:"通常", 1:"ﾓｰﾆﾝｸﾞ" ,2:"ｻﾏｰﾀｲﾑ", 3:"ﾅｲﾀｰ", 4:"ﾐｯﾄﾞﾅｲﾄ" }
 
 GUI, MUI           = "Yu Gothic UI", "Meiryo UI"
-GR, SD, RD, RA, BD = "groove", "solid", "ridge", "raised", "bold"
+GR, SD, RD, RA, SK, BD = "groove", "solid", "ridge", "raised", "sunken", "bold"
 ALL, CT            = "nsew", "center"
-SCOL               = "#a5e6ff"
-MAIN_BG            = "#F0F4FA"
-#MAIN_BG            = "SystemButtonFace"
 
 GRADE_OPT = [ {"font":(MUI, 10    ), "bg":"white",   "fg":"black"   },
               {"font":(MUI, 10    ), "bg":"white",   "fg":"black"   },
@@ -38,7 +35,28 @@ GRADE_OPT = [ {"font":(MUI, 10    ), "bg":"white",   "fg":"black"   },
               {"font":(MUI, 10, BD), "bg":"#d2ffd1", "fg":"#ff3939" },
               {"font":(MUI, 10, BD), "bg":"#72c5ff", "fg":"#ff3939" }  ]
 
-HDR_OPT   = dict(font=(GUI,10,BD), bg="#d3dee9", Bd=(1,RD))
+SCOL     = "#a5e6ff"#?
+
+MAIN_BG  = "#F0F4FA"
+HDR_BG   = "#2B4A7A"
+BTN_BG   = "#4A6A9A"
+WHITE    = "#FFFFFF"
+YELLOW1  = "#FFD700"
+YELLOW2  = "#F1EE62"
+GRAY1    = "#ECECEC"
+GRAY2    = "#CFCFCF"
+BLACK1   = "#000000"
+BLACK2   = "#222222"
+BLUE     = "#0000FF"
+LIT_RED  = "#FF6D6D"
+
+HDR_B    = dict(bg=HDR_BG)
+HDR_BF   = dict(bg=HDR_BG,  fg=WHITE)
+BTN_BF   = dict(bg=BTN_BG,  fg=WHITE)
+BTN_OFF  = dict(bg=BTN_BG,  fg=WHITE,  Bd=(1,RA))
+GRAY_OFF = dict(bg=GRAY1,   fg=BLACK1, Bd=(1,RA))
+YELL1_ON = dict(bg=YELLOW1, fg=BLACK2, Bd=(1,GR))
+YELL2_ON = dict(bg=YELLOW2, fg=BLACK2, Bd=(1,SK))
 
 #===============================================================================
 def today_iso() -> str:
@@ -113,12 +131,12 @@ class RaceSelectWindow(tk.Frame):
         self.ent_range._grid(R=0, C=3, Stk="we")
         cLbl(fr_hedr, W= 3, text="日",             font=(MUI,10))._grid(R=0, C=4, Stk="w")
 
-        self.btn_prev  = cBtn( fr_ctrl, W=5, text="＜", font=(MUI,8), bg="white",
-                                                  Com=lambda:self._shift_date(-1) )
-        self.btn_next  = cBtn( fr_ctrl, W=5, text="＞", font=(MUI,8), bg="white",
-                                                  Com=lambda:self._shift_date( 1) )
-        self.btn_sub   = cBtn( fr_ctrl, W=8, text="SUB OFF", font=(MUI,9), bg="white", Rel=RA,
-                                                                     Com=lambda:self._odds_on() )
+        self.btn_prev = cBtn( fr_ctrl, W=5, text="＜", font=(MUI,8,BD), Bd=(1,RA), **BTN_BF,
+                                                                  Com=lambda:self._shift_date(-1) )
+        self.btn_next = cBtn( fr_ctrl, W=5, text="＞", font=(MUI,8,BD), Bd=(1,RA), **BTN_BF,
+                                                                  Com=lambda:self._shift_date( 1) )
+        self.btn_sub  = cBtn( fr_ctrl, W=8, text="SUB OFF", font=(MUI,9), bg="white", Rel=RA,
+                                                                  Com=lambda:self._odds_on() )
 
         txt = f"{to_date(self.date).month} 月 {to_date(self.date).day} 日    開催一覧"
         self.lbl_date  = cLbl(fr_ctrl, text=txt, font=(MUI,10), bg=MAIN_BG)
@@ -139,9 +157,9 @@ class RaceSelectWindow(tk.Frame):
     def _odds_on(self):
 
         if self.sub_window:
-            self.btn_sub.config(text="SUB OFF", bg="white",  relief="raised")
+            self.btn_sub._config(text="SUB OFF", **GRAY_OFF)
         else:
-            self.btn_sub.config(text="SUB  ON", bg="#fbffcb", relief="ridge",)
+            self.btn_sub._config(text="SUB  ON", **YELL2_ON)
 
         self.sub_window = not self.sub_window
 
@@ -181,11 +199,11 @@ class RaceSelectWindow(tk.Frame):
             fr_cell.Rconf(2, Min=50)
             fr_cell.Rconf(3, Min=30)
 
-            lb_hedr = cLbl(fr_cell, Anc=CT,  text=v_name, **HDR_OPT)
-            lb_topL = cLbl(fr_cell, Anc="e", text="", font=(MUI,9), bg=MAIN_BG)
+            lb_hedr = cLbl(fr_cell, Anc=CT,  text=v_name, font=(GUI,10,BD), Bd=(1,RD), **HDR_BF)
+            lb_topL = cLbl(fr_cell, Anc="e", text="",     font=(MUI,9), bg=MAIN_BG)
             lb_topR = cLbl(fr_cell, Anc=CT,  text="")
-            lb_cntr = cLbl(fr_cell, Anc=CT,  text="", font=(MUI,8),  Wrap=122)
-            lb_botm = cLbl(fr_cell, Anc=CT,  text="", font=(MUI,9))
+            lb_cntr = cLbl(fr_cell, Anc=CT,  text="",     font=(MUI,8), Wrap=122)
+            lb_botm = cLbl(fr_cell, Anc=CT,  text="",     font=(MUI,9))
 
             lb_hedr._grid(R=0, C=0, Cspan=2, Stk=ALL)
             lb_topL._grid(R=1, C=0,          Stk="we", py=(3.0), px=(5,0))
@@ -198,7 +216,7 @@ class RaceSelectWindow(tk.Frame):
                                              "clicks":(lb_topL, lb_cntr, lb_topR, lb_botm)     }
 
         if info is None:
-            widg["frm"].configure(bg=MAIN_BG)
+            widg["frm" ].configure(bg=MAIN_BG)
             widg["topL"].configure(text="", bg=MAIN_BG, fg="black")
             widg["topR"].configure(text="", bg=MAIN_BG, fg="black")
             widg["cntr"].configure(text="", bg=MAIN_BG, fg="black")
@@ -219,7 +237,7 @@ class RaceSelectWindow(tk.Frame):
             widg["topL"].configure(text=f"{grade}", **g_opt)
             widg["topR"].configure(text=f"",        **g_opt)
             widg["cntr"].configure(text=f"{title}", bg="white")
-            widg["botm"].configure(text=day_lbl, bg="white")
+            widg["botm"].configure(text=day_lbl,    bg="white")
 
             framing_held_type_icon(self, widg["topR"], h_type)   
 

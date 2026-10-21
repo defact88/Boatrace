@@ -21,13 +21,30 @@ GUI, MUI, HNH, CBR     = "Yu Gothic UI", "Meiryo UI", "Helvetica Neue Heavy", "C
 GR, SD, RD, RA, SK, BD = "groove", "solid", "ridge", "raised", "sunken", "bold"
 ALL, CT                = "nsew", "center"
 
-#SCOL     = "#a5e6ff"
-#BG_COLOR = "#e9f1f2"
+MAIN_BG = "#F0F4FA"
+HDR_BG  = "#2B4A7A"
+BTN_BG  = "#4A6A9A"
+WHITE   = "#FFFFFF"
+YELLOW1 = "#FFD700"
+YELLOW2 = "#F1EE62"
+GRAY1   = "#ECECEC"
+GRAY2   = "#CFCFCF"
+BLACK1  = "#000000"
+BLACK2  = "#222222"
+BLUE    = "#ff7474"
+LIT_RED = "#ff5b5b"
 
-MAIN_BG  = "#F0F4FA"  #"SystemButtonFace"
+HDR_B   = dict(bg=HDR_BG)
+HDR_BF  = dict(bg=HDR_BG,  fg=WHITE)
+BTN_BF  = dict(bg=BTN_BG,  fg=WHITE)
+BTN_OFF = dict(bg=BTN_BG,  fg=WHITE,  Bd=(3,RA))
+BTN_OPT = dict(bg=BTN_BG,  fg=WHITE,  Bd=(3,RA), font=(MUI,9,BD))
+GRY_OFF = dict(bg=GRAY1,   fg=BLACK1, Bd=(1,RA))
+YEL1_ON = dict(bg=YELLOW1, fg=BLACK2, Bd=(1,GR))
+YEL2_ON = dict(bg=YELLOW2, fg=BLACK2, Bd=(1,SK))
 
 DB_PATH       = r"C:\boatrace\boatrace.db"
-DAILY_INSERT  = r"C:\boatrace\UI\Updata\daily_insert.py"
+DAILY_INSERT  = r"C:\boatrace\Import\Updata\daily_insert.py"
 SUMMARIZ      = r"C:\boatrace\UI\summarize_today.py"
 
 ON_LAUNCH     = {"ensure_prg":True, "summarrizer":True}
@@ -329,14 +346,14 @@ class MainScreen(tk.Frame):
         self.app = app
         fr_main  = cFr(self,    W=600, H=500)
 
-        fr_titl  = cFr(fr_main, W=580, H= 70)
+        fr_titl  = cFr(fr_main, W=580, H= 30, **HDR_B)
         fr_panl  = cFr(fr_main, W=580, H=150, Bd=(1,GR))
         fr_body  = cFr(fr_main, W=580, H=260)
         fr_bar1  = cFr(fr_panl, W=580, H= 40)
         fr_bar2  = cFr(fr_panl, W=580, H= 40)
 
         fr_main._grid(R=0, C=0                       ) ;fr_main.Pgate()
-        fr_titl._grid(R=0, C=0, padx=10              ) ;fr_titl.Pgate()
+        fr_titl._grid(R=0, C=0, padx=10, py=20       ) ;fr_titl.Pgate()
         fr_panl._grid(R=1, C=0                       ) ;fr_panl.Pgate()
         fr_body._grid(R=2, C=0,          pady=(10, 0)) ;fr_body.Pgate()
         fr_bar1._grid(R=1, C=0                       ) ;fr_bar1.Pgate()
@@ -355,37 +372,38 @@ class MainScreen(tk.Frame):
         fr_body.Rconf(1, W=1) ; fr_body.Cconf(1, W=1)
         fr_body.Rconf(2, W=1)
 
-        cLbl(fr_titl, text="  BoatRace GUI", font=(MUI,13,BD))._grid(R=0, C=0, Stk=ALL)
-        cLbl(fr_titl, text="MAIN MENU    ", font=(GUI,12,BD))._grid(R=0, C=1, Stk=ALL)
+        cLbl(fr_titl,  text="  BoatRace GUI", font=(MUI,12,BD), **HDR_BF)._grid(R=0, C=0, Stk=ALL)
+        cLbl(fr_titl,  text="MAIN MENU    ",  font=(GUI,11,BD), **HDR_BF)._grid(R=0, C=1, Stk=ALL)
         cLbl( fr_panl, text="ー Realtime summarizer ー",font=(GUI,10,BD), Anc="n"
-             )._grid(R=0, C=0, Cspan=2, Stk="n", pady=(0, 10))
+             )._grid(R=0, C=0, Cspan=2, Stk="n", pady=(0,10))
 
         stat_opt = {"bg":"white", "fg":"black", "font":(MUI,9)}
 
-        self.btn_boot = ttk.Button(fr_bar1, text="停 止",  style= "MS.TButton", command=self._toggle_boot)
-        btn_mute = ttk.Button(fr_bar2, text="ﾓﾆﾀ-出力",    style= "MS.TButton", command=self._toggle_mute)
-        self.btn_extn = ttk.Button(fr_bar1, text="拡張ﾓﾆﾀ   表示 ", style= "MS.TButton", command=self._toggle_ext_monitor)
-        lb_stat1 = cLbl(fr_bar1, text="--", W=18, H=1, Bd=(2,GR), pady=3, **stat_opt)
-        lb_stat2 = cLbl(fr_bar2, text="--", W=18, H=1, Bd=(2,GR), pady=3, **stat_opt)
+        self.bt_boot = cBtn(fr_bar1, W=8, text=" 停  止 ",  **BTN_OPT, Com=self._toggle_boot, Csr="hand2")
+        btn_mute     = cBtn(fr_bar2, W=8, text="ﾓﾆﾀ-出力",  **BTN_OPT, Com=self._toggle_mute, Csr="hand2")
+        self.bt_extn = cBtn(fr_bar1, text="拡張ﾓﾆﾀ  表示 ", **BTN_OPT, Com=self._toggle_ext_monitor, Csr="hand2")
+        lb_stat1 = cLbl(fr_bar1, W=18, text="--", Bd=(3,SK), py=4, **stat_opt)
+        lb_stat2 = cLbl(fr_bar2, W=18, text="--", Bd=(3,SK), py=4, **stat_opt)
 
-        self.btn_boot.grid(row=0, column=0, sticky="w", padx= 20, ipady=2)
-        btn_mute.grid(row=1, column=0, sticky="w", padx= 20, ipady=2)
-        lb_stat1.grid(row=0, column=1, sticky="w", padx=(0, 140))
-        lb_stat2.grid(row=1, column=1, sticky="w", padx=(0, 266))
-        self.btn_extn.grid(row=0, column=2, sticky="w", padx= 0, ipady=6, ipadx=4)
+        self.bt_boot._grid(R=0, C=0, sticky="w", px= 20, ipady=2)
+        btn_mute._grid(    R=1, C=0, sticky="w", px= 20, ipady=2)
+        lb_stat1._grid(    R=0, C=1, sticky="w", px=(0,144))
+        lb_stat2._grid(    R=1, C=1, sticky="w", px=(0,275))
+        self.bt_extn._grid(R=0, C=2, sticky="w", px= 0, ipady=6, ipadx=4)
 
-        btn_dbo = ttk.Button(fr_body, text="Ｄ Ｂ  参 照", command=lambda:app.show_screen("DBO"))
-        btn_dbs = ttk.Button(fr_body, text="SCHEMA 編 集", command=lambda:app.show_screen("DBS"))
-        btn_dbq = ttk.Button(fr_body, text="対 戦  履 歴", command=lambda:app.show_screen("DBQ"))
-        btn_rac = ttk.Button(fr_body, text="レース 選 択", command=lambda:app.show_screen("RSW"))
-        btn_plr = ttk.Button(fr_body, text="選 手  詳 細", command=lambda a=self.app:
-                                                                          open_player_picker(a) )
+        btn_dbo = cBtn(fr_body, text="Ｄ Ｂ  参 照", Com=lambda:app.show_screen("DBO"), Csr="hand2")
+        btn_dbs = cBtn(fr_body, text="SCHEMA 編 集", Com=lambda:app.show_screen("DBS"), Csr="hand2")
+        btn_dbq = cBtn(fr_body, text="対 戦  履 歴", Com=lambda:app.show_screen("DBQ"), Csr="hand2")
+        btn_rac = cBtn(fr_body, text="レース 選 択", Com=lambda:app.show_screen("RSW"), Csr="hand2")
+        btn_plr = cBtn(fr_body, text="選 手  詳 細", Com=lambda a=self.app: open_player_picker(a))
+        btn_fav = cBtn(fr_body, text="注 目  選 手", Com=lambda:app.show_screen("FPL"), Csr="hand2")
 
-        btn_dbo.grid(row=0, column=0, ipady=18) ; btn_dbo.config(width=20)
-        btn_dbs.grid(row=1, column=0, ipady=18) ; btn_dbs.config(width=20)
-        btn_rac.grid(row=0, column=1, ipady=18) ; btn_rac.config(width=20)
-        btn_plr.grid(row=1, column=1, ipady=18) ; btn_plr.config(width=20)
-        btn_dbq.grid(row=2, column=1, ipady=18) ; btn_dbq.config(width=20)
+        btn_dbo._grid(R=0, C=0, ipady=15) ; btn_dbo._config(W=20, **BTN_OFF)
+        btn_dbs._grid(R=1, C=0, ipady=15) ; btn_dbs._config(W=20, **BTN_OFF)
+        btn_dbq._grid(R=2, C=0, ipady=15) ; btn_dbq._config(W=20, **BTN_OFF)
+        btn_rac._grid(R=0, C=1, ipady=15) ; btn_rac._config(W=20, **BTN_OFF)
+        btn_plr._grid(R=1, C=1, ipady=15) ; btn_plr._config(W=20, **BTN_OFF)
+        btn_fav._grid(R=2, C=1, ipady=15) ; btn_fav._config(W=20, **BTN_OFF)
 
         self._lbl_monitor = [lb_stat1, lb_stat2]
         self.after(1000, self._update_monitor_state)
@@ -395,10 +413,11 @@ class MainScreen(tk.Frame):
 
         if getattr(self, "_ext_container", None) and self.app._ext_visible:
             self._hide_ext_monitor()
-            self.btn_extn.configure(text="拡張ﾓﾆﾀ   表示 ") 
+            self.bt_extn.config(text="拡張ﾓﾆﾀ   表示 ") 
         else:
             self._show_ext_monitor()
-            self.btn_extn.configure(text="拡張ﾓﾆﾀ 非表示") 
+            self.bt_extn.config(text="拡張ﾓﾆﾀ 非表示") 
+
     #---------- moni 出力ON/OFF(mute) ------------
     def _toggle_mute(self):
 
@@ -444,11 +463,11 @@ class MainScreen(tk.Frame):
             if is_running:
                 txt1 = "停止要求中" if is_stop_req else "稼働中"
                 opt1 = dict(bg="yellow") if is_stop_req else dict(bg="#ceffd3")
-                self.btn_boot.config(text="停 止")
+                self.bt_boot.config(text="停 止")
             else:
                 txt1 = "停止中"
                 opt1 = dict(bg="#dedede", fg="black")
-                self.btn_boot.config(text="起 動")
+                self.bt_boot.config(text="起 動")
 
             txt2 = "ON" if (not is_mute) else "OFF"
             opt2 = dict(bg="yellow") if txt2 == "OFF" else dict(bg="#ceffd3")

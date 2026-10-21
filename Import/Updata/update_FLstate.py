@@ -37,14 +37,15 @@ def to_date(x) -> date:
 #---------------------------------------------------------------------
 def term_range_for_today(today:date) -> tuple[date, date]:
 
-    y = today.year
+    y  = today.year
     md = (today.month, today.day)
 
-    if ( 5, 1) <= md <= (10,31): start = date(y,    5, 1); end = today
-    elif          md >= (11, 1): start = date(y,   11, 1); end = today
-    else:                        start = date(y-1, 11, 1); end = today
+    if (5,1) <= md <= (10,31): start = date(y,   5,1) ;end = today
+    elif        md >= (11, 1): start = date(y,  11,1) ;end = today
+    else:                      start = date(y-1,11,1) ;end = today
 
     return start, end
+
 #---------------------------------------------------------------------
 def yymmdd_bounds(d:date) -> tuple[int, int]:
 
@@ -52,6 +53,7 @@ def yymmdd_bounds(d:date) -> tuple[int, int]:
 
     return ( int(f"{yy:02d}{d.month:02d}{d.day:02d}0000"),
              int(f"{yy:02d}{d.month:02d}{d.day:02d}9999")  )
+
 #---------------------------------------------------------------------
 def cnt_FL_st(start:date, end:date) -> dict[int, tuple[int,int]]:
 
@@ -68,7 +70,7 @@ def cnt_FL_st(start:date, end:date) -> dict[int, tuple[int,int]]:
              SUM( CASE WHEN fault_code = 'L'
                         AND IFNULL(fault_level,0) = 1
                        THEN 1
-                       ELSE 0 END                     ) AS late_cnt
+                       ELSE 0 END            ) AS late_cnt
             FROM Race_entries
            WHERE race_id BETWEEN ? AND ?
              AND(fault_code='F' OR fault_code='L')
