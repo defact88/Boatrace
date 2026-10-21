@@ -3,7 +3,7 @@
 
 import tkinter as tk
 import subprocess, sys, json
-from tkinter  import ttk, messagebox
+from tkinter  import messagebox
 from datetime import datetime as dt, date, time, timedelta, timezone
 from pathlib  import Path
 
@@ -12,7 +12,6 @@ import Dal as dal
 from Helpers.build_rows       import query_program, make_rows, make_sub_rows
 from Helpers.queries          import Query
 from Helpers.build_series_idx import update_series_idx, build_day_lbl
-from Helpers.sub_window       import open_player_picker
 from Helpers.Custum_func      import cFr, cLbl, cBtn
 from Widgets.center_widgets   import framing_center_widgets
 from Widgets.placeholder      import build_main_placeholder, build_sub_placeholder
@@ -25,9 +24,9 @@ APP_TITLE = ""
 ODDS_WINDOW    = r"C:\boatrace\UI\odds_window.py"
 RESULTS_WINDOW = r"C:\boatrace\UI\results_window.py"
 
-GUI, MUI, HNH, CBR     = "Yu Gothic UI", "Meiryo UI", "Helvetica Neue Heavy", "Cambria"
-GR, SD, RD, RA, SK, BD = "groove", "solid", "ridge", "raised", "sunken", "bold"
-ALL, CT                = "nsew", "center"
+GUI, MUI, HNH, CBR = "Yu Gothic UI", "Meiryo UI", "Helvetica Neue Heavy", "Cambria"
+GR, SD, RD, RA, SK = "groove", "solid", "ridge", "raised", "sunken"
+ALL, CT ,BD        = "nsew", "center", "bold"
 
 VENUES    = [ "桐生",  "戸田",  "江戸川", "平和島", "多摩川", "浜名湖", "蒲郡", "常滑",  "津",
               "三国", "びわこ", "住之江",  "尼崎",   "鳴門",   "丸亀",  "児島", "宮島", "徳山",
@@ -253,7 +252,7 @@ class RaceWindow(tk.Toplevel):
         self._highright_D_btn(d)
 
     #----------------- レース切替ボタン --------------------
-    def _mk_race_buttons(self, fr:ttk.Frame):
+    def _mk_race_buttons(self, fr:tk.Frame):
 
         for child in fr.winfo_children(): child.destroy()
 

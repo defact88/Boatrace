@@ -3,16 +3,17 @@
 
 import tkinter as tk
 import threading, subprocess, sys, sqlite3, signal, traceback, json, os, queue
-from tkinter             import ttk, messagebox
-from datetime            import datetime as dt, date, time, timedelta, timezone
-from pathlib             import Path
-from collections         import deque
+from tkinter      import ttk, messagebox
+from datetime     import datetime as dt, date, time, timedelta, timezone
+from pathlib      import Path
+from collections  import deque
 
 import Dal as dal
-from Helpers.Custum_func import cFr, cLbl, cBtn
-from Screens             import DBOpsScreen, DBSchemScreen, DBQueryScreen
-from Screens             import PlayerAnalysisScreen, VenueAnalysisScreen, MotorAnalysisScreen
-from Window              import RaceSelectWindow, RaceWindow
+from Custum_func   import cFr, cLbl, cBtn
+from player_picker import open_player_picker
+from Screens       import DBOpsScreen, DBSchemScreen, DBQueryScreen
+from Screens       import PlayerAnalysisScreen, VenueAnalysisScreen, MotorAnalysisScreen
+from Window        import RaceSelectWindow, RaceWindow, PlayerFavorWindow # ←未作成
 
 # ====================================================================
 APP_TITLE = ""
@@ -34,14 +35,15 @@ BLACK2  = "#222222"
 BLUE    = "#ff7474"
 LIT_RED = "#ff5b5b"
 
-HDR_B   = dict(bg=HDR_BG)
-HDR_BF  = dict(bg=HDR_BG,  fg=WHITE)
-BTN_BF  = dict(bg=BTN_BG,  fg=WHITE)
-BTN_OFF = dict(bg=BTN_BG,  fg=WHITE,  Bd=(3,RA))
-BTN_OPT = dict(bg=BTN_BG,  fg=WHITE,  Bd=(3,RA), font=(MUI,9,BD))
-GRY_OFF = dict(bg=GRAY1,   fg=BLACK1, Bd=(1,RA))
-YEL1_ON = dict(bg=YELLOW1, fg=BLACK2, Bd=(1,GR))
-YEL2_ON = dict(bg=YELLOW2, fg=BLACK2, Bd=(1,SK))
+HDR_B    = dict(bg=HDR_BG)
+HDR_BF   = dict(bg=HDR_BG,  fg=WHITE)
+BTN_BF   = dict(bg=BTN_BG,  fg=WHITE)
+BTN_OFF  = dict(bg=BTN_BG,  fg=WHITE,  Bd=(3,RA))
+BTN_OPT  = dict(bg=BTN_BG,  fg=WHITE,  Bd=(3,RA), font=(MUI,9,BD))
+STAT_OPT = dict(bg=WHITE,   fg=BLACK1, Bd=(3,SK), font=(MUI,9))
+GRY_OFF  = dict(bg=GRAY1,   fg=BLACK1, Bd=(1,RA))
+YEL1_ON  = dict(bg=YELLOW1, fg=BLACK2, Bd=(1,GR))
+YEL2_ON  = dict(bg=YELLOW2, fg=BLACK2, Bd=(1,SK))
 
 DB_PATH       = r"C:\boatrace\boatrace.db"
 DAILY_INSERT  = r"C:\boatrace\Import\Updata\daily_insert.py"
@@ -99,7 +101,7 @@ class ProgressDialog(tk.Toplevel):
 
         frm = ttk.Frame(self, padding=16)
         frm.pack(fill="both", expand=True)
-        ttk.Label(frm, text=message, font=(GUI,11)).pack(pady=(2, 8))
+        ttk.Label(frm, text=message, font=(GUI,11)).pack(pady=(2,8))
         self.pb = ttk.Progressbar(frm, mode="indeterminate", length=280)
         self.pb.pack(pady=6)
         self.pb.start(50)
@@ -126,12 +128,6 @@ class App(tk.Tk):
         self.minsize(500, 400)
         self.configure(bg=MAIN_BG)
 
-        style = ttk.Style()
-        style.configure("TButton",     font=(MUI,10), anchor="center")
-        style.configure("MS.TButton",  font=(MUI,9),  anchor="center")
-        style.configure("hdr.TButton", font=(MUI,9),  anchor="center")
-        style.configure("RW.TButton",  font=(MUI,9), backgroud="blue", anchor="center")
-
         self._summ_proc   = None
         self._ext_text    = None
         self._ext_visible = False
@@ -142,7 +138,8 @@ class App(tk.Tk):
                                "DBO":      DBOpsScreen(parent=self.contanr, app=self),
                                "DBS":    DBSchemScreen(parent=self.contanr, app=self),
                                "DBQ":    DBQueryScreen(parent=self.contanr, app=self),
-                               "RSW": RaceSelectWindow(parent=self.contanr, app=self), }
+                               "RSW": RaceSelectWindow(parent=self.contanr, app=self), 
+                               "FPL":PlayerFavorWindow(parent=self.contanr, app=self), }
 
         self.show_screen("Main")
 
@@ -344,58 +341,51 @@ class MainScreen(tk.Frame):
         super().__init__(parent)
 
         self.app = app
-        fr_main  = cFr(self,    W=600, H=500)
+        fr_main  = cFr(self,   W=600, H=500)
 
-        fr_titl  = cFr(fr_main, W=580, H= 30, **HDR_B)
-        fr_panl  = cFr(fr_main, W=580, H=150, Bd=(1,GR))
-        fr_body  = cFr(fr_main, W=580, H=260)
-        fr_bar1  = cFr(fr_panl, W=580, H= 40)
-        fr_bar2  = cFr(fr_panl, W=580, H= 40)
+        fr_titl = cFr(fr_main, W=580, H= 30, **HDR_B)
+        fr_panl = cFr(fr_main, W=580, H=150, Bd=(3,GR))
+        fr_body = cFr(fr_main, W=580, H=260)
 
-        fr_main._grid(R=0, C=0                       ) ;fr_main.Pgate()
-        fr_titl._grid(R=0, C=0, padx=10, py=20       ) ;fr_titl.Pgate()
-        fr_panl._grid(R=1, C=0                       ) ;fr_panl.Pgate()
-        fr_body._grid(R=2, C=0,          pady=(10, 0)) ;fr_body.Pgate()
-        fr_bar1._grid(R=1, C=0                       ) ;fr_bar1.Pgate()
-        fr_bar2._grid(R=2, C=0                       ) ;fr_bar2.Pgate()
+        fr_main._grid(R=0, C=0, px=10) ;fr_main.Pgate()
+        fr_titl._grid(R=0, C=0, py=10) ;fr_titl.Pgate()
+        fr_panl._grid(R=1, C=0       ) ;fr_panl.Pgate()
+        fr_body._grid(R=2, C=0, py=5 ) ;fr_body.Pgate()
 
-        fr_titl.Cconf(0, W=1) ; fr_titl.Rconf(0, W=1)
-        fr_titl.Cconf(1, W=1)
+        fr_titl.Cconf(0, Min=460) ;fr_titl.Rconf(0, Min=30)
+        fr_titl.Cconf(1, Min=120)
 
-        fr_bar1.Cconf(0, W=1) ; fr_bar1.Rconf(0, W=1)
-        fr_bar1.Cconf(1, W=1)
-        fr_bar1.Cconf(2, W=1)
-        fr_bar2.Cconf(0, W=1) ; fr_bar2.Rconf(0, W=1)
-        fr_bar2.Cconf(1, W=1)
+        fr_panl.Cconf(0, Min=110) ;fr_panl.Rconf(0, Min=30)
+        fr_panl.Cconf(1, Min=180) ;fr_panl.Rconf(1, Min=40)
+        fr_panl.Cconf(2, Min=140) ;fr_panl.Rconf(2, Min=40)
+        fr_panl.Cconf(3, Min=120)
 
-        fr_body.Rconf(0, W=1) ; fr_body.Cconf(0, W=1)
-        fr_body.Rconf(1, W=1) ; fr_body.Cconf(1, W=1)
+        fr_body.Rconf(0, W=1) ;fr_body.Cconf(0, W=1)
+        fr_body.Rconf(1, W=1) ;fr_body.Cconf(1, W=1)
         fr_body.Rconf(2, W=1)
 
-        cLbl(fr_titl,  text="  BoatRace GUI", font=(MUI,12,BD), **HDR_BF)._grid(R=0, C=0, Stk=ALL)
-        cLbl(fr_titl,  text="MAIN MENU    ",  font=(GUI,11,BD), **HDR_BF)._grid(R=0, C=1, Stk=ALL)
+        cLbl(fr_titl,  text="  BoatRace GUI", font=(MUI,11,BD), **HDR_BF)._grid(R=0, C=0, Stk=ALL)
+        cLbl(fr_titl,  text="MAIN MENU   ",   font=(GUI,10,BD), **HDR_BF)._grid(R=0, C=1, Stk=ALL)
         cLbl( fr_panl, text="ー Realtime summarizer ー",font=(GUI,10,BD), Anc="n"
-             )._grid(R=0, C=0, Cspan=2, Stk="n", pady=(0,10))
+             )._grid(R=0, C=1, Cspan=2, Stk="n")
 
-        stat_opt = {"bg":"white", "fg":"black", "font":(MUI,9)}
+        self.bt_boot = cBtn(fr_panl, text=" 停  止 ",  **BTN_OPT, Com=self._toggle_boot, Csr="hand2")
+        self.bt_mute = cBtn(fr_panl, text="ﾓﾆﾀ-出力",  **BTN_OPT, Com=self._toggle_mute, Csr="hand2")
+        self.bt_extn = cBtn(fr_panl, text="拡張ﾓﾆﾀ  表示 ", **BTN_OPT, Com=self._toggle_ext_monitor, Csr="hand2")
+        lb_stat1     = cLbl(fr_panl, text="--",        **STAT_OPT, py=3)
+        lb_stat2     = cLbl(fr_panl, text="--",        **STAT_OPT, py=3)
 
-        self.bt_boot = cBtn(fr_bar1, W=8, text=" 停  止 ",  **BTN_OPT, Com=self._toggle_boot, Csr="hand2")
-        btn_mute     = cBtn(fr_bar2, W=8, text="ﾓﾆﾀ-出力",  **BTN_OPT, Com=self._toggle_mute, Csr="hand2")
-        self.bt_extn = cBtn(fr_bar1, text="拡張ﾓﾆﾀ  表示 ", **BTN_OPT, Com=self._toggle_ext_monitor, Csr="hand2")
-        lb_stat1 = cLbl(fr_bar1, W=18, text="--", Bd=(3,SK), py=4, **stat_opt)
-        lb_stat2 = cLbl(fr_bar2, W=18, text="--", Bd=(3,SK), py=4, **stat_opt)
-
-        self.bt_boot._grid(R=0, C=0, sticky="w", px= 20, ipady=2)
-        btn_mute._grid(    R=1, C=0, sticky="w", px= 20, ipady=2)
-        lb_stat1._grid(    R=0, C=1, sticky="w", px=(0,144))
-        lb_stat2._grid(    R=1, C=1, sticky="w", px=(0,275))
-        self.bt_extn._grid(R=0, C=2, sticky="w", px= 0, ipady=6, ipadx=4)
+        self.bt_boot._grid(R=1, C=0, sticky=ALL, px=10, py=5)
+        self.bt_mute._grid(R=2, C=0, sticky=ALL, px=10, py=5)
+        lb_stat1._grid(    R=1, C=1, sticky=ALL, px=10, py=5)
+        lb_stat2._grid(    R=2, C=1, sticky=ALL, px=10, py=5)
+        self.bt_extn._grid(R=1, C=3, sticky=ALL, px=10, py=5)
 
         btn_dbo = cBtn(fr_body, text="Ｄ Ｂ  参 照", Com=lambda:app.show_screen("DBO"), Csr="hand2")
         btn_dbs = cBtn(fr_body, text="SCHEMA 編 集", Com=lambda:app.show_screen("DBS"), Csr="hand2")
         btn_dbq = cBtn(fr_body, text="対 戦  履 歴", Com=lambda:app.show_screen("DBQ"), Csr="hand2")
         btn_rac = cBtn(fr_body, text="レース 選 択", Com=lambda:app.show_screen("RSW"), Csr="hand2")
-        btn_plr = cBtn(fr_body, text="選 手  詳 細", Com=lambda a=self.app: open_player_picker(a))
+        btn_plr = cBtn(fr_body, text="選 手  詳 細", Com=lambda a=self.app:open_player_picker(a))
         btn_fav = cBtn(fr_body, text="注 目  選 手", Com=lambda:app.show_screen("FPL"), Csr="hand2")
 
         btn_dbo._grid(R=0, C=0, ipady=15) ; btn_dbo._config(W=20, **BTN_OFF)
