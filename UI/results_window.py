@@ -102,16 +102,17 @@ class ResultsWindow(tk.Tk):
         self.geometry("1150x1400+1295+0")
         self.resizable(False, False)
         self.config(bg=MAIN_BG)
+        self.protocol("WM_DELETE_WINDOW", self._on_close)
 
-        self.date                 = date
-        self.venue_id             = venue_id
-        self.summary_mode         = "day" 
-        self.race_rows            = {}
-        self.course_rank_cnt      = {}
-        self.finished_races       = 0
+        self.date                   = date
+        self.venue_id               = venue_id
+        self.summary_mode           = "day" 
+        self.race_rows              = {}
+        self.course_rank_cnt        = {}
+        self.finished_races         = 0
         self.course_rank_cnt_series = {}
         self.finished_races_series  = 0
-        self.payout_rows          = {}
+        self.payout_rows            = {}
 
         self._build_ui()
         self._load_data()
@@ -119,8 +120,6 @@ class ResultsWindow(tk.Tk):
 
         th = threading.Thread(target=self._read_stdin_loop, daemon=True)
         th.start()
-
-        self.protocol("WM_DELETE_WINDOW", self._on_close)
 
     # --------------- ウィンドウ終了処理 -------------------
     def _on_close(self):

@@ -276,14 +276,14 @@ def build_sub_placeholder(self, parent:tk.Frame): #  1188  318
     self.bt_ort.config(command=lambda:_toggle_btn(self, "disp_oriten", True )) 
     self.bt_prt.config(command=lambda:_toggle_btn(self, "disp_oriten", False))
 
-    self.bt_rst._grid(R=0, C=0, Stk=ALL, py=(0,5))
-    self.bt_fly._grid(R=0, C=1, Stk=ALL, py=(0,5), px=(5,0))
-    self.bt_nfl._grid(R=0, C=2, Stk=ALL, py=(0,5))
-    self.bt_exE._grid(R=0, C=3, Stk=ALL, py=(0,5))
-    self.bt_grd._grid(R=0, C=4, Stk=ALL, py=(0,5))
-    self.bt_mrk._grid(R=0, C=5, Stk=ALL, py=(0,5), px=(0,10))
-    self.bt_ort._grid(R=0, C=6, Stk=ALL, py=(0,5))
-    self.bt_prt._grid(R=0, C=7, Stk=ALL, py=(0,5))
+    self.bt_rst._grid(R=0, C=0, Stk=ALL, py=(0,2))
+    self.bt_fly._grid(R=0, C=1, Stk=ALL, py=(0,2), px=(5,0))
+    self.bt_nfl._grid(R=0, C=2, Stk=ALL, py=(0,2))
+    self.bt_exE._grid(R=0, C=3, Stk=ALL, py=(0,2))
+    self.bt_grd._grid(R=0, C=4, Stk=ALL, py=(0,2))
+    self.bt_mrk._grid(R=0, C=5, Stk=ALL, py=(0,2), px=(0,10))
+    self.bt_ort._grid(R=0, C=6, Stk=ALL, py=(0,2))
+    self.bt_prt._grid(R=0, C=7, Stk=ALL, py=(0,2))
 
     _config_btn(self, self.flying,        self.bt_fly, None, (1,GR), HL_GRN)
     _config_btn(self, self.not_flying,    self.bt_nfl, None, (1,GR), HL_GRN)
@@ -398,7 +398,7 @@ def _switch_btn(self, btn:tk.Button, flag_name:str):
 
     setattr(self, flag_name, not getattr(self, flag_name))
 
-    _config_btn(self, getattr(self,flag_name), btn, None, (2,SK), HL_GRN)
+    _config_btn(self, getattr(self,flag_name), btn, None, (1,RD), HL_GRN)
 
     self._update_main_entries()
     self._update_sub_entries()
@@ -423,9 +423,9 @@ def _config_btn(self, flag:bool, btnA:tk.Button, btnB:tk.Button, on_rel:tuple, h
     if flag:
         btnA._config(Bd=on_rel, **hl_col)
         if btnB:
-            btnB._config(Bd=(2,RA), **BTN_BF)
+            btnB._config(Bd=(1,RA), **BTN_BF)
     else:
-        btnA._config(Bd=(2,RA), **BTN_BF)
+        btnA._config(Bd=(1,RA), **BTN_BF)
         if btnB:
             btnB._config(Bd=on_rel, **hl_col)
 

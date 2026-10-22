@@ -12,7 +12,7 @@ GR, SD, RD, RA, BD = "groove", "solid", "ridge", "raised", "bold"
 ALL, CT            = "nsew", "center"
 
 #=====================================================================
-class DBSchemScreen(ttk.Frame):
+class DBSchemScreen(tk.Frame):
 
     def __init__(self, parent, app):
         super().__init__(parent)

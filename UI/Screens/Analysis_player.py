@@ -109,7 +109,9 @@ def wid_txt(s:str) -> str:
 
     s = str(s)
     hair = "\u200A" 
+
     return hair.join(list(s))
+
 # ----------------------------
 def convert_rank(rank:int|str, final:int, prefinal:int):
 
@@ -121,10 +123,8 @@ def convert_rank(rank:int|str, final:int, prefinal:int):
 #===============================================================================
 class PlayerAnalysisScreen(tk.Toplevel):
 
-    def __init__( self, master, p_id:int, v_id:Optional[int]=None,
-                                         d_iso:Optional[str]=None,
-                                           cou:Optional[int]=None  ):
-        super().__init__(master)
+    def __init__(self, parent, p_id:int, v_id:int=None, d_iso:str=None, cou:int=None):
+        super().__init__(parent)
 
         self.title("")
         self.geometry("1201x970+750+200")
@@ -242,12 +242,11 @@ class PlayerAnalysisScreen(tk.Toplevel):
         self.bar._grid(R=0, C=0)
         self.achievement._grid(R=0, C=1)                 ; self.achievement.Pgate()
 
-        lbl_ach_hdr = cLbl( self.achievement, text="タイトル 実績",
-                            **HDR_BF, font=(MUI,9), Anc=CT      )
+        lbl_ach_hdr = cLbl(self.achievement, text="タイトル 実績", **HDR_BF, font=(MUI,9), Anc=CT)
         lbl_ach_hdr._grid(R=0, C=0, py=(0,3), Stk=ALL)
 
         fr_ach_body = cFr(self.achievement, W=380, H=222)
-        fr_ach_body._grid(R=1, C=0) ; fr_ach_body.Pgate()
+        fr_ach_body._grid(R=1, C=0) ;fr_ach_body.Pgate()
 
         self.ach_canvs = tk.Canvas(fr_ach_body, width=360, height=222, highlightthickness=0)
         self.ach_sbar  = tk.Scrollbar(fr_ach_body, orient="vertical", command=self.ach_canvs.yview)
@@ -255,15 +254,15 @@ class PlayerAnalysisScreen(tk.Toplevel):
 
         self.ach_canvs.configure(yscrollcommand=self.ach_sbar.set)
 
-        self.ach_canvs.grid( row=0, column=0, sticky=ALL)  ; self.ach_canvs.grid_propagate(False)
-        self.ach_sbar.grid(  row=0, column=1, sticky="ns") ; self.ach_sbar.grid_propagate(False)
+        self.ach_canvs.grid( row=0, column=0, sticky=ALL)  ;self.ach_canvs.grid_propagate(False)
+        self.ach_sbar.grid(  row=0, column=1, sticky="ns") ;self.ach_sbar.grid_propagate(False)
 
-        self.ach_window = self.ach_canvs.create_window((0, 0), window=self.ach_list, anchor="nw")
-        #-----------
+        self.ach_window = self.ach_canvs.create_window((0,0), window=self.ach_list, anchor="nw")
+        #----------┐
         def _ach_on_conf(event=None):
             self.ach_canvs.config(scrollregion=self.ach_canvs.bbox("all"))
             self.ach_canvs.itemconfig(self.ach_window, width=self.ach_canvs.winfo_width())
-        #-----------
+        #----------┘
         self.ach_list.bind( "<Configure>", _ach_on_conf)
         self.ach_canvs.bind("<Configure>", _ach_on_conf)
 
@@ -304,9 +303,9 @@ class PlayerAnalysisScreen(tk.Toplevel):
                 lbl.config(cursor="hand2")
 
         # 直近5期適用級 ------
-        self._class  = {}
-        self.season  = {}
-        self.sc_ave  = {}
+        self._class = {}
+        self.season = {}
+        self.sc_ave = {}
 
         y_s = self._5seasons()
 
@@ -317,9 +316,9 @@ class PlayerAnalysisScreen(tk.Toplevel):
             frA.Cconf(0, W=1); frA.Rconf(0, W=1)
             frB.Cconf(0, W=1); frB.Rconf(0, W=1)
             frC.Cconf(0, W=1); frC.Rconf(0, W=1)
-            l_a = cLbl(frA, text="", font=(MUI, 8,BD),        **HDR_OPT) ;l_a._grid(R=0, C=0, Stk=ALL)
-            l_b = cLbl(frB, text="", font=(GUI,10), Bd=(1,GR)          ) ;l_b._grid(R=0, C=0, Stk=ALL)
-            l_c = cLbl(frC, text="", font=(MUI, 8), Bd=(1,GR)          ) ;l_c._grid(R=0, C=0, Stk=ALL)
+            l_a = cLbl(frA, text="", font=(MUI, 8,BD), **HDR_OPT) ;l_a._grid(R=0, C=0, Stk=ALL)
+            l_b = cLbl(frB, text="", font=(GUI,10), Bd=(1,GR)   ) ;l_b._grid(R=0, C=0, Stk=ALL)
+            l_c = cLbl(frC, text="", font=(MUI, 8), Bd=(1,GR)   ) ;l_c._grid(R=0, C=0, Stk=ALL)
 
             key = y_s[4-c]
             l_a.config(cursor= "hand2")
@@ -356,9 +355,9 @@ class PlayerAnalysisScreen(tk.Toplevel):
         # ボタン -------------
         self.btns  = [{}, {}, {}, {}, {}]
         # ----------
-        def mk_btn(frm, text, key, idx, w, px):
-            b = cBtn( frm, W=w, H=1, text=text, font=(MUI,8), **BTN_BF,
-                             Com=lambda k=key:self._on_switch(k,idx) )
+        def mk_btn(fr, txt, key, idx, w, px):
+            b = cBtn( fr, W=w, text=txt, font=(MUI,8), **BTN_BF,
+                         Com=lambda k=key:self._on_switch(k, idx) )
             b._pack(side=tk.LEFT, px=px)
             self.btns[idx][key] = b
             return b
@@ -373,31 +372,31 @@ class PlayerAnalysisScreen(tk.Toplevel):
         self.lb_period._pack(side=tk.LEFT, px=3)
         mk_btn(fr_btnB, ">", "next_m", 4,3,0) ;mk_btn(fr_btnB, ">>", "next_y", 4,3,0)
 
-        mk_btn(fr_btnC, "当 地",      "local",       3,  6, 2)
-        mk_btn(fr_btnC, "海水",       "sea_water",   3,  6, 2)
-        mk_btn(fr_btnC, "淡水",       "fresh_water", 3,  6, 2)
-        mk_btn(fr_btnC, "河川",       "river",       3,  6, 2)
-        mk_btn(fr_btnC, "混合戦",     "not_ladies",  3,  6, 2)
-        mk_btn(fr_btnC, "女子戦",     "all_ladies",  3,  6, 2)
+        mk_btn(fr_btnC, "当 地",      "local",       3,  6,  2)
+        mk_btn(fr_btnC, "海水",       "sea_water",   3,  6,  2)
+        mk_btn(fr_btnC, "淡水",       "fresh_water", 3,  6,  2)
+        mk_btn(fr_btnC, "河川",       "river",       3,  6,  2)
+        mk_btn(fr_btnC, "混合戦",     "not_ladies",  3,  6,  2)
+        mk_btn(fr_btnC, "女子戦",     "all_ladies",  3,  6,  2)
 
-        mk_btn(fr_btnD, "強 風",      "str_wind",    3,  6, 2)
-        mk_btn(fr_btnD, "雨",         "rain",        3,  6, 2)
-        mk_btn(fr_btnD, "ﾌﾗｲﾝｸﾞ",     "has_flying",  3,  6, 2)
+        mk_btn(fr_btnD, "強 風",      "str_wind",    3,  6,  2)
+        mk_btn(fr_btnD, "雨",         "rain",        3,  6,  2)
+        mk_btn(fr_btnD, "ﾌﾗｲﾝｸﾞ",     "has_flying",  3,  6,  2)
         mk_btn(fr_btnD, "点増し",     "point_up",    3,  6, 30)
 
-        mk_btn(fr_Gbtn, "SG",                  (5,), 1,  6, 2)
-        mk_btn(fr_Gbtn, "G1",                (3, 4), 1,  6, 2)
-        mk_btn(fr_Gbtn, "G2",                  (2,), 1,  6, 2)
-        mk_btn(fr_Gbtn, "一般/G3",           (0, 1), 1,  7, 2)
+        mk_btn(fr_Gbtn, "SG",                  (5,), 1,  6,  2)
+        mk_btn(fr_Gbtn, "G1",                (3, 4), 1,  6,  2)
+        mk_btn(fr_Gbtn, "G2",                  (2,), 1,  6,  2)
+        mk_btn(fr_Gbtn, "一般/G3",           (0, 1), 1,  7,  2)
 
-        mk_btn(fr_Tbtn, "勝率 (単)",   "sr_single",  2, 11, 4)
-        mk_btn(fr_Tbtn, "勝率 (累積)", "sr_cumltv",  2, 11, 4)
-        mk_btn(fr_Tbtn, "ＳＴ (単)",   "st_single",  2, 11, 4)
-        mk_btn(fr_Tbtn, "ＳＴ (累積)", "st_cumltv",  2, 11, 4)
+        mk_btn(fr_Tbtn, "勝率 (単)",   "sr_single",  2, 11,  4)
+        mk_btn(fr_Tbtn, "勝率 (累積)", "sr_cumltv",  2, 11,  4)
+        mk_btn(fr_Tbtn, "ＳＴ (単)",   "st_single",  2, 11,  4)
+        mk_btn(fr_Tbtn, "ＳＴ (累積)", "st_cumltv",  2, 11,  4)
 
         # サイド =======================
-        frm   = cFr(fr_side, W=379, H=35, **HDR_B, Bd=(1,RD))       #379  700
-        frm._grid(R=0, C=0,Cspan=2, Stk=ALL) ; frm.Pgate()
+        frm = cFr(fr_side, W=379, H=35, **HDR_B, Bd=(1,RD))  #379  700
+        frm._grid(R=0, C=0, Cspan=2, Stk=ALL) ;frm.Pgate()
 
         # 節間成績------------
         self.btn_y_prev = cBtn(frm, text="＜", W=5, font=(MUI,6,BD), Com=lambda:self._on_series_btn(+1))

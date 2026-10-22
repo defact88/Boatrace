@@ -28,7 +28,7 @@ ALL, CT            = "nsew", "center"
 BG_COLOR = "#F0F4FA"
 
 #=====================================================================
-class DBOpsScreen(ttk.Frame):
+class DBOpsScreen(tk.Frame):
 
     def __init__(self, parent, app):
         super().__init__(parent)

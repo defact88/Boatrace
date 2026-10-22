@@ -21,7 +21,7 @@ TABLES   = ["Players", "Season_result", "Races", "Race_entries", "Venues"]
 FINAL    = ["", "0", "1"]
 
 # ==============================================================================
-class DBQueryScreen(ttk.Frame):
+class DBQueryScreen(tk.Frame):
 
     def __init__(self, parent, app:App):
         super().__init__(parent)
