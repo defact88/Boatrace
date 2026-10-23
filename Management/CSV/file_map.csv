@@ -22,17 +22,17 @@ UI,Widgets,center_widgets.py,           C:\boatrace\UI\Widgets\center_widgets.py
 UI,Widgets,placeholder.py,              C:\boatrace\UI\Widgets\placeholder.py,1
 UI,Widgets,__init__,                    C:\boatrace\UI\Widgets\__init__.py,0
 
-UI,Window,RaceWindow,                   C:\boatrace\UI\Window\race_window.py
-UI,Window,RaceSelectWindow,             C:\boatrace\UI\Window\race_select.py
-UI,Window,PlayerFavorWindow,            C:\boatrace\UI\Window\favor_window.py
+UI,Window,RaceWindow,                   C:\boatrace\UI\Window\race_window.py,1
+UI,Window,PlayerAnalysisWindow,         C:\boatrace\UI\Window\analysis_player.py,1
+UI,Window,VenueAnalysisWindow,          C:\boatrace\UI\Window\analysis_venue.py,0
+UI,Window,MotorAnalysisWindow,          C:\boatrace\UI\Window\analysis_motor.py,0
+UI,Window,Classification,               C:\boatrace\UI\Window\classification.py,0
 
+UI,Screens,RaceSelectScreen,            C:\boatrace\UI\Screens\race_select.py,0
 UI,Screens,DBopsScreen,                 C:\boatrace\UI\Screens\db_ops.py,0
 UI,Screens,DBSchemScreen,               C:\boatrace\UI\Screens\db_schem.py,0
 UI,Screens,DBQueryScreen,               C:\boatrace\UI\Screens\DB_query.py,0
-UI,Screens,PlayerAnalysisScreen,        C:\boatrace\UI\Screens\analysis_player.py,1
-UI,Screens,VenueAnalysisScreen,         C:\boatrace\UI\Screens\analysis_venue.py,0
-UI,Screens,MotorAnalysisScreen,         C:\boatrace\UI\Screens\analysis_motor.py,0
-UI,Screens,Classification,              C:\boatrace\UI\Screens\classification.py,0
+UI,Screens,PlayerFavorScreen,           C:\boatrace\UI\Screens\player_favor.py,0
 
 UI,Scraper,get_today_info.py,           C:\boatrace\UI\Scraper\get_today_info.py,1
 UI,Scraper,get_Before_info.py,          C:\boatrace\UI\Scraper\get_Before_info.py,1
@@ -41,7 +41,6 @@ UI,Scraper,scraper_odds,                C:\boatrace\UI\Scraper\scraper_odds.py,0
 UI,Scraper,selenium_buyer,              C:\boatrace\UI\Scraper\selenium_buyer.py,1
 UI,Scraper,get_payouts.py,              C:\boatrace\UI\Scraper\get_payouts.py,0
 UI,Scraper,get_oriten_info.py,          C:\boatrace\UI\Scraper\get_oriten_info.py
-
 
 Import,Import_B,import_B_txt.py,        C:\boatrace\Import\B\import_B_txt.py,1
 Import,Import_K,ETL_K_results.py,       C:\boatrace\Import\K\ETL_K_results.py,1

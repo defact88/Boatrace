@@ -1,4 +1,6 @@
-﻿
+﻿# -*- coding: utf-8 -*-
+#C:\boatrace\UI\Window\analysis_motor.py
+
 from tkinter import ttk, messagebox
 from PIL     import Image, ImageTk
 from typing  import Dict, Optional
@@ -55,7 +57,7 @@ def _to_date(x) -> date:
     raise ValueError("date conv error")
 
 # ======== Venues Analysis (per venue) =======================================
-class VenueAnalysisScreen(tk.Toplevel):
+class VenueAnalysisWindow(tk.Toplevel):
 
     def __init__(self, master, venue_id):
         super().__init__(master)

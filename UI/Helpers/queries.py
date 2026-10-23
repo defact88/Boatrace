@@ -145,11 +145,11 @@ class Query():
                                    e.finish_rank,
                                    e.fault_code,
                                    e.fault_level
-                              FROM Race_entries e
-                              JOIN Races r
-                                ON e.race_id = r.race_id
-                              JOIN Venues v
-                                ON e.venue_id = v.venue_id
+
+                              FROM Race_entries e 
+                              JOIN        Races r ON  e.race_id = r.race_id
+                              JOIN       Venues v ON e.venue_id = v.venue_id
+
                              WHERE e.date BETWEEN ? AND ?
                                AND r.status       = 'held'
                                AND e.finish_rank != 0
@@ -160,15 +160,16 @@ class Query():
 
         sql_own = """
               ) SELECT course,
-                 COUNT(*) AS starts,
-                   SUM(CASE WHEN finish_rank = 1 THEN 1 ELSE 0 END) AS win1,
-                   SUM(CASE WHEN finish_rank = 2 THEN 1 ELSE 0 END) AS win2,
-                   SUM(CASE WHEN finish_rank = 3 THEN 1 ELSE 0 END) AS win3,
-                   SUM(CASE WHEN finish_rank = 4 THEN 1 ELSE 0 END) AS win4,
-                   SUM(CASE WHEN finish_rank = 5 THEN 1 ELSE 0 END) AS win5,
-                   SUM(CASE WHEN finish_rank = 6 THEN 1 ELSE 0 END) AS win6,
-                   SUM(slit_adj)                                    AS st_sum
+                       COUNT(*)                                         AS starts,
+                       SUM(CASE WHEN finish_rank = 1 THEN 1 ELSE 0 END) AS win1,
+                       SUM(CASE WHEN finish_rank = 2 THEN 1 ELSE 0 END) AS win2,
+                       SUM(CASE WHEN finish_rank = 3 THEN 1 ELSE 0 END) AS win3,
+                       SUM(CASE WHEN finish_rank = 4 THEN 1 ELSE 0 END) AS win4,
+                       SUM(CASE WHEN finish_rank = 5 THEN 1 ELSE 0 END) AS win5,
+                       SUM(CASE WHEN finish_rank = 6 THEN 1 ELSE 0 END) AS win6,
+                       SUM(slit_adj)                                    AS st_sum
                   FROM base
+
               GROUP BY course
                   """
 
@@ -180,6 +181,7 @@ class Query():
                         e.fault_code,
                         e.fault_level,
                         e.win_move
+
                    FROM Race_entries e
                    JOIN base bs ON bs.race_id = e.race_id
                     """

@@ -25,7 +25,7 @@ boatrace/
     Window/
       race_serect.py                 # RaceSelectScreen・・・RaceWindow表示レース選択画面
       race_window.py                 # 出走表メイン
-      analysis_player.py             # PlayerAnalysisScreen・・・選手詳細情報
+      analysis_player.py             # PlayerAnalysisWindow・・・選手詳細情報
       analysis_venue.py              # VenueAnalysisScreen・・・ ﾚｰｽ場詳細情報
     Screens/                         # 画面クラス
       DB_ops.py                      # DBOpsScreen・・・DB参照

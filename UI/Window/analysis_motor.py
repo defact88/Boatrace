@@ -1,5 +1,5 @@
 ﻿# -*- coding: utf-8 -*-
-# C:\boatrace\UI\Screens\Analysis_motor.py
+# C:\boatrace\UI\Window\analysis_motor.py
 
 from tkinter                import ttk
 from datetime               import datetime as dt, date, time, timedelta
@@ -77,7 +77,7 @@ def w_txt(s:str) -> str:
     hair = "\u200A" 
     return hair.join(list(s))
 #=====================================================================
-class MotorAnalysisScreen(tk.Toplevel):
+class MotorAnalysisWindow(tk.Toplevel):
     def __init__(self, master, motor_no:int, venue_id:int, upd_m:int):
         super().__init__(master)
 

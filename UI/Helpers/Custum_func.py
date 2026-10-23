@@ -280,6 +280,19 @@ class cCvs(tk.Canvas):
 
         self.pack(**kwargs)
 
+    def _config(self, W=None, H=None, Bd=None, Rel=None, Csr=None, HLbg=None, HLth=None,
+                      Scrgn=None, **kwargs ):
+
+        if W     is not None: kwargs['width']               = W
+        if H     is not None: kwargs['height']              = H
+        if Bd    is not None: kwargs['bd']                  = Bd[0] ;kwargs['relief'] = Bd[1]
+        if Rel   is not None: kwargs['relief']              = Rel
+        if Csr   is not None: kwargs['cursor']              = Csr
+        if HLth  is not None: kwargs['highlightthickness']  = hlth
+        if Scrgn is not None: kwargs['scrollregion']        = Scrgn
+
+        self.configure(**kwargs)
+
 # カスタム短縮表記テキストボックス -------------------------
 class cEnt(tk.Entry):
     def __init__( self, master=None, *, W=None, H=None, Com=None, Bd=None, Rel=None, Jst=None,

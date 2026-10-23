@@ -1,5 +1,5 @@
 ﻿# -*- coding: utf-8 -*-
-# C:\boatrace\UI\Screens\Race_select_screen.py
+# C:\boatrace\UI\Window\race_select.py
 
 import tkinter  as tk
 import datetime as dt
@@ -88,7 +88,7 @@ def days_pass(d:str, range:int):
     return to_str(d +timedelta(days=range))
 
 # ======================== レース選択画面 ============================
-class RaceSelectWindow(tk.Frame):
+class RaceSelectScreen(tk.Frame):
 
     def __init__(self, parent, app):
         super().__init__(parent)

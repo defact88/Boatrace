@@ -11,9 +11,10 @@ from collections  import deque
 import Dal as dal
 from Custum_func   import cFr, cLbl, cBtn
 from player_picker import open_player_picker
-from Screens       import DBOpsScreen, DBSchemScreen, DBQueryScreen
-from Screens       import PlayerAnalysisScreen, VenueAnalysisScreen, MotorAnalysisScreen
-from Window        import RaceSelectWindow, RaceWindow, PlayerFavorWindow # ←未作成
+from Screens       import ( RaceSelectScreen, DBOpsScreen, DBSchemScreen, DBQueryScreen,
+                            PlayerFavorScreen )
+from Window        import ( RaceWindow, PlayerAnalysisWindow, VenueAnalysisWindow,
+                            MotorAnalysisWindow )
 
 # ====================================================================
 APP_TITLE = ""
@@ -138,8 +139,8 @@ class App(tk.Tk):
                                "DBO":      DBOpsScreen(parent=self.contanr, app=self),
                                "DBS":    DBSchemScreen(parent=self.contanr, app=self),
                                "DBQ":    DBQueryScreen(parent=self.contanr, app=self),
-                               "RSW": RaceSelectWindow(parent=self.contanr, app=self), 
-                               "FPL":PlayerFavorWindow(parent=self.contanr, app=self), }
+                               "RSS": RaceSelectScreen(parent=self.contanr, app=self), 
+                               "PFS":PlayerFavorScreen(parent=self.contanr, app=self), }
 
         self.show_screen("Main")
 
@@ -157,7 +158,8 @@ class App(tk.Tk):
         if   name == "DBO": self.geometry("1800x1200")
         elif name == "DBS": self.geometry("1300x900")
         elif name == "DBQ": self.geometry("1350x900")
-        elif name == "RSW": self.geometry( "800x650+350+300")
+        elif name == "RSS": self.geometry( "800x650+350+300")
+        elif name == "PFS": self.geometry( "1220x1400+75+0")
         else:               self.geometry( "600x500+90+0")
 
         if hasattr(scr, "on_show"):
@@ -177,7 +179,7 @@ class App(tk.Tk):
     def open_p_analys(self, p_id:int, v:int=None, d:str=None, c:int=None):
 
         try:
-            win = PlayerAnalysisScreen(self, p_id, v_id=v, d_iso=d, cou=c if c else 1)
+            win = PlayerAnalysisWindow(self, p_id, v_id=v, d_iso=d, cou=c if c else 1)
             win.grab_set()
         except Exception as e:
             messagebox.showerror("ウィンドウ生成エラー", f"{e}\n\n{traceback.format_exc()}")
@@ -186,7 +188,7 @@ class App(tk.Tk):
     def open_v_analys(self, venue_id):
 
         try:
-            win = VenueAnalysisScreen(self, venue_id)
+            win = VenueAnalysisWindow(self, venue_id)
             win.grab_set()
         except Exception as e:
             messagebox.showerror("ウィンドウ生成エラー", f"{e}\n\n{traceback.format_exc()}")
@@ -195,7 +197,7 @@ class App(tk.Tk):
     def open_m_analys(self, m_no, v_id, upd_m):
 
         try:
-            win = MotorAnalysisScreen(self, m_no, v_id, upd_m)
+            win = MotorAnalysisWindow(self, m_no, v_id, upd_m)
             win.grab_set()
         except Exception as e:
             messagebox.showerror("ウィンドウ生成エラー", f"{e}\n\n{traceback.format_exc()}")
@@ -384,9 +386,9 @@ class MainScreen(tk.Frame):
         btn_dbo = cBtn(fr_body, text="Ｄ Ｂ  参 照", Com=lambda:app.show_screen("DBO"), Csr="hand2")
         btn_dbs = cBtn(fr_body, text="SCHEMA 編 集", Com=lambda:app.show_screen("DBS"), Csr="hand2")
         btn_dbq = cBtn(fr_body, text="対 戦  履 歴", Com=lambda:app.show_screen("DBQ"), Csr="hand2")
-        btn_rac = cBtn(fr_body, text="レース 選 択", Com=lambda:app.show_screen("RSW"), Csr="hand2")
+        btn_rac = cBtn(fr_body, text="レース 選 択", Com=lambda:app.show_screen("RSS"), Csr="hand2")
         btn_plr = cBtn(fr_body, text="選 手  詳 細", Com=lambda a=self.app:open_player_picker(a))
-        btn_fav = cBtn(fr_body, text="注 目  選 手", Com=lambda:app.show_screen("FPL"), Csr="hand2")
+        btn_fav = cBtn(fr_body, text="注 目  選 手", Com=lambda:app.show_screen("PFS"), Csr="hand2")
 
         btn_dbo._grid(R=0, C=0, ipady=15) ; btn_dbo._config(W=20, **BTN_OFF)
         btn_dbs._grid(R=1, C=0, ipady=15) ; btn_dbs._config(W=20, **BTN_OFF)

@@ -1,22 +1,18 @@
 ﻿# -*- coding: utf-8 -*-
-# C:\boatrace\UI\Screens\same_period_player.py
+# C:\boatrace\UI\Window\classification.py
 
-from tkinter                 import ttk, messagebox
-from PIL                     import Image, ImageTk
-from typing                  import Dict, Optional
-from itertools               import product
-from dateutil.relativedelta  import relativedelta
-from collections             import defaultdict
-from datetime                import datetime as dt, date, time, timedelta
-from Helpers.Custum_func     import cFr, cLbl, cBtn, cCvs, cSrb
-from Helpers.queries         import Query
-from Widgets.widgets         import set_player_image
-import os, tkinter as tk, Dal as dal
+import os, tkinter as tk
+from tkinter             import ttk, messagebox
+from typing              import Dict
+from datetime            import datetime as dt, date
 
-GUI, MUI       = "Yu Gothic UI", "Meiryo UI"
-BD             = "bold"
-GR, SD, RA, RD = "groove", "solid", "raised", "ridge"
-ALL, CT        = "nsew", "center"
+from Helpers.Custum_func import cFr, cLbl, cBtn, cCvs, cSrb
+from Helpers.queries     import Query
+import Dal as dal
+
+GUI, MUI           = "Yu Gothic UI", "Meiryo UI"
+GR, SD, RD, RA, SK = "groove", "solid", "ridge", "raised", "sunken"
+ALL, CT ,BD        = "nsew", "center", "bold"
 
 COLS           = [ ("player_id", "登番"     ),
                    ("name",      "選手名"   ),
@@ -31,14 +27,6 @@ COLS           = [ ("player_id", "登番"     ),
                    ("win_G1",    "G1 優勝"  ),
                    ("win_SG",    "SG 優勝"  ), ]
 
-BDFNT   = dict(font=(MUI,9,BD))
-NMFNT   = dict(font=(MUI,9   ))
-HDR_BF  = dict(bg="#2B4A7A", fg="#FFFFFF")
-BTN_BF  = dict(bg="#4A6A9A", fg="#FFFFFF")
-BTN_OPT = dict(bg="#4A6A9A", fg="#FFFFFF", Bd=(1,RA))
-
-HL_COL    = "#cce8ff"
-
 CEL_W = 70
 CEL_H = 30
 CELLS = [70, 120, 60, 70, 70, 70, 70, 60, 60, 60, 60, 60]
@@ -51,6 +39,14 @@ P_SG_PRE   = [0, 12, 10, 8, 6, 4, 3]
 P_SG_FIN   = [0, 13, 11, 9, 8, 6, 5]
 
 BT_KEY = "ファン感謝３Ｄａｙｓボートレースバトルトーナメント"
+
+BDFNT   = dict(font=(MUI,9,BD))
+NMFNT   = dict(font=(MUI,9   ))
+HDR_BF  = dict(bg="#2B4A7A", fg="#FFFFFF")
+BTN_BF  = dict(bg="#4A6A9A", fg="#FFFFFF")
+BTN_OPT = dict(bg="#4A6A9A", fg="#FFFFFF", Bd=(1,RA))
+
+HL_COL    = "#cce8ff"
 
 #---------------------------------------
 def _point_for(grade:int, final:int, rank:int, s_name:str):
@@ -71,7 +67,7 @@ def _this_season_start(today:date) -> date:
     return date(today.year-1, 11, 1)
 
 #===============================================================================
-class PlayerClassificationScreen(tk.Toplevel):
+class PlayerClassificationWindow(tk.Toplevel):
 
     def __init__( self, master, regist_period:int=None, region:str=None):
         super().__init__(master)
@@ -91,24 +87,24 @@ class PlayerClassificationScreen(tk.Toplevel):
         fr_main = cFr(self, W=866, H=970, px=9, py=5)
         fr_main._grid(R=0, C=0) ;fr_main.Pgate()
 
-        fr_info      = cFr(fr_main,  W=848, H= 50)
-        fr_hdr       = cFr(fr_main,  W=832, H= 30, Bd=(1,SD))
-        self.canvas  = cCvs(fr_main, W=832, H=870)
-        self.fr_body = cFr(self.canvas,   W=832, Bd=(1,SD))
+        fr_info      = cFr(fr_main,     W=848, H= 50)
+        fr_hdr       = cFr(fr_main,     W=832, H= 30, Bd=(1,SD))
+        self.canvas  = cCvs(fr_main,    W=832, H=870)
+        self.fr_body = cFr(self.canvas, W=832,        Bd=(1,SD))
         scr_bar      = cSrb(fr_main, orient="vertical", Com=self.canvas.yview)
         self.canvas.config(yscrollcommand=scr_bar.set)
 
-        fr_info._grid(R=0, C=0, Cspan=2) ;fr_info.Pgate()
-        fr_hdr._grid( R=1, C=0)           ;fr_hdr.Pgate()
-        self.canvas._grid( R=2, C=0, Stk="nsew")
-        scr_bar._grid(R=2, C=1, Stk=  "ns")
+        fr_info._grid(     R=0, C=0, Cspan=2) ;fr_info.Pgate()
+        fr_hdr._grid(      R=1, C=0)          ;fr_hdr.Pgate()
+        self.canvas._grid( R=2, C=0, Stk=ALL)
+        scr_bar._grid(     R=2, C=1, Stk="ns")
 
         self.canvas.create_window((0, 0), window=self.fr_body, anchor="nw")
-        self.fr_body.bind("<Configure>", lambda e:self.canvas.configure(scrollregion=self.canvas.bbox("all")))
+        self.fr_body.bind("<Configure>",lambda e:self.canvas._config(Scrgn=self.canvas.bbox("all")))
 
         for c in range(0, len(COLS)):
-            fr_hdr.Cconf(c, minsize=CELLS[c])
-        fr_hdr.Rconf(0, minsize=CEL_H)
+            fr_hdr.Cconf(c, Min=CELLS[c])
+        fr_hdr.Rconf(0, Min=CEL_H)
 
         if isinstance(self.key, int):
             cBtn(fr_info, W=6, text="＜", font=(MUI,9,BD), **BTN_BF, Com=self._preview)._grid(R=0, C=0, px=(320,0))
@@ -125,7 +121,7 @@ class PlayerClassificationScreen(tk.Toplevel):
             lbl._grid(R=r, C=c, Stk=ALL)
             self._cells[(r,c)] = lbl
         #-----------
-        for c, cap in enumerate(COLS):      # ヘッダ
+        for c, cap in enumerate(COLS):
             cLbl(fr_hdr, text=cap[1], font=(MUI,10), **HDR_BF, Bd=(1,RD))._grid(R=0, C=c, Stk=ALL)
         #-----------
         def _mw(e):
@@ -321,7 +317,7 @@ class PlayerClassificationScreen(tk.Toplevel):
     #-------------------------------------------------------
     def _player_screen(self, pid):
 
-        from Screens import PlayerAnalysisScreen
-        PlayerAnalysisScreen(self, pid, cou=1)
+        from Screens import PlayerAnalysisWindow
+        PlayerAnalysisWindow(self, pid, cou=1)
 
 

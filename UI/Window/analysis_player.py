@@ -1,5 +1,5 @@
 ﻿# -*- coding: utf-8 -*-
-# C:\boatrace\UI\Screens\Analysis_player.py
+# C:\boatrace\UI\Window\analysis_player.py
 
 from tkinter                import ttk, messagebox
 from PIL                    import Image, ImageTk
@@ -13,7 +13,7 @@ import os, tkinter as tk, Dal as dal
 from Helpers.Custum_func    import cFr, cLbl, cBtn, cCvs
 from Helpers.queries        import Query
 from Widgets.widgets        import set_player_image, framing_graph
-from Screens.classification import PlayerClassificationScreen
+from Window.classification  import PlayerClassificationWindow
 
 
 GUI, MUI, HNH, CBR     = "Yu Gothic UI", "Meiryo UI", "Helvetica Neue Heavy", "Cambria"
@@ -121,7 +121,7 @@ def convert_rank(rank:int|str, final:int, prefinal:int):
         return rank
 
 #===============================================================================
-class PlayerAnalysisScreen(tk.Toplevel):
+class PlayerAnalysisWindow(tk.Toplevel):
 
     def __init__(self, parent, p_id:int, v_id:int=None, d_iso:str=None, cou:int=None):
         super().__init__(parent)
@@ -442,6 +442,7 @@ class PlayerAnalysisScreen(tk.Toplevel):
         self.body.bind( "<Configure>", _on_conf)
         self.canvs.bind("<Configure>", _on_conf)
         self.protocol("WM_DELETE_WINDOW", _on_close)
+
         self._update_radio_btn_state( 0, "9M")
         self._update_toggle_btn_state(1, self.grade_state)
         self._update_toggle_btn_state(2, self.trend_state)
@@ -1082,11 +1083,11 @@ class PlayerAnalysisScreen(tk.Toplevel):
     # ----------------------------------
     def _same_period(self):
 
-        PlayerClassificationScreen(self, regist_period=self.regist_period)
+        PlayerClassificationWindow(self, regist_period=self.regist_period)
     # ----------------------------------
     def _same_region(self):
 
-        PlayerClassificationScreen(self, region=self.regions)
+        PlayerClassificationWindow(self, region=self.regions)
 
     # 外部から選手切替--------------------------------------
     def set_player(self, player_id:int, venue_id:int=None):

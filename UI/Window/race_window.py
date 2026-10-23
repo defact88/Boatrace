@@ -28,9 +28,9 @@ GUI, MUI, HNH, CBR = "Yu Gothic UI", "Meiryo UI", "Helvetica Neue Heavy", "Cambr
 GR, SD, RD, RA, SK = "groove", "solid", "ridge", "raised", "sunken"
 ALL, CT ,BD        = "nsew", "center", "bold"
 
-VENUES    = [ "桐生",  "戸田",  "江戸川", "平和島", "多摩川", "浜名湖", "蒲郡", "常滑",  "津",
-              "三国", "びわこ", "住之江",  "尼崎",   "鳴門",   "丸亀",  "児島", "宮島", "徳山",
-              "下関",  "若松",   "芦屋",   "福岡",   "唐津",   "大村",                         ]
+VENUES = [ "桐生", "戸田", "江戸川", "平和島", "多摩川", "浜名湖", "蒲郡", "常滑",
+            "津",  "三国", "びわこ", "住之江",  "尼崎",   "鳴門",  "丸亀", "児島",
+           "宮島", "徳山",  "下関",   "若松",   "芦屋",   "福岡",  "唐津", "大村", ]
 
 GRADE_IDX = { 0:"一般", 1:"G3", 2:"G2", 3:"G1", 4:"PG1", 5:"SG" }
 
@@ -71,7 +71,7 @@ GRAY1   = "#ECECEC"
 GRAY2   = "#CFCFCF"
 BLACK1  = "#000000"
 BLACK2  = "#222222"
-BLUE    = "#ff7474"
+BLUE    = "#0001da"
 LIT_RED = "#ff5b5b"
 
 HDR_B   = dict(bg=HDR_BG)
@@ -643,8 +643,8 @@ class RaceWindow(tk.Toplevel):
         wdg_hdr["upd_b"].config(text=f"{b_pas:2} ヶ月")
         wdg_hdr["wspd" ].config(text=f"風 速  {wspd}  m", fg="red" if wspd >=5 else "white", **HDR_B)
         wdg_hdr["wave" ].config(text=f"波 高  {wave} cm", **HDR_BF)
-        wdg_hdr["stab" ].config(text="安 定 版 装着"  if stab else "", bg="yellow" if stab else "#dce8f9")
-        wdg_hdr["shlp" ].config(text="周回短縮 1200m" if  lap else "", bg="yellow" if  lap else "#dce8f9")
+        wdg_hdr["stab" ].config(text="安定版 装着"  if stab else "", bg="yellow" if stab else "#dce8f9")
+        wdg_hdr["shlp" ].config(text="周 回 短 縮" if  lap else "", bg="yellow" if  lap else "#dce8f9")
         wdg_hdr["deadl"].config(text=f"  {prg['deadline'].strftime('%H： %M')}  ")
         # --------------
         def _update_clock():

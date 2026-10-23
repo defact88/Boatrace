@@ -246,8 +246,8 @@ def build_sub_placeholder(self, parent:tk.Frame): #  1188  318
     lb_last  = cLbl(fr_last, Anc=CT, font=(GUI,10), bg="#142e43", fg=WHITE, Bd=(2,SK))
     lb_last._grid( R=0, C=0, Stk=ALL, px=5, py=8)
 
-    lb_stab = cLbl(fr_info, font=(MUI,9), Bd=(2,SK)) ;lb_stab._grid(R=0, C=0, Stk=ALL, py=1)
-    lb_shlp = cLbl(fr_info, font=(MUI,9), Bd=(2,SK)) ;lb_shlp._grid(R=0, C=1, Stk=ALL, px=2, py=1)
+    lb_stab = cLbl(fr_info, font=(MUI,8), Bd=(2,SK)) ;lb_stab._grid(R=0, C=0, Stk=ALL, py=1)
+    lb_shlp = cLbl(fr_info, font=(MUI,8), Bd=(2,SK)) ;lb_shlp._grid(R=0, C=1, Stk=ALL, px=2, py=1)
 
     self.bt_befr = cBtn(fr_btnf, W=5, text=f"展 示", font=(MUI,8,BD), Csr="hand2")
     self.bt_rslt = cBtn(fr_btnf, W=5, text=f"結 果", font=(MUI,8,BD), Csr="hand2") 
