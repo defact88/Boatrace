@@ -23,14 +23,17 @@ boatrace/
     odds_window.py(OddsWindow)       # RaceWindowと並列でｻﾌﾞﾌﾟﾛｾｽ表示されるｵｯｽﾞ画面
     results_window.py(ResultsWindow) # RaceWindowと並列でｻﾌﾞﾌﾟﾛｾｽ表示されるﾚｰｽ結果画面
     Window/
-      race_serect.py                 # RaceSelectScreen・・・RaceWindow表示レース選択画面
       race_window.py                 # 出走表メイン
-      analysis_player.py             # PlayerAnalysisWindow・・・選手詳細情報
-      analysis_venue.py              # VenueAnalysisScreen・・・ ﾚｰｽ場詳細情報
-    Screens/                         # 画面クラス
+      analysis_player.py             # PlayerAnalysisWindow・・・選手詳細情報ｳｨﾝﾄﾞｳ
+      analysis_venue.py              # VenueAnalysisWindow・・・ ﾚｰｽ場詳細情報ｳｨﾝﾄﾞｳ
+      analysis_motor.py              # MotorAnalysisWindow・・・モーター詳細情報ｳｨﾝﾄﾞｳ
+      classification.py              # PlayerClassificationWindow・・・同期/同支部選手一覧表示ｳｨﾝﾄﾞｳ
+    Screens/                         # 遷移画面クラス
+      race_serect.py                 # RaceSelectScreen・・・RaceWindow表示レース選択画面
       DB_ops.py                      # DBOpsScreen・・・DB参照
       DB_schem.py                    # DBSchemScreen・・・ﾃｰﾌﾞﾙ/ｶﾗﾑ 追加/削除/更新
       DB_query.py                    # DBQueryScreen・・・特定ﾚｰｽ条件でﾚｰｽ結果の比較検証
+      player_Favor.py                # 指定条件成績 選手検索, 注目選手登録/管理画面
     Scraper/                         # summarize_today.pyから管理/実行
       get_Before_info.py             # 展示航走/直前情報ﾃﾞｰﾀの取得/ﾊﾟｰｽ/挿入
       get_results_today.py           # ﾚｰｽ結果ﾃﾞｰﾀの取得/ﾊﾟｰｽ/挿入(翌日の日時更新時に正規ﾃﾞｰﾀでUPDATE)
@@ -38,7 +41,8 @@ boatrace/
           get_change_info            # 当日変更情報(締切時刻変更,欠場艇等)の取得/ﾊﾟｰｽ/挿入
           get_cancel_info            # 当日中止ﾚｰｽの取得/ﾊﾟｰｽ/挿入
       get_payouts.py/
-          upsert_payouts             # 払戻情報(Payouts)へのﾃﾞｰﾀ取得・挿入ｽｸﾘﾌﾟﾄ
+          upsert_payouts             # 払戻情報(Payouts)へのﾃﾞｰﾀ取得/ﾊﾟｰｽ挿入ｽｸﾘﾌﾟﾄ
+      get_oriten_info.py             # ｵﾘｼﾞﾅﾙ展示情報 取得/ﾊﾟｰｽ/挿入ｽｸﾘﾌﾟﾄ
       scraper_odds.py/
           fetch_all_odds             # OddsWindowのｵｯｽﾞﾃﾞｰﾀ ｽｸﾚｲﾋﾟﾝｸﾞ/ﾊﾟｰｽ
     Helpers/
