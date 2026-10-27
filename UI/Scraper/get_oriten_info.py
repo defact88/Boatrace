@@ -24,6 +24,7 @@ SPEC = {  1: ("/modules/yosou/cyokuzen.php?day={ymd}&race={r}",                 
           4: (_ASP.replace("{page}", "yoso05"),                                   True ),
           5: ("/modules/yosou/oriten.php?day={ymd}&race={r}",                     False),
           6: (_GRP,                                                               False),
+          7: ("/asp/gamagori/kyogi/kyogihtml/time/time{ymd}{v:02d}{r:02d}.htm",   False),
           8: (_GRP,                                                               False),
           9: ("/modules/yosou/group-tenji.php?day={ymd}&race={r}&kind=1&if=1",    False),
          10: (_GRP,                                                               False),
@@ -40,24 +41,23 @@ SPEC = {  1: ("/modules/yosou/cyokuzen.php?day={ymd}&race={r}",                 
          23: (_GRP,                                                               False),
          24: ("/yosou/include/new_top_iframe_chokuzen_2.php?day={ymd}&race={r}",  False), }
 
-# 2, 7, 17
+# 2, 17
 
-NO_WWW = frozenset({24})
-
+NO_WWW    = frozenset({24})
 SUPPORTED = frozenset(SPEC)
 
-HEADERS = { "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:142.0) Gecko/20100101 Firefox/142.0",
-            "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
-            "Accept-Language": "ja,en-US;q=0.7,en;q=0.3", }
+HEADERS   = { "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:142.0) Gecko/20100101 Firefox/142.0",
+              "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
+              "Accept-Language": "ja,en-US;q=0.7,en;q=0.3", }
 
-FIELDS = ("time_lap", "time_turning", "time_acceleration")
+FIELDS    = ("time_lap", "time_turning", "time_acceleration")
 
-_LABELS = ( ("time_lap",          ("一周", "半周", "1周") ),
-            ("time_turning",      ("まわり足", "回り足")  ),
-            ("time_acceleration", ("直線",)               ), )
+_LABELS   = ( ("time_lap",          ("一周", "半周", "1周") ),
+              ("time_turning",      ("まわり足", "回り足")  ),
+              ("time_acceleration", ("直線",)               ), )
 
-_NUM = re.compile(r"^\d+(?:\.\d+)?$")
-
+_NUM      = re.compile(r"^\d+(?:\.\d+)?$")
+PARSERS   = {4:parse_heiwajima, 7:parse_gamagori, 24:parse_omura}
 # ----------------------------------------------------------
 def is_today_only(venue_id:int) -> bool:
 
@@ -191,9 +191,37 @@ def parse_omura(html:str) -> dict:
         out[int(m.group(1))] = rec
 
     return out
-
-PARSERS = {4:parse_heiwajima, 24:parse_omura}
 # ----------------------------------------------------------
+def parse_gamagori(html:str) -> dict:
+
+    soup  = BeautifulSoup(html, "lxml")
+    table = soup.select_one("table.ta_kyogi")
+    if table is None: return {}
+
+    heads = [th.get_text("", strip=True) for th in table.find_all("th", class_="score")]
+    cols  = {}
+    for i, t in enumerate(heads):
+        for f, keys in _LABELS:
+            if t in keys: cols[i] = f
+
+    out = {}
+    for tr in table.find_all("tr"):
+        wk = tr.find("td", class_="waku")
+        if wk is None: continue
+        no = wk.get_text("", strip=True)
+        if not no.isdigit() or not 1 <= int(no) <= 6: continue
+
+        scores = [td.get_text("", strip=True) for td in tr.find_all("td", class_="score")]
+        rec    = {f: None for f in FIELDS}
+        for ci, field in cols.items():
+            if ci < len(scores): rec[field] = _to_float(scores[ci])
+        out[int(no)] = rec
+
+    return out
+
+# ----------------------------------------------------------
+PARSERS = {4:parse_heiwajima, 7:parse_gamagori, 24:parse_omura}
+
 def parse_oriten(html:str, venue_id:int=None) -> dict:
 
     if venue_id in PARSERS:
