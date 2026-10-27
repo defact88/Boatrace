@@ -130,12 +130,12 @@ class cLbl(tk.Label):
         self.grid(**kwargs)
 
     # ------------------------
-    def _pack(self, Exp=None, px=None, py=None, Anc=None, **kwargs):
+    def _pack(self, Anc=None, Exp=None, px=None, py=None, **kwargs):
 
         if Exp is not None: kwargs['expand'] = Exp
+        if Anc is not None: kwargs['anchor'] = Anc
         if px  is not None: kwargs['padx']   = px
         if py  is not None: kwargs['pady']   = py
-        if Anc is not None: kwargs['anchor'] = Anc
 
         self.pack(**kwargs)
 
@@ -194,9 +194,10 @@ class cBtn(tk.Button):
         self.grid(**kwargs)
 
     # ------------------------
-    def _pack(self, Exp=None, px=None, py=None, **kwargs):
+    def _pack(self, Anc=None, Exp=None, px=None, py=None, **kwargs):
 
         if Exp is not None: kwargs['expand'] = Exp
+        if Anc is not None: kwargs['anchor'] = Anc
         if px  is not None: kwargs['padx']   = px
         if py  is not None: kwargs['pady']   = py
 
@@ -272,9 +273,10 @@ class cCvs(tk.Canvas):
         self.grid(**kwargs)
 
     # ------------------------
-    def _pack(self, Exp=None, px=None, py=None, **kwargs):
+    def _pack(self, Anc=None, Exp=None, px=None, py=None, **kwargs):
 
         if Exp is not None: kwargs['expand'] = Exp
+        if Anc is not None: kwargs['anchor'] = Anc
         if px  is not None: kwargs['padx']   = px
         if py  is not None: kwargs['pady']   = py
 
@@ -321,9 +323,10 @@ class cEnt(tk.Entry):
         self.grid(**kwargs)
 
     # ------------------------
-    def _pack(self, Exp=None, px=None, py=None, **kwargs):
+    def _pack(self, Anc=None, Exp=None, px=None, py=None, **kwargs):
 
         if Exp is not None: kwargs['expand'] = Exp
+        if Anc is not None: kwargs['anchor'] = Anc
         if px  is not None: kwargs['padx']   = px
         if py  is not None: kwargs['pady']   = py
 
@@ -351,9 +354,47 @@ class cSrb(tk.Scrollbar):
         self.grid(**kwargs)
 
     # ------------------------
-    def _pack(self, Exp=None, px=None, py=None, **kwargs):
+    def _pack(self, Anc=None, Exp=None, px=None, py=None, **kwargs):
 
         if Exp is not None: kwargs['expand'] = Exp
+        if Anc is not None: kwargs['anchor'] = Anc
+        if px  is not None: kwargs['padx']   = px
+        if py  is not None: kwargs['pady']   = py
+
+        self.pack(**kwargs)
+
+# カスタム短縮表記スピンボックス ---------------------------
+class cSpbx(tk.Spinbox):
+    def __init__( self, master=None, *, W=None, Frm=None, To=None, Inc=None, Val=None, Txtv=None,
+                                                                                         **kwargs ):
+
+        if W    is not None: kwargs['width']        = W
+        if Frm  is not None: kwargs['from_']        = Frm
+        if To   is not None: kwargs['to']           = To
+        if Inc  is not None: kwargs['increment']    = Inc
+        if Val  is not None: kwargs['values']       = Val
+        if Txtv is not None: kwargs['textvariable'] = Txtv
+
+        super().__init__(master, **kwargs)
+
+    # ------------------------
+    def _grid(self, R=None, C=None, Cspan=None, Rspan=None, Stk=None, px=None, py=None, **kwargs):
+
+        if R     is not None: kwargs['row']        = R
+        if C     is not None: kwargs['column']     = C
+        if Cspan is not None: kwargs['columnspan'] = Cspan
+        if Rspan is not None: kwargs['rowspan']    = Rspan
+        if Stk   is not None: kwargs['sticky']     = Stk
+        if px    is not None: kwargs['padx']       = px
+        if py    is not None: kwargs['pady']       = py
+
+        self.grid(**kwargs)
+
+    # ------------------------
+    def _pack(self, Anc=None, Exp=None, px=None, py=None, **kwargs):
+
+        if Exp is not None: kwargs['expand'] = Exp
+        if Anc is not None: kwargs['anchor'] = Anc
         if px  is not None: kwargs['padx']   = px
         if py  is not None: kwargs['pady']   = py
 

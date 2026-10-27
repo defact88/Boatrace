@@ -152,9 +152,9 @@ def update_overall(d_iso:str, overwrite:bool=False):
 
     d_from  = days_ago(d_iso, 270)
     d_to    = d_iso
-    data1   = Query( d_from, d_to, query_results=True, exclude_rookie=[True,False]
+    data1   = Query( d_from, d_to, q_results=True, exclude_rookie=[True,False]
                       )._pack(by_course=True)
-    data2   = Query( d_from, d_to, query_results=True, exclude_rookie=[True,False], exclude_venue=3
+    data2   = Query( d_from, d_to, q_results=True, exclude_rookie=[True,False], exclude_venue=3
                       )._pack(by_course=True)
 
     json1 = json.dumps(data1, ensure_ascii=False)

@@ -104,10 +104,10 @@ def check_data(date_from, date_to, venue_id, race_no):
     while current_d <= date_to:
         target_races = get_target_races(current_d, venue_id, race_no)
         if not target_races:
-            print( f"  [{current_d} : No Race data")
-            days_pass(current_d, 1)
+            print( f"  [{current_d}] : No Race data")
+            current_d = days_pass(current_d, 1)
             continue
-
+        shortage = []
         for row in target_races:
             v_id = row["venue_id"]
             r_no = row["race_no"]
@@ -124,9 +124,13 @@ def check_data(date_from, date_to, venue_id, race_no):
             (current_d, v_id, r_no) )
 
             for r in rows: cnt += r["cnt"]
-            print( f"  [{current_d} {VENUES[int(v_id)]} {r_no:2d}R] : {cnt} 件")
-
-        days_pass(current_d, 1)
+            if cnt == 0: shortage.append((current_d, v_id, r_no))
+        if shortage:
+            for row in shortage:
+                print(f"  {row[0]} : [{row[1]}] {VENUES[int(row[1])]} {row[2]:2}R - No data")
+        else:
+            print( f"  {current_d} : Data completed")
+        current_d = days_pass(current_d, 1)
 
     sys.exit()
 #=====================================================================
@@ -164,7 +168,8 @@ def main(argv=None):
         check_data(date_from, date_to, args.venue, args.race)
 
     if not args.from_html:
-        ETL_K_results.run_ETL(date_from, date_to, overwrite=args.overwrite, payouts_only=True)
+        ETL_K_results.run_ETL(date_from, date_to, overwrite=args.overwrite, payouts_only=True,
+                               venue_id=args.venue, race_no=args.race)
         return
 
     current_d = date_from
@@ -212,7 +217,7 @@ def main(argv=None):
             except Exception as e:
                 print(f"    [Error] 処理中に例外発生: {e}")
 
-        current_d = tdays_pass(current_d, 1)
+        current_d = days_pass(current_d, 1)
 
     print("\n全期間の処理が完了しました。")
 

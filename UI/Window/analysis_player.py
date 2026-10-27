@@ -50,8 +50,8 @@ ADJUST       = {"pre_y":-12, "pre_m":-1, "next_y":12, "next_m":1}
 FINAL_RNK    = { 1:"①", 2:"②", 3:"③", 4:"④", 5:"⑤", 6:"⑥",
                  "F":"(F)", "L":"(L)", "S":"(S)", "K":"(K)"       }
 
-PREFINAL_RNK = { 1:"[ 1 ]", 2:"[ 2 ]", 3:"[ 3 ]", 4:"[ 4 ]", 5:"[ 5 ]", 6:"[ 6 ]",
-                 "F":"[ F ]", "L":"[ L ]", "S":"[ S ]", "K":"[ K ]"       }
+PREFINAL_RNK = { 1:"[１]", 2:"[２]", 3:"[３]", 4:"[４]", 5:"[５]", 6:"[６]",
+                 "F":"[Ｆ]", "L":"[Ｌ]", "S":"[Ｓ]", "K":"[Ｋ]"       }
 
 GOPT      = { 0: dict(text="一般",            font=(MUI,8   )),
               1: dict(text="G3",              font=(MUI,8   )), 
@@ -515,8 +515,8 @@ class PlayerAnalysisWindow(tk.Toplevel):
                 opts[opt]    = param
 
         self.query = Query( self.date_from.isoformat(), self.date_to.isoformat(),
-                                 query_results= True,
-                             query_self_others= True,
+                                 q_results= True,
+                             q_self_others= True,
                                      player_id= self.player_id,
                                          grade= self.grade_key,
                                 exclude_rookie= [False,True],
@@ -801,9 +801,8 @@ class PlayerAnalysisWindow(tk.Toplevel):
                 cour  = item["cour"]
                 slit  = f"{item['s_adj']:.2f}"[1:] if item['s_adj'] else ""
                 rank  = convert_rank(item["finish"], item["is_fnl"], item["prefnl"])
-                fcolr = ("red" if rank in ("F","L","S","K","(F)","(L)","(S)","(K)") else "black")
+                fcolr = ("red" if item["finish"] in ("F","L","S","K") else "black")
                 bg    = YELL if cour == self.course else "white"
-                if item["is_fnl"]: opt[2]["font"] = (GUI,11,BD)
 
                 fr_cell.Cconf(col, Min=25)
 
@@ -811,6 +810,8 @@ class PlayerAnalysisWindow(tk.Toplevel):
                     opt = { 0: dict(text=cour, **FRM_COLOR[frn],     font=(GUI, 9,BD) ),
                             1: dict(text=slit, fg=fcolr, bg="white", font=(MUI, 8   ) ),
                             2: dict(text=rank, fg=fcolr, bg=bg,      font=(GUI,10,BD) ), }
+                    if item["is_fnl"]: opt[2]["font"] = (MUI,12,BD) ;opt[2]["py"] = 3
+                    if item["prefnl"]: opt[2]["font"] = (GUI,9,BD)
 
                     fr_cell.Rconf(row, Min=30) ;
 

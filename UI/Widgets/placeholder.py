@@ -95,12 +95,15 @@ def build_main_placeholder(self, parent:tk.Frame):
         lb_frno  = cLbl(fr_A,  Anc=CT, font=(GUI,13,  )            )
         lb_photo = cLbl(fr_B,  cursor="hand2"                      )
         lb_name  = cLbl(fr_C2, Anc=CT, font=(GUI,13,BD), bg="white")
-        lb_rate1 = cLbl(fr_D1, Anc=CT, font=(MUI, 8,BD), bg="white")
-        lb_rate2 = cLbl(fr_D2, Anc=CT, font=(MUI, 8,BD), bg="white")
-        lb_rate3 = cLbl(fr_D3, Anc=CT, font=(MUI, 8,BD), bg="white")
+        lb_rate1 = cLbl(fr_D1, Anc=CT, font=(MUI, 8,BD))
+        lb_rate2 = cLbl(fr_D2, Anc=CT, font=(MUI, 8,BD))
+        lb_rate3 = cLbl(fr_D3, Anc=CT, font=(MUI, 8,BD))
         lb_late  = cLbl(fr_D4, Anc=CT, font=(GUI, 7   ), bg="white")
         lb_flyg  = cLbl(fr_D4, Anc="w",font=(MUI, 7,  ), bg="white")
         lb_stav  = cLbl(fr_D5, Anc=CT, font=(MUI, 8,BD), bg="white")
+        lb_mo_r1 = cLbl(fr_E1, Anc=CT, font=(MUI, 8))
+        lb_mo_r2 = cLbl(fr_E2, Anc=CT, font=(MUI, 8))
+        lb_mo_r3 = cLbl(fr_E3, Anc=CT, font=(MUI, 8))
         lb_mo_av = cLbl(fr_E4, Anc=CT, font=(MUI, 8,BD), bg="white", Csr="hand2")
         lb_bo_av = cLbl(fr_E5, Anc=CT, font=(MUI, 8   ), bg="white")
 
@@ -117,8 +120,11 @@ def build_main_placeholder(self, parent:tk.Frame):
         lb_late._grid(  Stk=ALL, R=0, C=0, pady=(1,0))
         lb_flyg._grid(  Stk=ALL, R=0, C=1, pady=(1,0))
         lb_stav._grid(  Stk=ALL,                     )
-        lb_mo_av._grid( Stk=ALL, R=0, C=0            )
-        lb_bo_av._grid( Stk=ALL, R=0, C=0            )
+        lb_mo_r1._grid( Stk=ALL,                     )
+        lb_mo_r2._grid( Stk=ALL,                     )
+        lb_mo_r3._grid( Stk=ALL,                     )
+        lb_mo_av._grid( Stk=ALL,                     )
+        lb_bo_av._grid( Stk=ALL,                     )
 
         # center: center_widgets =======
 
@@ -129,6 +135,7 @@ def build_main_placeholder(self, parent:tk.Frame):
            "frno":lb_frno,    "name":lb_name,  "photo":lb_photo,  "stav":lb_stav,
            "late":lb_late,    "flyg":lb_flyg,  "mo_av":lb_mo_av, "bo_av":lb_bo_av,
           "rate1":lb_rate1,  "rate2":lb_rate2, "rate3":lb_rate3,     
+          "mo_r1":lb_mo_r1,  "mo_r2":lb_mo_r2, "mo_r3":lb_mo_r3,     
             "cv1":cv1,         "cv2":cv2,        "cv3":cv3,     "fr_Ctr":fr_center, }
 
         # right: 節間成績/2走ｲﾝﾃﾞｯｸｽ ===

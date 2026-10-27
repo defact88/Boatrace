@@ -19,8 +19,8 @@ BT_KEY = "ファン感謝３Ｄａｙｓボートレースバトルトーナメ�
 # ====================================================================
 class Query():
     def __init__( self, date_from, date_to,
-                   query_results:bool=False,
-               query_self_others:bool=False,
+                       q_results:bool=False,
+                   q_self_others:bool=False,
 
                        player_id:Optional[int]=None,
                            grade:Optional[list]=None,
@@ -72,8 +72,8 @@ class Query():
                           "slit_ADJ":(" AND e.slit_ADJ    = ?", lambda s:[slit_ADJ]),
                      "exclude_venue":(" AND r.venue_id   != ?", lambda s:[exclude_venue]),      }
 
-        if query_results:     self.rows1 = self._q_statistics_results()
-        if query_self_others: self.rows2 = self._q_relative_others()
+        if q_results:     self.rows1 = self._q_statistics_results()
+        if q_self_others: self.rows2 = self._q_relative_others()
 
     #=================================================================
     def _pack( self,  by_grade:bool=False,

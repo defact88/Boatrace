@@ -6,33 +6,37 @@ import tkinter as tk
 from tkinter  import ttk, messagebox
 from datetime import datetime as dt, date, timedelta, timezone
 
-from Custum_func import cFr, cLbl, cBtn, cCvs, cSrb, cEnt
+from Custum_func import cFr, cLbl, cBtn, cCvs, cSrb, cEnt, cSpbx
 import Dal as dal
 
-VENUES  = [ "桐生", "戸田", "江戸川", "平和島", "多摩川", "浜名湖", "蒲郡", "常滑",
-             "津",  "三国", "びわこ", "住之江",  "尼崎",   "鳴門",  "丸亀", "児島",
-            "宮島", "徳山",  "下関",   "若松",   "芦屋",   "福岡",  "唐津", "大村", ]
+VENUES  = [ " 桐生 ", " 戸田 ", "江戸川", "平和島", "多摩川", "浜名湖", " 蒲郡 ", " 常滑 ",
+            "  津  ", " 三国 ", "びわこ", "住之江", " 尼崎 ", " 鳴門 ", " 丸亀 ", " 児島 ",
+            " 宮島 ", " 徳山 ", " 下関 ", " 若松 ", " 芦屋 ", " 福岡 ", " 唐津 ", " 大村 ", ]
+
+GRADES  = [ ["SG",(5,)], ["G1",(4,3)] ,["G2",(2,)], ["一般",(0,1)] ]
 
 W_MOVES = ['逃げ', '差し', 'まくり', 'まくり差し', '抜き', '恵まれ']
 
-CELLS1 = {    "rank":("順位",    50),
-              "name":("選手名", 200),
+CELLS1 = {    "rank":("順位",    45),
+              "name":("選手名", 160),
                "cls":("級",      50),
             "course":("コース",  50),
-              "rate":("指定着率",90),
-               "cnt":("指定着数",80),
-             "total":("出走数",  80),  }
+              "rate":("指定着率",70),
+          "all_over":("全体平均",70),
+              "diff":("差"      ,65),
+               "cnt":("指定着数",70),
+             "total":("出走数",  70),  }
 
-CELLS2 = {    "rank":("順位",    40),
-              "name":("選手名", 140),
-               "cls":("級",      40),
-            "self_c":("自艇ｺｰｽ", 45),
-            "othr_c":("他艇ｺｰｽ", 45),
-              "rate":("指定着率",60),
-          "all_over":("全体平均",60),
-              "diff":("差"      ,60),
-               "cnt":("指定着数",55),
-             "total":("出走数",  55),  }
+CELLS2 = {    "rank":("順位",    45),
+              "name":("選手名", 145),
+               "cls":("級",      45),
+            "self_c":("自ｺｰｽ", 50),
+            "othr_c":("対象ｺｰｽ", 50),
+              "rate":("指定着率",65),
+          "all_over":("全体平均",65),
+              "diff":("差"      ,65),
+               "cnt":("指定着数",60),
+             "total":("出走数",  60),  }
 
 
 GUI, MUI, HNH, CBR = "Yu Gothic UI", "Meiryo UI", "Helvetica Neue Heavy", "Cambria"
@@ -60,16 +64,20 @@ GRY_OFF = dict(bg=GRAY1,  fg=BLACK1, Bd=(1,RA))
 YEL1_ON = dict(bg=YELL1,  fg=BLACK2, Bd=(1,GR))
 YEL2_ON = dict(bg=YELL2,  fg=BLACK2, Bd=(1,SK))
 
-BG       = dict(bg=MAIN_BG)
-FONT     = dict(font=(MUI,10), bg=MAIN_BG)
-HDR      = dict(bg=HDR_BG, fg=WHITE, font=(MUI,10), Bd=(1,RD))
-BTN      = dict(bg=HDR_BG, fg=WHITE, font=(MUI,9),  Bd=(2,RA))
-CELL_BF  = dict(bg=BLACK1, fg=WHITE, font=(MUI,11), Bd=(1,GR))
+BG      = dict(bg=MAIN_BG)
+BGFNT   = dict(bg=MAIN_BG, font=(MUI,10))
+HDR     = dict(bg=HDR_BG, fg=WHITE, font=(MUI,10), Bd=(1,RD))
+BTN     = dict(bg=BTN_BG, fg=WHITE, font=(MUI,10),  Bd=(2,RA))
+CELL_B  = dict(bg=BLACK1          , font=(MUI,11), Bd=(1,GR))
 
 # ===========  共通ヘルパー  ===========
-def _today() -> str:
+def _today() -> date:
     JST = timezone(timedelta(hours=9))
     return dt.now(JST).date()
+# ------------------
+def _past(d) -> date:
+    JST = timezone(timedelta(hours=9))
+    return dt.now(JST).date() -timedelta(days=d)
 # ------------------
 def today_iso() -> str:
     JST = timezone(timedelta(hours=9))
@@ -97,39 +105,37 @@ class PlayerFavorScreen(tk.Frame):
 
         self.app  = app
         self.app.geometry("1220x1400+75+0")
-        #self.app.protocol("WM_DELETE_WINDOW", self._on_close)
 
-        self._cells  = {}
-        self.v_vars  = {}
-        self.wm_vars = {}
-        self.r_vars  = {}
-        self.sc_var  = tk.StringVar(value=1)
-        self.oc_var  = tk.StringVar(value=1)
-        self.num_var = tk.IntVar(value=10)
-        self.run_var = tk.IntVar(value=30)
-        self.wm_cbs  = []
-        self.oc_cbs  = []
-        self.other_course = False
-        self.best    = tk.BooleanVar(value=True)
+        self._cells     = {}
+        self.ven_vars   = {}
+        self.grd_vars   = {}
+        self.rnk_vars   = {}
+        self.wm_vars    = {}
+        self.wm_cbs     = []
+        self.othr_c_cbs = []
+        self.self_c_var = tk.IntVar(value=1)
+        self.othr_c_var = tk.IntVar(value=None)
+        self.num_var    = tk.IntVar(value=10)
+        self.run_var    = tk.IntVar(value=30)
+        self.best       = tk.BooleanVar(value=True)
+        self.other      = False
 
         style = ttk.Style()
         style.configure("fpw.TCheckbutton", font=(MUI,10), background=MAIN_BG)
-        style.configure("fpw.TRadiobutton", font=(MUI,10), background=MAIN_BG)
+        style.configure("fpw.TRadiobutton", font=(MUI,10,BD), background=MAIN_BG)
 
         fr_main = cFr(self, W=1220, H=1400, bg=MAIN_BG, px=10, py=15) ;fr_main.Pgate()
         fr_main._grid(R=0, C=0, Stk=ALL)
 
-        cntrl  = cFr(fr_main, W=550, H=600, **BG)  ;cntrl._grid(R=0, C=0, px=5) ;cntrl.Pgate()
-        result = cFr(fr_main, W=630, H=600, **BG) ;result._grid(R=0, C=1, px=5) ;result.Pgate()
+        cntrl  = cFr(fr_main, W= 500, H=600, **BG)  ;cntrl._grid(R=0, C=0, px=5) ;cntrl.Pgate()
+        result = cFr(fr_main, W= 680, H=600, **BG) ;result._grid(R=0, C=1, px=5) ;result.Pgate()
+        regist = cFr(fr_main, W=1180, H=770, **BG) ;regist._grid(R=1, C=0, Cspan=2) ;regist.Pgate()
 
-        fr_date = cFr(cntrl, W=550, H=80, **BG, py=5) ;fr_date._grid(R=0, C=0) ;fr_date.Pgate()
+        fr_date = cFr(cntrl, W=500, H=60, **BG, py=5) ;fr_date._grid(R=0, C=0) ;fr_date.Pgate()
 
-        cLbl(fr_date, text="DATE ( FROM )", **HDR)._grid(R=0, C=1, Cspan=3, Stk="we", px=(0, 0)) 
-        cLbl(fr_date, text="DATE ( TO )",   **HDR)._grid(R=0, C=5, Cspan=3, Stk="we", px=(10,0))
-        cLbl(fr_date, text=" ～ ",         **FONT)._grid(R=1, C=4,          Stk="we", px=5)
-
-        cBtn(fr_date, text="本日", **BTN, Com=self._today_only,   W=6)._grid(R=0, C=0, Stk=ALL, px=(0,10), py=2)
-        cBtn(fr_date, text="単日", **BTN, Com=self._from_to_from, W=6)._grid(R=1, C=0, Stk=ALL, px=(0,10), py=2)
+        cLbl(fr_date, text="DATE ( FROM )", **HDR)._grid(R=0, C=1, Cspan=3, Stk=ALL) 
+        cLbl(fr_date, text=" DATE ( TO ) ", **HDR)._grid(R=0, C=5, Cspan=3, Stk=ALL)
+        cLbl(fr_date, text="  ～  ",      **BGFNT)._grid(R=1, C=4,          Stk=ALL, px=5)
 
         years  = [str(y) for y in reversed(range(2000, date.today().year +1))]
         months = [f"{m:02d}" for m in range(1,13)]
@@ -148,49 +154,66 @@ class PlayerFavorScreen(tk.Frame):
         self.dt_m.grid(row=1, column=6, sticky="w", padx=2, pady=4)
         self.dt_d.grid(row=1, column=7, sticky="w", padx=2, pady=4)
 
-        fr_venue = cFr(cntrl, W=550, H=120, **BG, py= 5) ;fr_venue._grid(R=1, C=0) ;fr_venue.Pgate()
-        fr_btns  = cFr(cntrl, W=550, H= 50, **BG, py=10)  ;fr_btns._grid(R=2, C=0) ;fr_btns.Pgate()
-        fr_self  = cFr(cntrl, W=550, H= 45, **BG, py=10)  ;fr_self._grid(R=3, C=0) ;fr_self.Pgate()
-        fr_othr  = cFr(cntrl, W=550, H= 45, **BG, py=10)  ;fr_othr._grid(R=4, C=0) ;fr_othr.Pgate()
-        fr_rank  = cFr(cntrl, W=550, H= 45, **BG, py=10)  ;fr_rank._grid(R=5, C=0) ;fr_rank.Pgate()
-        fr_wmvs  = cFr(cntrl, W=550, H= 45, **BG, py=10)  ;fr_wmvs._grid(R=6, C=0) ;fr_wmvs.Pgate()
-        fr_param = cFr(cntrl, W=550, H= 45, **BG, py=10) ;fr_param._grid(R=7, C=0) ;fr_param.Pgate()
+        fr_dbtn =  cFr(cntrl, W=500, H=45,  **BG, py= 5)  ;fr_dbtn._grid(R=1, C=0) ;fr_dbtn.Pgate()
+        fr_venue = cFr(cntrl, W=500, H=135, **BG, py= 5) ;fr_venue._grid(R=2, C=0) ;fr_venue.Pgate()
+        fr_grade = cFr(cntrl, W=500, H= 50, **BG, py=10) ;fr_grade._grid(R=3, C=0) ;fr_grade.Pgate()
+        fr_self  = cFr(cntrl, W=500, H= 45, **BG, py=10)  ;fr_self._grid(R=4, C=0) ;fr_self.Pgate()
+        fr_othr  = cFr(cntrl, W=500, H= 45, **BG, py=10)  ;fr_othr._grid(R=5, C=0) ;fr_othr.Pgate()
+        fr_rank  = cFr(cntrl, W=500, H= 45, **BG, py=10)  ;fr_rank._grid(R=6, C=0) ;fr_rank.Pgate()
+        fr_wmvs  = cFr(cntrl, W=500, H= 45, **BG, py=10)  ;fr_wmvs._grid(R=7, C=0) ;fr_wmvs.Pgate()
+        fr_param = cFr(cntrl, W=500, H= 45, **BG, py=10) ;fr_param._grid(R=8, C=0) ;fr_param.Pgate()
 
-        fr_sbtn  = cFr(cntrl, W=550, H= 50, **BG, py=10)  ;fr_sbtn._grid(R=8, C=0) ;fr_sbtn.Pgate()
+        fr_sbtn  = cFr(cntrl, W=500, H= 50, **BG, py=10)  ;fr_sbtn._grid(R=9, C=0) ;fr_sbtn.Pgate()
 
-        for c in range(6):
+        cBtn( fr_dbtn, W=7, text="  本日  ", **BTN, Com=self._today_only
+             )._grid(R=0, C=0, Stk=ALL, px=5, py=(0,20))
+        cBtn( fr_dbtn, W=8, text="直近 1年", **BTN, Com=lambda:self._past_days(365)
+             )._grid(R=0, C=1, Stk=ALL, px=5, py=(0,20))
+        cBtn( fr_dbtn, W=8, text="直近 半年", **BTN, Com=lambda:self._past_days(182)
+             )._grid(R=0, C=3, Stk=ALL, px=5, py=(0,20))
+
+        cBtn( fr_venue, W=2, text="全\n選\n択", **BTN, Com=self._select_all, px=3
+             )._grid(R=0, C=0, Rspan=2, px=(0,17))
+        cBtn( fr_venue, W=2, text="全\n解\n除", **BTN, Com=self._reset_all, px=3
+             )._grid(R=2, C=0, Rspan=2, px=(0,17))
+
+        for c in range(1,7):
             for r in range(4):
-                key = c + (6 * r)
+                key = c + (6 * r)-1
                 txt = VENUES[key]
-                var = tk.BooleanVar(value=True)
+                var = tk.BooleanVar(value=False) if key == 2 else tk.BooleanVar(value=True)
                 ttk.Checkbutton(fr_venue, text=f"{txt:6}", variable=var, style="fpw.TCheckbutton"
-                                ).grid(row=r, column=c, sticky="w", padx=6, pady=2)
-                self.v_vars[key] = var
+                                ).grid(row=r, column=c, sticky="w", padx=(4,0), pady=4)
+                self.ven_vars[key] = var
 
-        cBtn(fr_btns, text="全選択", **BTN, Com=self._select_all, W= 7)._grid(R=0, C=0, px=5)
-        cBtn(fr_btns, text="全解除", **BTN, Com=self._reset_all,  W= 7)._grid(R=0, C=1, px=5)
+        for c in range(4):
+            var = tk.BooleanVar(value=True)
+            px  = (50,10) if c == 0 else 18
+            ttk.Checkbutton( fr_grade, text=f"{GRADES[c][0]}", variable=var, style="fpw.TRadiobutton"
+                            ).grid(row=0, column=c, sticky="w", padx=px, pady=2)
+            self.grd_vars[(GRADES[c][1])] = var
 
         cLbl(fr_self, text="自", **HDR, px=4, py=4)._grid(R=0, C=0)
-        self.bt_othr = cBtn(fr_othr, text="他", **HDR, Com=self._toggle_other)
+        self.bt_othr = cBtn(fr_othr, text="他", **BTN, Com=self._toggle_other)
         self.bt_othr._grid(R=0, C=0)
 
         for c in range(1,7):
-            ttk.Radiobutton( fr_self, text=f"{c} ｺｰｽ  ", variable=self.sc_var, value=c,
-                                  style="fpw.TRadiobutton"
+            ttk.Radiobutton( fr_self, text=f"{c} ｺｰｽ  ", variable=self.self_c_var, value=c,
+                             style="fpw.TRadiobutton"
                             ).grid(row=0, column=c, sticky="w", padx=6, pady=2)
 
         for c in range(1,7):
-            cb = ttk.Radiobutton( fr_othr, text=f"{c} ｺｰｽ  ", variable=self.oc_var, value=c,
+            cb = ttk.Radiobutton( fr_othr, text=f"{c} ｺｰｽ  ", variable=self.othr_c_var, value=c,
                               state=tk.DISABLED, style="fpw.TRadiobutton")
             cb.grid(row=0, column=c, sticky="w", padx=6, pady=2)
-            self.oc_cbs.append(cb)
+            self.othr_c_cbs.append(cb)
 
         for r in range(1,7):
             var = tk.BooleanVar(value=False)
             ttk.Checkbutton( fr_rank, text=f"{r} 着    ", variable=var, style="fpw.TCheckbutton",
                              command=lambda v=var, r=r:self._on_rank_changed(v,r)
                             ).grid(row=0, column=r-1, sticky="w", padx=6, pady=2)
-            self.r_vars[r] = var
+            self.rnk_vars[r] = var
 
         for c in range(6):
             txt = W_MOVES[c]
@@ -208,26 +231,24 @@ class PlayerFavorScreen(tk.Frame):
                                   style="fpw.TRadiobutton"
                             ).grid(row=0, column=1, sticky="w", padx=6, pady=2)
 
-        cLbl(fr_sbtn, text="上位 ", **FONT, px=2)._grid(R=0, C=0)
-        tk.Spinbox( fr_sbtn, from_=1, to=50, width=4, font=(MUI,10), textvariable=self.num_var
-                   ).grid(row=0, column=1)
-        cLbl(fr_sbtn, text="出走数", **FONT, px=5)._grid(R=0, C=2, px=(20,0))
-        tk.Spinbox( fr_sbtn, from_=1, to=50, width=4, font=(MUI,10), textvariable=self.run_var
-                   ).grid(row=0, column=3)
-        cLbl(fr_sbtn, text="以上", **FONT)._grid(R=0, C=4)
+        cLbl(fr_sbtn, text="上位 ", **BGFNT, px=2)._grid(R=0, C=0)
+        cSpbx(fr_sbtn, W=4, Frm=1, To=50, Inc=10, font=(MUI,11), Txtv=self.num_var)._grid(R=0, C=1)
+        cLbl(fr_sbtn, text="出走数", **BGFNT, px=5)._grid(R=0, C=2, px=(20,0))
+        cSpbx(fr_sbtn, W=4, Frm=1, To=50, Inc=10, font=(MUI,11), Txtv=self.run_var)._grid(R=0, C=3)
+        cLbl(fr_sbtn, text="以上", **BGFNT)._grid(R=0, C=4)
 
-        cBtn(fr_sbtn, text="検索実行", **HDR, Com=self._on_search, W=12)._grid(R=0, C=5, px=(150,0))
+        cBtn(fr_sbtn, text="検索実行", **BTN, Com=self._on_search, W=12)._grid(R=0, C=5, px=(130,0))
 
         self._init_result_table(result)
 
     # --------------------------------------------
     def _init_result_table(self, parent):
 
-        parent.Rconf(0, Min=28)  ;parent.Cconf(0, Min=600)
+        parent.Rconf(0, Min=28)  ;parent.Cconf(0, Min=650)
         parent.Rconf(1, Min=572)
 
-        self.fr_hdr  = cFr(parent,  W=600, H= 28, **HDR_B, Bd=(1,RD))
-        self.canvas  = cCvs(parent, W=600, H=572, bg=BLACK1)
+        self.fr_hdr  = cFr(parent,  W=650, H= 28, **HDR_B, Bd=(1,RD))
+        self.canvas  = cCvs(parent, W=650, H=572, bg=BLACK1)
         self.fr_body = cFr(self.canvas, Bd=(1,SD))
         scr_bar      = cSrb(parent, orient="vertical", Com=self.canvas.yview)
         self.canvas.config(yscrollcommand=scr_bar.set)
@@ -253,7 +274,7 @@ class PlayerFavorScreen(tk.Frame):
     # --------------------------------------------
     def _on_rank_changed(self, var, key):
 
-        active = sum(1 for var in self.r_vars.values() if var.get())
+        active = sum(1 for var in self.rnk_vars.values() if var.get())
         if active == 0:
            var.set(True)
 
@@ -262,9 +283,9 @@ class PlayerFavorScreen(tk.Frame):
     # --------------------------------------------
     def _update_wm_state(self):
 
-        selected_r = [k for k, v in self.r_vars.items() if v.get()]
+        selected_r = [k for k, v in self.rnk_vars.items() if v.get()]
         is_only_r1 = (selected_r == [1])
-        state      = tk.NORMAL if (not self.other_course and is_only_r1) else tk.DISABLED
+        state      = tk.NORMAL if (not self.other and is_only_r1) else tk.DISABLED
 
         for cb in self.wm_cbs:
             cb.configure(state=state)
@@ -272,31 +293,31 @@ class PlayerFavorScreen(tk.Frame):
     # --------------------------------------------
     def _toggle_other(self):
 
-        self.other_course = not self.other_course
-        if self.other_course:
+        self.other = not self.other
+        if self.other:
             self.bt_othr._config(**YEL2_ON)
-            for cb in self.oc_cbs:
+            for cb in self.othr_c_cbs:
                 cb.config(state=tk.NORMAL)
         else:
-            self.bt_othr._config(**HDR)
-            for cb in self.oc_cbs:
+            self.bt_othr._config(**BTN)
+            for cb in self.othr_c_cbs:
                 cb.config(state=tk.DISABLED)
 
         self._update_wm_state()
 
     # --------------------------------------------
     def _select_all(self):
-        for var in self.v_vars.values():
+        for var in self.ven_vars.values():
             var.set(True)
     # --------------------------------------------
     def _reset_all(self):
-        for var in self.v_vars.values():
+        for var in self.ven_vars.values():
             var.set(False)
     # --------------------------------------------
-    def _from_to_from(self):
-        self.dt_y.set(self.df_y.get().strip())
-        self.dt_m.set(self.df_m.get().strip())
-        self.dt_d.set(self.df_d.get().strip())
+    def _past_days(self, d):
+        self.df_y.set(_past(d).strftime("%Y")) ;self.dt_y.set(_today().strftime("%Y"))
+        self.df_m.set(_past(d).strftime("%m")) ;self.dt_m.set(_today().strftime("%m"))
+        self.df_d.set(_past(d).strftime("%d")) ;self.dt_d.set(_today().strftime("%d"))
     # --------------------------------------------
     def _today_only(self):
         self.df_y.set(_today().strftime("%Y")) ;self.dt_y.set(_today().strftime("%Y"))
@@ -312,19 +333,18 @@ class PlayerFavorScreen(tk.Frame):
             widget.destroy()
         self._cells.clear()
 
-        cells = CELLS1 if not self.other_course else CELLS2
-
+        cells = CELLS2 if self.other else CELLS1
         self.fr_hdr.Rconf(0, Min=28)
-        for c, v in enumerate(cells.values()):
-            self.fr_hdr.Cconf(c, Min=v[1], W=1)
-            cLbl(self.fr_hdr, text=v[0], **HDR)._grid(R=0, C=c, Stk=ALL)
 
-        for r, data in enumerate(rows):
-            self.fr_body.Rconf(r, Min=30, W=1)
-            for c, (key, val) in enumerate(data.items()):
-                self.fr_body.Cconf(c, Min=cells[key][1], W=1)
-                lbl = cLbl(self.fr_body, text=val, **CELL_BF)
-                lbl._grid(R=r, C=c, Stk=ALL)
+        for c, (k, v) in enumerate(cells.items()):
+            self.fr_hdr.Cconf( c, Min=v[1], W=1)
+            self.fr_body.Cconf(c, Min=v[1], W=1)
+            hdr = cLbl(self.fr_hdr, text=v[0], **HDR) ;hdr._grid(R=0, C=c, Stk=ALL)
+            self._cells[c] = hdr
+            for r, data in enumerate(rows):
+                self.fr_body.Rconf(r, Min=30, W=1)
+                fg  = "yellow" if k == "rate" else "white"
+                lbl = cLbl(self.fr_body, text=data[k], **CELL_B, fg=fg) ;lbl._grid(R=r, C=c, Stk=ALL)
                 self._cells[(r, c)] = lbl
 
     # --------------------------------------------
@@ -335,121 +355,112 @@ class PlayerFavorScreen(tk.Frame):
         d_from = f"{f_y}-{f_m}-{f_d}"
         d_to   = f"{t_y}-{t_m}-{t_d}"
 
-        venues   = [k for k, v in self.v_vars.items()  if v.get()]
-        f_ranks  = [k for k, v in self.r_vars.items()  if v.get()]
-        w_moves  = [k for k, v in self.wm_vars.items() if v.get()]
-        s_course = self.sc_var.get()
-        o_course = self.oc_var.get()
+        venues   = [k for k, v in self.ven_vars.items() if v.get()]
+        venues   = [v for v in range(1,25)] if not venues else venues
+        grades   = [g for k, v in self.grd_vars.items() if v.get() for g in k]
+        grades   = [5,4,3,2,1,0] if not grades else grades
+        f_ranks  = [k for k, v in self.rnk_vars.items() if v.get()]
+        w_moves  = [k for k, v in self.wm_vars.items()  if v.get()]
+        s_course = self.self_c_var.get()
+        o_course = self.othr_c_var.get()
         num      = int(self.num_var.get()) or 10
         run      = int(self.run_var.get()) or 30
-        sort_desc = self.best.get()
+        order    = "DESC" if self.best.get() else "ASC"
 
         ph1 = ",".join("?" * len(venues))
         ph2 = ",".join("?" * len(f_ranks))
+        ph3 = ",".join("?" * len(grades))
 
-        if not venues:
-            messagebox.showwarning("error", "select venues")
-            return []
-        if not f_ranks:
-            messagebox.showwarning("error", "select finish ranks")
-            return []
-
-        if self.other_course:
-
+        if self.other:
             sql = f"""
-                SELECT p.player_id AS pid,
-                       p.name,
-                       p.class_now AS cls,
-                       COUNT(DISTINCT e1.race_id) AS total,
-                       SUM(CASE WHEN e2.finish_rank IN ({ph2}) THEN 1 ELSE 0 END) AS cnt
-                  FROM Race_entries e1
-                  JOIN Race_entries e2 ON e1.race_id = e2.race_id AND e1.entry_id <> e2.entry_id
-                  JOIN Players p ON p.player_id = e1.player_id
-                 WHERE e1.date BETWEEN ? AND ?
-                   AND e1.course = ?
-                   AND e2.course = ?
-                   AND e1.venue_id IN ({ph1})
-                 GROUP BY p.player_id, p.name, p.class_now
-                HAVING COUNT(DISTINCT e1.race_id) >= ?
+                WITH Stats AS (SELECT p.player_id                              AS pid,
+                                      p.name,
+                                      p.class_now                              AS cls,
+                                      e1.course                                AS self_c,
+                                      e2.course                                AS othr_c,
+                                      COUNT(DISTINCT e1.race_id)               AS total,
+                                      SUM(CASE WHEN e2.finish_rank IN ({ph2})
+                                               THEN 1 ELSE 0 END             ) AS cnt
+                                 FROM Race_entries e1
+                                 JOIN Race_entries e2 ON  e1.race_id  =  e2.race_id AND
+                                                          e1.entry_id <> e2.entry_id
+                                 JOIN      Players p  ON p.player_id  = e1.player_id
+                                 JOIN        Races r  ON   r.race_id  = e1.race_id
+                                WHERE e1.date BETWEEN ? AND ?
+                                  AND e1.course = ?
+                                  AND e2.course = ?
+                                  AND e1.venue_id IN ({ph1})
+                                  AND r.grade     IN ({ph3})
+                                GROUP BY p.player_id, p.name, p.class_now
+                               HAVING COUNT(DISTINCT e1.race_id) >= ?                     )
+
+              SELECT ROW_NUMBER() OVER (ORDER BY (100.0*cnt / total) DESC) AS rank,
+                     name,
+                     cls,
+                     self_c,
+                     othr_c,
+                     ROUND(100.0 * cnt / total, 1) AS rate,
+                     cnt,
+                     total
+                FROM Stats
+               ORDER BY rate {order}
+               LIMIT {num};
             """
-            params = (*f_ranks, d_from, d_to, s_course, o_course, *venues, run)
-            rows = dal.fetch_all(sql, params)
-            if not rows:
-                return []
-
-            json_data = self._from_json()
-            avg_rates = 0.0
-            for r in f_ranks:
-                avg_rates += json_data[int(o_course)]["rate"][r] * 100.0
-
-            processed_rows = []
-            for row in rows:
-                total = row['total']
-                cnt   = row['cnt']
-                rate  = 100.0 * cnt / total
-                diff  = rate - avg_rates
-                processed_rows.append({
-                    'rank': 0,
-                    'name': row['name'],
-                    'cls': row['cls'],
-                    'self_c': s_course,
-                    'othr_c': o_course,
-                    'rate': round(rate, 1),
-                    'all_over': round(avg_rates, 1),
-                    'diff': round(diff, 1),
-                    'cnt': cnt,
-                    'total': total,
-                })
-
-            processed_rows.sort(key=lambda x: x['rate'], reverse=sort_desc)
-            top_rows = processed_rows[:num]
-
-            for idx, r in enumerate(top_rows, start=1):
-                r['rank'] = idx
-
-            return top_rows
+            params = (*f_ranks, d_from, d_to, s_course, o_course, *venues, *grades, run)
+            rows   = dal.fetch_all(sql, params)
 
         else:
-
-            ph3 = ",".join("?" * len(w_moves))
-            ph = f" AND e.win_move IN ({ph3})" if w_moves else ""
-            sort = "DESC" if self.best.get() else "ASC"
+            ph4  = ",".join("?" * len(w_moves))
+            ph   = f" AND e.win_move IN ({ph4})" if w_moves else ""
 
             sql = f"""
                 WITH Stats AS (SELECT e.course,
                                       e.player_id                             AS pid,
                                       COUNT(*)                                AS total,
                                       SUM(CASE WHEN(e.finish_rank IN ({ph2})
-                                                    {ph}                   )
-                                               THEN 1
-                                               ELSE 0
-                                                END                          ) AS cnt
+                                                    {ph})
+                                               THEN 1 ELSE 0 END            ) AS cnt
 
                                  FROM Race_entries e
-                                WHERE     e.date BETWEEN ? AND ?
-                                      AND e.course = ?
-                                      AND e.venue_id IN ({ph1})
-                                GROUP BY e.player_id
-                               HAVING COUNT(*) >= {run} )
+                                 JOIN        Races r ON r.race_id = e.race_id
+                                WHERE e.date BETWEEN ? AND ?
+                                  AND e.course = ?
+                                  AND e.venue_id IN ({ph1})
+                                  AND r.grade    IN ({ph3})
 
-                SELECT ROW_NUMBER() OVER (ORDER BY (100.0*cnt / total) DESC) AS rank,
-                       p.name,
-                       p.class_now AS cls,
-                       course,
-                       ROUND(100.0 * cnt / total, 1) AS rate,
-                       cnt,
-                       total
-                  FROM Stats s
-                  JOIN Players p ON p.player_id = s.pid
-                 ORDER BY rate {sort}
-                 LIMIT {num};
+                                GROUP BY e.player_id
+                               HAVING COUNT(*) >= {run}                                  )
+
+              SELECT ROW_NUMBER() OVER (ORDER BY (100.0*cnt / total) DESC) AS rank,
+                     p.name,
+                     p.class_now                   AS cls,
+                     course,
+                     ROUND(100.0 * cnt / total, 1) AS rate,
+                     cnt,
+                     total
+                FROM Stats s
+                JOIN Players p ON p.player_id = s.pid
+               ORDER BY rate {order}
+               LIMIT {num};
                 """
-            if w_moves: params = (*f_ranks, *w_moves, d_from, d_to, s_course, *venues)
-            else:       params = (*f_ranks, d_from, d_to, s_course, *venues)
+            if w_moves: params = (*f_ranks, *w_moves, d_from, d_to, s_course, *venues, *grades)
+            else:       params = (*f_ranks, d_from, d_to, s_course, *venues, *grades)
 
             rows = dal.fetch_all(sql, params)
 
-            return [dict(row) for row in rows if rows]
+        if not rows: return []
+
+        couese    = o_course if self.other else s_course
+        json_data = self._from_json()
+        avrg_rate = sum(json_data[couese]["rate"][r] for r in f_ranks) *100.0
+        out_rows  = []
+
+        for row in rows:
+            prow  = dict(row)
+            prow |= {"all_over":round(avrg_rate,1), "diff":round(row["rate"] -avrg_rate,1)}
+            out_rows.append(prow)
+
+        return out_rows
 
     #-----------------------------------
     def _from_json(self):
@@ -475,8 +486,4 @@ class PlayerFavorScreen(tk.Frame):
         else:
             return {}
 
-    #-------------------------------------------------------
-    def _on_close(self):
-
-        self.app.show_screen("Main")
     #-------------------------------------------------------

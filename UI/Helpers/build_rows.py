@@ -54,14 +54,15 @@ def make_rows(self):
             opt |= dict(grade=[5, 4, 3, 2])
             d_f  = days_ago(self.date, 365)
 
-        query    = Query(d_f, d_t, player_id=pid, **opt, query_results=True, query_self_others=True)
-        d_f      = days_ago(self.date, self.vrange_d)
-        query_v  = Query(d_f, d_t, player_id=pid, venue_id=self.venue_id, query_results=True)
-        ave      = query._pack(by_course=True)
-        rate     = query._pack(for_graph=True)
-        dist     = query._pack(for_distribute=True)
-        v_ave    = query_v._pack(by_course=True)[0]
-        own_rate = rate["own"][0]["rate"]
+        query     = Query(d_f, d_t, player_id=pid, **opt, q_results=True, q_self_others=True)
+        ave       = query._pack(by_course=True)
+        rate      = query._pack(for_graph=True)
+        dist      = query._pack(for_distribute=True)
+        d_f       = days_ago(self.date, self.vrange_d)
+        query_v   = Query(d_f, d_t, player_id=pid, venue_id=self.venue_id, q_results=True)
+        v_ave     = query_v._pack(by_course=True)[0]
+        own_rate  = rate["own"][0]["rate"]
+        mo_ave    = query_motor_ave(d_t, self.venue_id, row['mo_no'])
 
         entry_rows[fno] = { "frno":row["frame_no"],
                              "pid":row["player_id"],
@@ -75,7 +76,7 @@ def make_rows(self):
                             "heig":f"{row['height']}cm",
                              "wkg":f"{row['weight']}kg",
                            "mo_no":row['mo_no'],
-                           "mo_av":f"{row['m_ave']:.1f}",
+                           "mo_av":mo_ave,
                            "bo_av":f"{row['b_ave']:.1f}",
                             "scav":ave[0]["sc_ave"],
                             "stav":ave[0]["st_ave"],
@@ -287,6 +288,33 @@ def query_oriten(frame_no:int, d_iso:str, venue_id:int, race_no:int):
       ORDER BY frame_no
         """,
         (d_iso, venue_id, race_no, frame_no) ).fetchone()
+
+    row = dict(row) if row else dict.fromkeys([d[0] for d in cur.description])
+
+    return row
+
+# ====================================================================
+def query_motor_ave(d_iso:str, venue_id:int, motor_no:int):
+
+    cur = dal._cursor()
+    row = cur.execute("""
+        SELECT ROUND(
+                 (COUNT(*) FILTER (WHERE e.finish_rank  =  1  )    * 100.0) / COUNT(*),1) AS rate1,
+               ROUND(
+                 (COUNT(*) FILTER (WHERE e.finish_rank IN (1,2))   * 100.0) / COUNT(*),1) AS rate2,
+               ROUND(
+                 (COUNT(*) FILTER (WHERE e.finish_rank IN (1,2,3)) * 100.0) / COUNT(*),1) AS rate3
+
+          FROM Race_entries e
+          JOIN       Venues v ON v.venue_id = e.venue_id
+
+         WHERE e.date BETWEEN date(printf('%04d-%02d-01', strftime('%Y','now'), v.upd_motor))
+                          AND ?
+           AND e.venue_id = ?
+           AND e.motor_no = ?
+           AND e.fault_code != 'K'
+         """,
+         (d_iso, venue_id, motor_no)).fetchone()
 
     row = dict(row) if row else dict.fromkeys([d[0] for d in cur.description])
 

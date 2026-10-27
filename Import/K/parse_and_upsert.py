@@ -456,6 +456,8 @@ def _parse_payout_block(sub:str) -> list[dict]|None:
     for line in lines:
         if not line.strip(): continue
 
+        if "レース不成立" in line:
+            parsed = {k:[(0, None)] for k in parsed}
         m_type = re.match(r"^\s*(単勝|複勝|２連単|２連複|拡連複|３連単|３連複)", line)
 
         if m_type:
@@ -469,18 +471,15 @@ def _parse_payout_block(sub:str) -> list[dict]|None:
             elif bet_name == "３連複": current_type = "3F"
             line = line[m_type.end():]
 
+            if "人気" in line:
+                line = line.split("人気")[0]
+            if "不成立" in line:
+                parsed[current_type].append((0, None))
+                continue
+            if "特払い" in line:
+                parsed[current_type].append((8, 70))
+                continue
         elif current_type is None:
-            continue
-
-        if "人気" in line:
-            line = line.split("人気")[0]
-
-        if "不成立" in line:
-            parsed[current_type].append((0, None))
-            continue
-            
-        if "特払い" in line:
-            parsed[current_type].append((8, 70))
             continue
 
         matches = re.findall(r"([\d]+(?:-[\d]+)*)\s+(\d+)", line)
@@ -539,7 +538,7 @@ def _parse_payout_block(sub:str) -> list[dict]|None:
     return results
 
 #=================== Entry =======================
-def upsert_Payouts_from_K(venue_id:int, body:str, date_iso:str) -> int:
+def upsert_Payouts_from_K(venue_id:int, body:str, date_iso:str, r_no=None) -> int:
 
     total     = 0
     subblocks = _subblocks_by_race(body)
@@ -555,7 +554,7 @@ def upsert_Payouts_from_K(venue_id:int, body:str, date_iso:str) -> int:
                   """,
                   (date_iso, venue_id, race_no))
 
-        if not row:
+        if not row or (r_no and int(r_no) != int(race_no)):
             continue
 
         race_id      = row[0]

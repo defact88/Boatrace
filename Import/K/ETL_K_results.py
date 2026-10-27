@@ -216,7 +216,7 @@ def stage_DL_to_INBOX(files:List[Path]):
 def archive_and_cleanup(txts:List[Path]):
 
     cnt_arc = 0
-
+    print("\n")
     for t in txts:
         dest = DIR_ARC / t.name
         try:
@@ -226,8 +226,6 @@ def archive_and_cleanup(txts:List[Path]):
             print(f"archived: {t.name} ")
             cnt_arc += 1
         except Exception as e: print(f"archive失敗: {t} ({e})")
-
-    print(f"-> archive {cnt_arc} file(s)")
 
     for d in (DIR_DL, DIR_INBOX):
         for p in d.glob("*"):
@@ -278,7 +276,8 @@ def decode_sjis(path:Path) -> str:
     return b.decode("cp932", errors="ignore")
 
 #-----------------------------------------------------------
-def import_K_txt(paths:Iterable[Path], overwrite:bool, payouts_only:bool=False) -> dict:
+def import_K_txt( paths:Iterable[Path], overwrite:bool, payouts_only:bool=False,
+                                                           v_id=None, r_no=None ) -> dict:
 
     RE_BLOCK = re.compile(r"(?P<vid>\d{2})KBGN(?P<body>.*?)(?:KEND)",re.S)
     total    = {"ins_r":0, "upd_r":0, "cnt_canc":0}
@@ -289,27 +288,26 @@ def import_K_txt(paths:Iterable[Path], overwrite:bool, payouts_only:bool=False) 
         text  = decode_sjis(path)
         _date = date_from_filename(path.name)
 
-        if payouts_only: print(f"[{_date}]")
+        if payouts_only: print(f"\n[{_date}]")
 
         for m in RE_BLOCK.finditer(text):
-            v_id  = int(m.group("vid"))
+            vid   = int(m.group("vid"))
             body  =     m.group("body")
-
             if not payouts_only:
-                meta  = upsert_Races(v_id, body, path.name, overwrite)
+                meta  = upsert_Races(vid, body, path.name, overwrite)
                 cnt_r = meta[1]
                 for key in cnts: cnts[key] += cnt_r[key]
 
-                upsert_Race_entries(v_id, body, meta[0])
-
-            p_cnt = upsert_Payouts_from_K(v_id, body, _date)
-            if payouts_only: print(f"[{VENUES[int(v_id-1)]}]: {p_cnt} 件 UPSERT")
+                upsert_Race_entries(vid, body, meta[0])
+                p_cnt = upsert_Payouts_from_K(vid, body, _date)
+            elif (v_id and int(v_id) == vid) or not v_id:
+                p_cnt = upsert_Payouts_from_K(vid, body, _date, r_no=r_no)
+                print(f"[Payouts] {VENUES[vid-1]}: {p_cnt} 件 UPSERT")
 
         for key in total:
             total[key] += cnts[key]
 
         cnt_f += 1
-        print(f"import_K_txt  done: {path.name}")
 
     sums = (cnt_f, total)
 
@@ -333,7 +331,8 @@ def main(argv=None):
 
 #=====================================================================
 def run_ETL( date_from:str, date_to:str, overwrite:bool=False, no_grade:bool=False,
-                   payouts_only:bool=False, external:bool=False, DL_only:bool=False ):
+                   payouts_only:bool=False, external:bool=False, DL_only:bool=False,
+                   venue_id=None, race_no=None ):
 
     range_mode = bool(date_from and date_to)
 
@@ -374,18 +373,17 @@ def run_ETL( date_from:str, date_to:str, overwrite:bool=False, no_grade:bool=Fal
 
             downloaded.extend(saved)
 
-        if downloaded: staged_txts.extend(stage_DL_to_INBOX(downloaded))
-        else:          print("DL対象なし(全日 archive 済み)\n")
+        if downloaded:
+            staged_txts.extend(stage_DL_to_INBOX(downloaded))
 
     else: staged_txts = sorted(DIR_INBOX.glob("K*.TXT"))
 
     if DL_only:
         if staged_txts:
             archive_and_cleanup(staged_txts)
-            print( f"[INFO] --DL_only-- : import/grade を実行せず "
-                   f"DL/展開分を Archive へ移動しました。"           )
+            print( f"[INFO] --DL_only-- : DL/解凍後 Archive へ移動")
         else:
-            print("[INFO] --DL_only-- : 処理対象がありません。")
+            print("[INFO] --DL_only-- : 処理対象なし")
         return 0
 
     target_dates:set[str] = set()
@@ -397,8 +395,7 @@ def run_ETL( date_from:str, date_to:str, overwrite:bool=False, no_grade:bool=Fal
     before = current_counts(target_dates if target_dates else None)
 
     if staged_txts:
-        sums = import_K_txt(staged_txts, overwrite, payouts_only)
-        print(f"imported {len(staged_txts)} file(s).\n")
+        sums = import_K_txt(staged_txts, overwrite, payouts_only, v_id=venue_id, r_no=race_no)
     else:
         sums = (0, {"ins_r":0,"upd_r":0,"cnt_canc":0})
         print("INBOX に K*.TXT がありません")
