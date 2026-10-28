@@ -46,7 +46,7 @@ boatrace/
       scraper_odds.py/
           fetch_all_odds             # OddsWindowのｵｯｽﾞﾃﾞｰﾀ ｽｸﾚｲﾋﾟﾝｸﾞ/ﾊﾟｰｽ
     Helpers/
-      Custum_func.py                 # tkinterのｵﾘｼﾞﾅﾙ短縮表記ｸﾗｽ/ﾒｿｯﾄﾞ
+      Custum_func.py                 # tkinterのｵﾘｼﾞﾅﾙ短縮表記ｸﾗｽ, ﾒｿｯﾄﾞ
       queries.py/                    # DB 汎用クエリクラス
           _pack                      # パッキングメソッド
       build_rows.py/                 # RaceWindow表示ﾃﾞｰﾀの取得(DB)/構成
@@ -61,12 +61,12 @@ boatrace/
           build_day_labels           # 日程ラベルの構築
       ev_scanner.py/
           evaluate_ev                # 予想ｴﾝｼﾞﾝ（未完成）
-          persist_odds_snapshot      # oddsﾃﾞｰﾀ挿入/evaluate_evのﾗｯﾊﾟｰ
+          persist_odds_snapshot      # oddsﾃﾞｰﾀ挿入, evaluate_evのﾗｯﾊﾟｰ
 
     Widgets/
       widgets.py/
           framing_graph              # 当該ｺｰｽ別1,2,3着率ｸﾞﾗﾌ、主観選手からのｻﾌﾞｸﾞﾗﾌ
-          framing_figure             # ｽﾘｯﾄ予想図 / 展示航走ｽﾘｯﾄ図 / ﾚｰｽ結果ｽﾘｯﾄ図
+          framing_figure             # ｽﾘｯﾄ予想図, 展示航走ｽﾘｯﾄ図, ﾚｰｽ結果ｽﾘｯﾄ図
           framing_weather            # 天候ｱｲｺﾝ(天気、風向)
           framing_held_type_icon     # ﾚｰｽ選択画面 開催種別ｱｲｺﾝ
           clear_widgets              # 各ｳｨｼﾞｪｯﾄをｸﾘｱ
@@ -78,20 +78,21 @@ boatrace/
 
   Import/
     B/
-      import_B_txt.py                # B_txt(当日出走表ﾃﾞｰﾀ)からRace_programsへの取得・ﾊﾟｰｽ・挿入ｽｸﾘﾌﾟﾄ
+      import_B_txt.py                # B_txt(当日出走表ﾃﾞｰﾀ)からRace_programsへの取得/ﾊﾟｰｽ/挿入ｽｸﾘﾌﾟﾄ
     K/
-      ETL_K_results.py               # Races/Race_entriesへの各ﾃﾞｰﾀ取得・挿入ﾌﾟﾛｾｽのﾗｯﾊﾟｰ
-      parse and upsert.py            # K_TEXT(公式ﾚｰｽ結果ﾌｧｲﾙ)からののﾊﾟｰｽ・挿入ﾌﾟﾛｾｽ
+      ETL_K_results.py               # Races/Race_entriesへの各ﾃﾞｰﾀ取得/挿入ﾌﾟﾛｾｽのﾗｯﾊﾟｰ
+      parse and upsert.py            # K_TEXT(公式ﾚｰｽ結果ﾌｧｲﾙ)からののﾊﾟｰｽ/挿入ﾌﾟﾛｾｽ
       upsert_Grade.py                # 公式ﾍﾟｰｼﾞHMLからRace_result.gradeへのﾃﾞｰﾀ抽出・挿入
     FAN/
-      import_Fan_txt.py              # FAN_TEXTﾌｧｲﾙからPlayers/Season_resultへのﾃﾞｰﾀ抽出・挿入
+      import_Fan_txt.py              # FAN_TEXTﾌｧｲﾙからPlayers/Season_resultへのﾃﾞｰﾀ抽出/挿入
       DL_player_img.py               # 公式ﾍﾟｰｼﾞから選手画像の取得ﾌﾟﾛｾｽ
-      insert_newcomer.py             # 期始めﾃﾞﾋﾞｭｰ選手ﾃﾞｰﾀ(正式FAN_TEXT公開までの間)の仮取得・挿入
+      insert_newcomer.py             # 期始めﾃﾞﾋﾞｭｰ選手ﾃﾞｰﾀ(正式FAN_TEXT公開までの間)の仮取得/挿入
     Updata/
       daily_insert.py                # 日時更新(前日Kﾌｧｲﾙ/当日Bﾌｧｲﾙのｲﾝﾎﾟｰﾄ, 前日直線情報ﾃﾞｰﾀ/ｵｯｽﾞﾃﾞｰﾀの補填)
       ETL_odds_data.py               # ｵｯｽﾞﾃﾞｰﾀ(Odds)を指定期間で一括取得
       ETL_Before_info.py             # 展示航走/直線情報(Before_info)を指定期間で一括取得
-      update_FLstate.py              # Race_entriesからPlayers.flying_st/late_st(今期ﾌﾗｲﾝｸﾞ/出遅れ情報)のﾃﾞｰﾀ算出・挿入ﾌﾟﾛｾｽ
+      update_FLstate.py              # Race_entriesからPlayers.flying_st, late_st(今期ﾌﾗｲﾝｸﾞ,出遅れ)ﾃﾞｰﾀ算出/挿入ﾌﾟﾛｾｽ
+      get_player_schedule.py         # 選手の出走予定データの取得/ﾊﾟｰｽ/挿入ｽｸﾘﾌﾟﾄ
 
   Checker/
     data/

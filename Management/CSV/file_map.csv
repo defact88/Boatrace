@@ -50,12 +50,14 @@ Import,Import_K,make_grade_txt.py,      C:\boatrace\Import\K\make_grade_txt.py,0
 Import,Import_FAN,import_Fan.py,        C:\boatrace\Import\FAN\import_Fan.py,0
 Import,Import_FAN,DL_player_img.py,     C:\boatrace\Import\FAN\DL_player_img.py,0
 Import,Import_FAN,insert_newcomer.py,   C:\boatrace\Import\FAN\insert_newcomer.py,0
+
 Import,Updata,daily_insert.py,          C:\boatrace\Import\Updata\daily_insert.py,1
 Import,Updata,delete_data.py,           C:\boatrace\Import\Updata\delete_data.py
 Import,Updata,update_FLstate.py,        C:\boatrace\Import\Updata\update_FLstate.py,0
 Import,Updata,ETL_Before_info.py,       C:\boatrace\Import\Updata\ETL_Before_info.py,0
 Import,Updata,ETL_odds_data.py,         C:\boatrace\Import\Updata\ETL_odds_data.py,0
 Import,Updata,ETL_payouts_data.py,      C:\boatrace\Import\Updata\ETL_payouts_data.py,0
+Import,Updata,get_player_schedule.py,   C:\boatrace\Import\Updata\get_player_schedule.py,0
 
 Checker,Player,check_score_ave.py,      C:\boatrace\Checker\Player\check_score_ave.py,0
 Checker,Player,check_score_ave_ALL.py,  C:\boatrace\Checker\Player\check_score_ave_ALL.py,0

@@ -23,8 +23,7 @@ HEADERS = { "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:142.0) G
             "Sec-Fetch-Mode": "navigate",
             "Sec-Fetch-Site": "none",
             "Sec-Fetch-User": "?1",
-            "Connection": "keep-alive",
-}
+            "Connection": "keep-alive",               }
 
 # ----------------------------
 def yyyymmdd(s:str) -> str:
@@ -324,7 +323,7 @@ def upsert_Before_info_partial(d_iso:str, v_id:int, r_no:int, per_frame, w ):
     dal.executemany(sql, params)
 
 # ====================================================================
-def main():
+def main(argv=None):
 
     ap = argparse.ArgumentParser()
     ap.add_argument("--date",  required=True, help="YYYY-MM-DD")
@@ -333,7 +332,7 @@ def main():
     ap.add_argument("--ALL_venue", action="store_true")
     ap.add_argument("--ALL_race",  action="store_true")
 
-    args = ap.parse_args()
+    args = ap.parse_args(argv)
     hd   = yyyymmdd(args.date)
 
     if not args.venue and not args.ALL_venue:

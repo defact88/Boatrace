@@ -57,7 +57,7 @@ _LABELS   = ( ("time_lap",          ("一周", "半周", "1周") ),
               ("time_acceleration", ("直線",)               ), )
 
 _NUM      = re.compile(r"^\d+(?:\.\d+)?$")
-PARSERS   = {4:parse_heiwajima, 7:parse_gamagori, 24:parse_omura}
+
 # ----------------------------------------------------------
 def is_today_only(venue_id:int) -> bool:
 

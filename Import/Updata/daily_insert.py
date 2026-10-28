@@ -7,7 +7,7 @@ from datetime   import datetime as dt, date, timedelta, timezone
 import argparse, subprocess, sys, json
 
 from update_FLstate import update_FLstate
-import ETL_odds_data, ETL_Before_info, ETL_K_results, import_B_txt
+import ETL_odds_data, ETL_Before_info, ETL_K_results, import_B_txt, get_player_schedule
 from queries import Query
 import Dal as dal
 
@@ -15,6 +15,7 @@ BASE      = Path(r"C:\boatrace")
 LOG_PATH  = Path(r"C:\boatrace\Archive\logs\daily_insert")
 BEF_PATH  = Path(r"C:\boatrace\Import\Updata\ETL_Before_info.py")
 ODDS_PATH = Path(r"C:\boatrace\Import\Updata\ETL_odds_data.py")
+SCH_PATH  = Path(r"C:\boatrace\Import\Updata\get_player_schedule.py")
 
 # ===========  共通ヘルパー  ===========
 def today_iso() -> str:
@@ -113,7 +114,9 @@ def run_ETL(d_from:str, d_to:str, background:bool):
 
     if background:
 
-        for prc, _path in (("B_info", BEF_PATH), ("odds", ODDS_PATH)):
+        for prc, _path in (("B_info", BEF_PATH), ("odds", ODDS_PATH)), ("schedule", SCH_PATH):
+            if prc = "schedule": argv = ["--regist_player",]
+
             d         = f"{d_from}" if d_from == d_to else f"{d_from} - {d_to}"
             file_name = f"{prc}_{d}.log"
             log       = LOG_PATH / prc / file_name
@@ -222,7 +225,7 @@ def main():
         d = days_pass(d, 1)
 
     update_FLstate()
-
+    get_player_shedule.main("--all")
     run_ETL(yesterday(date_from), yesterday(date_to), args.background)
 
     sys.exit(0)
