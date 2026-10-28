@@ -201,6 +201,16 @@ def update_all_schedules(days:int=365):
         upsert_player_schedule(pid)
         print(f"[{i}/{n}] player_id={pid} 更新完了")
 
+# ------------------------------------------------------------
+def get_schedule(player:int=None, all:bool=False, regist_player:bool=False):
+
+    if all:
+        update_all_schedules()
+    elif player:
+        upsert_player_schedule(args.player)
+    else:
+        print("assignment player")
+
 #=====================================================================
 def main(argv=None):
 
@@ -215,7 +225,7 @@ def main(argv=None):
     elif args.player:
         upsert_player_schedule(args.player)
     else:
-        p.print_help()
+        print("assignment player")
 
 #=====================================================================
 if __name__ == "__main__":

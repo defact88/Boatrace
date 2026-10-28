@@ -366,13 +366,14 @@ class cSrb(tk.Scrollbar):
 # カスタム短縮表記スピンボックス ---------------------------
 class cSpbx(tk.Spinbox):
     def __init__( self, master=None, *, W=None, Frm=None, To=None, Inc=None, Val=None, Txtv=None,
-                                                                                         **kwargs ):
+                                                                        Jst=None, **kwargs ):
 
         if W    is not None: kwargs['width']        = W
         if Frm  is not None: kwargs['from_']        = Frm
         if To   is not None: kwargs['to']           = To
         if Inc  is not None: kwargs['increment']    = Inc
         if Val  is not None: kwargs['values']       = Val
+        if Jst  is not None: kwargs['justify']      = Jst
         if Txtv is not None: kwargs['textvariable'] = Txtv
 
         super().__init__(master, **kwargs)

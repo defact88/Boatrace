@@ -354,33 +354,33 @@ class OddsWindow(tk.Tk):
             cLbl( hdr_row, text=txt, bg=HDR_BG, fg=HDR_FG, font=(GUI,8,BD), Anc=anc
                  )._grid(R=0, C=ci, sticky=ALL)
 
-        scrl_fr = cFr(tbl_outer, bg="#ECEEF5")           ;scrl_fr._pack(fill="both", expand=True)
-        vsb2    = ttk.Scrollbar(scrl_fr, orient="vertical") ;vsb2.pack(side="right", fill="y")
+        scrl_fr = cFr(tbl_outer, bg="#ECEEF5")           ;scrl_fr._pack(fill="both", Exp=True)
+        vsb2    = ttk.Scrollbar(scrl_fr, orient="vertical") ;vsb2.pack(fill="y", side="right")
 
-        self._tbl_canvas = tk.Canvas( scrl_fr, bg=TBL_BG, yscrollcommand=vsb2.set)
-        self._tbl_canvas.pack(side="left", fill="both", expand=True)
-        vsb2.config(command=self._tbl_canvas.yview)
+        self.tbl_canvas = tk.Canvas(scrl_fr, bg=TBL_BG, yscrollcommand=vsb2.set)
+        self.tbl_canvas.pack(side="left", fill="both", expand=True)
+        vsb2.config(command=self.tbl_canvas.yview)
 
-        self._tbl_inner = tk.Frame(self._tbl_canvas, bg=TBL_BG)
-        self._tbl_win  = self._tbl_canvas.create_window((0, 0), window=self._tbl_inner, anchor="nw")
+        self.inner = cFr(self.tbl_canvas, bg=TBL_BG)
+        self.window = self.tbl_canvas.create_window((0, 0), window=self.inner, anchor="nw")
         #-----------
         def _on_inner_cfg(e):
-            self._tbl_canvas.configure(scrollregion=self._tbl_canvas.bbox("all"))
+            self.tbl_canvas.configure(scrollregion=self.tbl_canvas.bbox("all"))
         #-----------
         def _on_canvas_cfg(e):
-            self._tbl_canvas.itemconfig(self._tbl_win, width=e.width)
+            self.tbl_canvas.itemconfig(self.window, width=e.width)
         #-----------
         def _on_mousewheel(e):
             hovered_widget = e.widget.winfo_containing(e.x_root, e.y_root)
             if hovered_widget:
-                if str(hovered_widget).startswith(str(self._tbl_canvas)):
-                    self._tbl_canvas.yview_scroll(int(-1 *(e.delta / 120)), "units")
+                if str(hovered_widget).startswith(str(self.tbl_canvas)):
+                    self.tbl_canvas.yview_scroll(int(-1 *(e.delta / 120)), "units")
 
-                elif str(hovered_widget).startswith(str(self._tbl_inner)):
+                elif str(hovered_widget).startswith(str(self.inner)):
                     self._tbl_inner.yview_scroll(int(-1 *(e.delta / 120)), "units")
         #-----------
-        self._tbl_inner.bind("<Configure>", _on_inner_cfg)
-        self._tbl_canvas.bind("<Configure>", _on_canvas_cfg)
+        self.inner.bind("<Configure>", _on_inner_cfg)
+        self.tbl_canvas.bind("<Configure>", _on_canvas_cfg)
         self.bind("<MouseWheel>", _on_mousewheel)
 
         self.tbl_rows = []

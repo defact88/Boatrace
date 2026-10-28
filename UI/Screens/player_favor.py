@@ -12,7 +12,7 @@ import Dal as dal
 
 FAVORITE_JSON = Path(r"C:\boatrace\tmp\json\favorite_players.json")
 
-SEL_BG = "#2F6DB3"
+DATE_KEYS = [("fy","%Y"), ("fm","%m"), ("fd","%d"), ("ty","%Y"), ("tm","%m"), ("td","%d")]
 
 VENUES  = [ " 桐生 ", " 戸田 ", "江戸川", "平和島", "多摩川", "浜名湖", " 蒲郡 ", " 常滑 ",
             "  津  ", " 三国 ", "びわこ", "住之江", " 尼崎 ", " 鳴門 ", " 丸亀 ", " 児島 ",
@@ -20,7 +20,6 @@ VENUES  = [ " 桐生 ", " 戸田 ", "江戸川", "平和島", "多摩川", "浜�
 
 GRADES  = [ ["SG",(5,)], ["G1",(4,3)] ,["G2",(2,)], ["一般",(0,1)] ]
 G_LIST  = ["一般", "G3", "G2", "G1", "PG1", "SG"]
-
 
 W_MOVES = ['逃げ', '差し', 'まくり', 'まくり差し', '抜き', '恵まれ']
 
@@ -60,6 +59,8 @@ GUI, MUI, HNH, CBR = "Yu Gothic UI", "Meiryo UI", "Helvetica Neue Heavy", "Cambr
 GR, SD, RD, RA, SK = "groove", "solid", "ridge", "raised", "sunken"
 ALL, CT ,BD        = "nsew", "center", "bold"
 
+SEL_BG  = "#2F6DB3"###?
+
 MAIN_BG = "#F0F4FA"
 HDR_BG  = "#2B4A7A"
 BTN_BG  = "#4A6A9A"
@@ -84,7 +85,8 @@ YEL2_ON = dict(bg=YELL2,  fg=BLACK2, Bd=(1,SK))
 BG      = dict(bg=MAIN_BG)
 BGFNT   = dict(bg=MAIN_BG, font=(MUI,10))
 HDR     = dict(bg=HDR_BG, fg=WHITE, font=(MUI,10), Bd=(1,RD))
-BTN     = dict(bg=BTN_BG, fg=WHITE, font=(MUI,10),  Bd=(2,RA))
+BTN     = dict(bg=BTN_BG, fg=WHITE, font=(MUI, 9), Bd=(2,RA))
+D_LABEL = dict(bg=HDR_BG, fg=WHITE, font=(MUI, 8), Bd=(1,RD))
 CELL_B  = dict(bg=BLACK1          , font=(MUI,11), Bd=(1,GR))
 
 # ===========  共通ヘルパー  ===========
@@ -127,6 +129,7 @@ class PlayerFavorScreen(tk.Frame):
         self.app.geometry("1220x1400+75+0")
 
         self._cells     = {}
+        self.date_vars  = {}
         self.ven_vars   = {}
         self.grd_vars   = {}
         self.rnk_vars   = {}
@@ -145,73 +148,67 @@ class PlayerFavorScreen(tk.Frame):
         self.selected_player_id = None
 
         style = ttk.Style()
-        style.configure("fpw.TCheckbutton", font=(MUI,10), background=MAIN_BG)
+        style.configure("fpw.TCheckbutton", font=(MUI,10,BD),    background=MAIN_BG)
         style.configure("fpw.TRadiobutton", font=(MUI,10,BD), background=MAIN_BG)
 
-        fr_main = cFr(self, W=1220, H=1400, bg=MAIN_BG, px=10, py=15) ;fr_main.Pgate()
+        fr_main = cFr(self, W=1220, H=1400, **BG, px=10, py=15) ;fr_main.Pgate()
         fr_main._grid(R=0, C=0, Stk=ALL)
 
-        cntrl  = cFr(fr_main, W= 490, H=600, **BG)  ;cntrl._grid(R=0, C=0, px=5) ;cntrl.Pgate()
-        result = cFr(fr_main, W= 680, H=600, **BG) ;result._grid(R=0, C=1, px=5, py=(0,20)) ;result.Pgate()
-        regist = cFr(fr_main, W=1190, H=750, **BG) ;regist._grid(R=1, C=0, Cspan=2) ;regist.Pgate()
+        fr_top = cFr(fr_main, W=1220, H=600, **BG) ;fr_top._grid(R=0, C=0, py=(0,20)) ;fr_top.Pgate()
+        fr_btm = cFr(fr_main, W=1220, H=750, **BG) ;fr_btm._grid(R=1, C=0, px=5)      ;fr_btm.Pgate()
 
-        fr_date = cFr(cntrl, W=490, H=60, **BG, py=5) ;fr_date._grid(R=0, C=0) ;fr_date.Pgate()
+        cntrl  = cFr(fr_top, W= 490, H=600, **BG)  ;cntrl._grid(R=0, C=0, px=5) ;cntrl.Pgate()
+        result = cFr(fr_top, W= 680, H=600, **BG) ;result._grid(R=0, C=1, px=5) ;result.Pgate()
 
-        cLbl(fr_date, text="DATE ( FROM )", **HDR)._grid(R=0, C=1, Cspan=3, Stk=ALL) 
-        cLbl(fr_date, text=" DATE ( TO ) ", **HDR)._grid(R=0, C=5, Cspan=3, Stk=ALL)
-        cLbl(fr_date, text="  ～  ",      **BGFNT)._grid(R=1, C=4,          Stk=ALL, px=5)
+        fr_date  = cFr(cntrl, W=490, H= 60, **BG, py= 5)  ;fr_date._grid(R=0, C=0) ;fr_date.Pgate()
+        fr_dbtn  = cFr(cntrl, W=490, H= 40, **BG, py= 5)  ;fr_dbtn._grid(R=1, C=0) ;fr_dbtn.Pgate()
+        fr_venue = cFr(cntrl, W=490, H=165, **BG, py= 5) ;fr_venue._grid(R=2, C=0) ;fr_venue.Pgate()
+        fr_grade = cFr(cntrl, W=490, H= 50, **BG, py=10) ;fr_grade._grid(R=3, C=0) ;fr_grade.Pgate()
+        fr_self  = cFr(cntrl, W=490, H= 45, **BG, py=10)  ;fr_self._grid(R=4, C=0) ;fr_self.Pgate()
+        fr_othr  = cFr(cntrl, W=490, H= 45, **BG, py=10)  ;fr_othr._grid(R=5, C=0) ;fr_othr.Pgate()
+        fr_rank  = cFr(cntrl, W=490, H= 45, **BG, py=10)  ;fr_rank._grid(R=6, C=0) ;fr_rank.Pgate()
+        fr_wmvs  = cFr(cntrl, W=490, H= 45, **BG, py=10)  ;fr_wmvs._grid(R=7, C=0) ;fr_wmvs.Pgate()
+        fr_param = cFr(cntrl, W=490, H= 45, **BG, py=10) ;fr_param._grid(R=8, C=0) ;fr_param.Pgate()
+        fr_sbtn  = cFr(cntrl, W=490, H= 50, **BG, py=10)  ;fr_sbtn._grid(R=9, C=0) ;fr_sbtn.Pgate()
 
-        years  = [str(y) for y in reversed(range(2000, date.today().year +1))]
-        months = [f"{m:02d}" for m in range(1,13)]
-        days   = [f"{d:02d}" for d in range(1,32)]
+        cLbl(fr_date, text="DATE ( FROM )", **D_LABEL)._grid(R=0, C=0, Cspan=6, Stk=ALL) 
+        cLbl(fr_date, text=" DATE ( TO ) ", **D_LABEL)._grid(R=0, C=8, Cspan=6, Stk=ALL)
+        cLbl(fr_date, text=" ～ ",            **BGFNT)._grid(R=1, C=6,    px=3, Stk=ALL)
 
-        self.df_y = ttk.Combobox(fr_date, values=years,  width=6, font=(MUI,10))
-        self.df_m = ttk.Combobox(fr_date, values=months, width=4, font=(MUI,10))
-        self.df_d = ttk.Combobox(fr_date, values=days,   width=4, font=(MUI,10))
-        self.dt_y = ttk.Combobox(fr_date, values=years,  width=6, font=(MUI,10))
-        self.dt_m = ttk.Combobox(fr_date, values=months, width=4, font=(MUI,10))
-        self.dt_d = ttk.Combobox(fr_date, values=days,   width=4, font=(MUI,10))
-        self.df_y.grid(row=1, column=1, sticky="w", padx=2, pady=4)
-        self.df_m.grid(row=1, column=2, sticky="w", padx=2, pady=4)
-        self.df_d.grid(row=1, column=3, sticky="w", padx=2, pady=4)
-        self.dt_y.grid(row=1, column=5, sticky="w", padx=2, pady=4)
-        self.dt_m.grid(row=1, column=6, sticky="w", padx=2, pady=4)
-        self.dt_d.grid(row=1, column=7, sticky="w", padx=2, pady=4)
-
-        fr_dbtn   = cFr(cntrl, W=490, H=45,  **BG, py= 5)  ;fr_dbtn._grid(R=1, C=0) ;fr_dbtn.Pgate()
-        fr_venue  = cFr(cntrl, W=490, H=135, **BG, py= 5) ;fr_venue._grid(R=2, C=0) ;fr_venue.Pgate()
-        fr_grade  = cFr(cntrl, W=490, H= 50, **BG, py=10) ;fr_grade._grid(R=3, C=0) ;fr_grade.Pgate()
-        fr_self   = cFr(cntrl, W=490, H= 45, **BG, py=10)  ;fr_self._grid(R=4, C=0) ;fr_self.Pgate()
-        fr_othr   = cFr(cntrl, W=490, H= 45, **BG, py=10)  ;fr_othr._grid(R=5, C=0) ;fr_othr.Pgate()
-        fr_rank   = cFr(cntrl, W=490, H= 45, **BG, py=10)  ;fr_rank._grid(R=6, C=0) ;fr_rank.Pgate()
-        fr_wmvs   = cFr(cntrl, W=490, H= 45, **BG, py=10)  ;fr_wmvs._grid(R=7, C=0) ;fr_wmvs.Pgate()
-        fr_param  = cFr(cntrl, W=490, H= 45, **BG, py=10) ;fr_param._grid(R=8, C=0) ;fr_param.Pgate()
-        fr_sbtn   = cFr(cntrl, W=490, H= 50, **BG, py=10)  ;fr_sbtn._grid(R=9, C=0) ;fr_sbtn.Pgate()
+        opts1 = [dict(W=5, Frm=2000, To=2030), dict(W=3, Frm=1, To=12), dict(W=3, Frm=1, To=31)]
+        opts2 = dict(Inc=1, font=(MUI,10), Jst="right")
+        texts = ["年 ","月 ","日 "]
+        for (c, n), keys in zip(enumerate([0,1,2,0,1,2]), DATE_KEYS):
+            col = (c if c < 3 else c +1)*2
+            var = tk.IntVar(value=None)
+            cSpbx(fr_date, **opts1[n], **opts2, Txtv=var)._grid(R=1, C=col, px=2, py=4, ipady=1)
+            cLbl(fr_date, text=texts[n], **BGFNT)._grid(R=1, C=col+1, Stk=ALL) 
+            self.date_vars[keys[0]] = var
 
         cBtn( fr_dbtn, W=7, text="  本日  ", **BTN, Com=self._today_only
-             )._grid(R=0, C=0, Stk=ALL, px=5, py=(0,20))
+             )._grid(R=0, C=0, Stk=ALL, px=5, py=(0,10))
         cBtn( fr_dbtn, W=8, text="直近 1年", **BTN, Com=lambda:self._past_days(365)
-             )._grid(R=0, C=1, Stk=ALL, px=5, py=(0,20))
+             )._grid(R=0, C=1, Stk=ALL, px=5, py=(0,10))
         cBtn( fr_dbtn, W=8, text="直近 半年", **BTN, Com=lambda:self._past_days(182)
-             )._grid(R=0, C=3, Stk=ALL, px=5, py=(0,20))
+             )._grid(R=0, C=3, Stk=ALL, px=5, py=(0,10))
 
-        cBtn( fr_venue, W=2, text="全\n選\n択", **BTN, Com=self._select_all, px=3
-             )._grid(R=0, C=0, Rspan=2, px=(0,17))
-        cBtn( fr_venue, W=2, text="全\n解\n除", **BTN, Com=self._reset_all, px=3
-             )._grid(R=2, C=0, Rspan=2, px=(0,17))
-
-        for c in range(1,7):
+        for c in range(6):
             for r in range(4):
-                key = c + (6 * r)-1
+                key = c + (6 * r)
                 txt = VENUES[key]
-                var = tk.BooleanVar(value=False) if key == 2 else tk.BooleanVar(value=True)
-                ttk.Checkbutton(fr_venue, text=f"{txt:6}", variable=var, style="fpw.TCheckbutton"
+                var = tk.BooleanVar(value=False if key == 2 else True)
+                ttk.Checkbutton(fr_venue, text=f"{txt:7}", variable=var, style="fpw.TCheckbutton"
                                 ).grid(row=r, column=c, sticky="w", padx=(4,0), pady=4)
                 self.ven_vars[key] = var
 
+        cBtn( fr_venue, W=7, text="全選択", **BTN, Com=self._select_all, px=3
+             )._grid(R=4, C=0, py=(8,0))
+        cBtn( fr_venue, W=7, text="全解除", **BTN, Com=self._reset_all,  px=3
+             )._grid(R=4, C=1, py=(8,0))
+
         for c in range(4):
             var = tk.BooleanVar(value=True)
-            px  = (50,10) if c == 0 else 18
+            px  = (30,15) if c == 0 else 15
             ttk.Checkbutton( fr_grade, text=f"{GRADES[c][0]}", variable=var, style="fpw.TRadiobutton"
                             ).grid(row=0, column=c, sticky="w", padx=px, pady=2)
             self.grd_vars[(GRADES[c][1])] = var
@@ -260,11 +257,11 @@ class PlayerFavorScreen(tk.Frame):
         cSpbx(fr_param, W=4, Frm=1, To=50, Inc=10, font=(MUI,11), Txtv=self.run_var)._grid(R=0, C=5)
         cLbl(fr_param, text="以上", **BGFNT)._grid(R=0, C=6)
 
-        cBtn(fr_sbtn, W=11, text="検索 実行", **BTN, Com=self._on_search)._grid(R=0, C=1, px=(130,0))
-        cBtn(fr_sbtn, W=11, text="選手 登録", **BTN, Com=self._register_favorite)._grid(R=0, C=0, px=(60,0))
+        cBtn(fr_sbtn, W=11, text="選手 登録", **BTN, Com=self._register_favorite)._grid(R=0, C=0, px=(270,0))
+        cBtn(fr_sbtn, W=11, text="検索 実行", **BTN, Com=self._on_search)._grid(R=0, C=1, px=(20,0))
 
         self._init_result_table(result)
-        self._init_regist_table(regist)
+        self._init_regist_table(fr_btm)
 
     # --------------------------------------------
     def _init_result_table(self, parent):
@@ -272,68 +269,85 @@ class PlayerFavorScreen(tk.Frame):
         parent.Rconf(0, Min=28)  ;parent.Cconf(0, Min=650)
         parent.Rconf(1, Min=572)
 
-        self.fr_hdr  = cFr(parent,  W=650, H= 28, **HDR_B, Bd=(1,RD))
-        self.canvas  = cCvs(parent, W=650, H=572, bg=BLACK1)
-        self.fr_body = cFr(self.canvas, Bd=(1,SD))
-        scr_bar      = cSrb(parent, orient="vertical", Com=self.canvas.yview)
+        self.fr_hdr = cFr(parent,  W=650, H= 28, **HDR_B, Bd=(1,RD))
+        self.canvas = cCvs(parent, W=650, H=572, bg=BLACK1)
+        self.inner  = cFr(self.canvas, Bd=(1,SD))
+        scr_bar     = cSrb(parent, orient="vertical", Com=self.canvas.yview)
         self.canvas.config(yscrollcommand=scr_bar.set)
 
         self.fr_hdr._grid( R=0, C=0)           ;self.fr_hdr.Pgate()
         self.canvas._grid( R=1, C=0, Stk=ALL)
         scr_bar._grid(     R=1, C=1, Stk="ns")
 
-        self.window = self.canvas.create_window((0, 0), window=self.fr_body, anchor="nw")
-        #-----------
+        self.window = self.canvas.create_window((0,0), window=self.inner, anchor="nw")
+       #-----------
         def _mw(e):
             self.canvas.yview_scroll(int(-1 *(e.delta / 120)), "units")
         #-----------
         def _on_conf(event=None):
-            self.canvas._config(Scrgn=self.canvas.bbox("all"))
+            self.canvas.config(scrollregion=self.canvas.bbox("all"))
             self.canvas.itemconfig(self.window, width=self.canvas.winfo_width())
         #-----------
         self.canvas.bind("<Enter>", lambda e:self.canvas.bind_all("<MouseWheel>", _mw))
         self.canvas.bind("<Leave>", lambda e:self.canvas.unbind_all("<MouseWheel>"))
-        self.fr_body.bind("<Configure>", _on_conf)
+        self.inner.bind("<Configure>", _on_conf)
         self.canvas.bind("<Configure>", _on_conf)
 
     # --------------------------------------------
     def _init_regist_table(self, parent):
 
-        table = cFr(parent, W=1190, H=490) ;table._grid(R=0, C=0) ;table.Pgate()
-        cntrl = cFr(parent, W=1190, H=250) ;cntrl._grid(R=1, C=0) ;cntrl.Pgate()
+        table = cFr(parent, W=1190, H=390) ;table._grid(R=0, C=0) ;table.Pgate()
+        cntrl = cFr(parent, W=1190, H=350) ;cntrl._grid(R=1, C=0) ;cntrl.Pgate()
 
         table.Rconf(0, Min=28)  ;table.Cconf(0, Min=1160)
-        table.Rconf(1, Min=462)
-        table.Rconf(2, Min=250)
+        table.Rconf(1, Min=362)
+        cntrl.Rconf(0, Min=350) ;cntrl.Cconf(0, Min=1160)
 
         self._regist_cells = {}
 
-        self.fr_hdr2  = cFr(table,  W=1160, H= 28, **HDR_B, Bd=(1,RD))
-        self.canvas2  = cCvs(table, W=1155, H=462, bg=BLACK1)
-        self.fr_body2 = cFr(self.canvas2, Bd=(1,SD))
-        scr_bar2      = cSrb(table, orient="vertical", Com=self.canvas2.yview)
+        self.fr_hdr2 = cFr(table,  W=1160, H= 28, **HDR_B, Bd=(1,RD))
+        self.canvas2 = cCvs(table, W=1155, H=362, bg=BLACK1)
+        self.inner2  = cFr(self.canvas2, Bd=(1,SD))
+        scr_bar2     = cSrb(table, orient="vertical", Com=self.canvas2.yview)
         self.canvas2.config(yscrollcommand=scr_bar2.set)
 
         self.fr_hdr2._grid( R=0, C=0)           ;self.fr_hdr2.Pgate()
         self.canvas2._grid( R=1, C=0, Stk=ALL)
         scr_bar2._grid(     R=1, C=1, Stk="ns")
 
-        self.window2 = self.canvas2.create_window((0, 0), window=self.fr_body2, anchor="nw")
-        #-----------
+        self.window2 = self.canvas2.create_window((0,0), window=self.inner2, anchor="nw")
+       #-----------
         def _mw2(e):
             self.canvas2.yview_scroll(int(-1 *(e.delta / 120)), "units")
         #-----------
         def _on_conf2(event=None):
-            self.canvas2._config(Scrgn=self.canvas2.bbox("all"))
+            self.canvas2.config(scrollregion=self.canvas2.bbox("all"))
             self.canvas2.itemconfig(self.window2, width=self.canvas2.winfo_width())
         #-----------
         self.canvas2.bind("<Enter>", lambda e:self.canvas2.bind_all("<MouseWheel>", _mw2))
         self.canvas2.bind("<Leave>", lambda e:self.canvas2.unbind_all("<MouseWheel>"))
-        self.fr_body2.bind("<Configure>", _on_conf2)
+        self.inner2.bind("<Configure>", _on_conf2)
         self.canvas2.bind("<Configure>", _on_conf2)
 
         self._load_regist_list()
 
+    # --------------------------------------------
+    def _select_all(self):
+        for var in self.ven_vars.values():
+            var.set(True)
+    # --------------------------------------------
+    def _reset_all(self):
+        for var in self.ven_vars.values():
+            var.set(False)
+    # --------------------------------------------
+    def _past_days(self, d):
+        for n, (k, v) in enumerate(DATE_KEYS):
+            if n < 3: self.date_vars[k].set(int(_past(d).strftime(v)))
+            else:     self.date_vars[k].set(int(_today().strftime(v))) 
+    # --------------------------------------------
+    def _today_only(self):
+        for (k, v) in DATE_KEYS:
+            self.date_vars[k].set(int(_today().strftime(v)))
     # --------------------------------------------
     def _on_rank_changed(self, var, key):
 
@@ -369,24 +383,6 @@ class PlayerFavorScreen(tk.Frame):
         self._update_wm_state()
 
     # --------------------------------------------
-    def _select_all(self):
-        for var in self.ven_vars.values():
-            var.set(True)
-    # --------------------------------------------
-    def _reset_all(self):
-        for var in self.ven_vars.values():
-            var.set(False)
-    # --------------------------------------------
-    def _past_days(self, d):
-        self.df_y.set(_past(d).strftime("%Y")) ;self.dt_y.set(_today().strftime("%Y"))
-        self.df_m.set(_past(d).strftime("%m")) ;self.dt_m.set(_today().strftime("%m"))
-        self.df_d.set(_past(d).strftime("%d")) ;self.dt_d.set(_today().strftime("%d"))
-    # --------------------------------------------
-    def _today_only(self):
-        self.df_y.set(_today().strftime("%Y")) ;self.dt_y.set(_today().strftime("%Y"))
-        self.df_m.set(_today().strftime("%m")) ;self.dt_m.set(_today().strftime("%m"))
-        self.df_d.set(_today().strftime("%d")) ;self.dt_d.set(_today().strftime("%d"))
-    # --------------------------------------------
     def _on_search(self):
 
         rows = self._search_players()
@@ -405,13 +401,13 @@ class PlayerFavorScreen(tk.Frame):
 
         for c, (k, v) in enumerate(cells.items()):
             self.fr_hdr.Cconf( c, Min=v[1], W=1)
-            self.fr_body.Cconf(c, Min=v[1], W=1)
+            self.inner.Cconf(c, Min=v[1], W=1)
             hdr = cLbl(self.fr_hdr, text=v[0], **HDR) ;hdr._grid(R=0, C=c, Stk=ALL)
             self._cells[c] = hdr
             for r, data in enumerate(rows):
-                self.fr_body.Rconf(r, Min=30, W=1)
+                self.inner.Rconf(r, Min=30, W=1)
                 fg  = "yellow" if k == "rate" else "white"
-                lbl = cLbl(self.fr_body, text=data[k], **CELL_B, fg=fg) ;lbl._grid(R=r, C=c, Stk=ALL)
+                lbl = cLbl(self.inner, text=data[k], **CELL_B, fg=fg) ;lbl._grid(R=r, C=c, Stk=ALL)
                 lbl.bind("<Button-1>", lambda e, idx=r:self._select_row(idx))
                 self._cells[(r, c)] = lbl
 
@@ -488,10 +484,9 @@ class PlayerFavorScreen(tk.Frame):
         self._regist_cells.clear()
 
         self.fr_hdr2.Rconf(0, Min=28)
-
         for c, (k, v) in enumerate(REG_CELLS.items()):
             self.fr_hdr2.Cconf( c, Min=v[1], W=1)
-            self.fr_body2.Cconf(c, Min=v[1], W=1)
+            self.inner2.Cconf(c, Min=v[1], W=1)
             hdr = cLbl(self.fr_hdr2, text=v[0], **HDR) ;hdr._grid(R=0, C=c, Stk=ALL)
             self._regist_cells[c] = hdr
 
@@ -510,23 +505,21 @@ class PlayerFavorScreen(tk.Frame):
                   ids )
 
         for r, row in enumerate(rows):
-            self.fr_body2.Rconf(r, Min=30, W=1)
+            self.inner2.Rconf(r, Min=30, W=1)
             data              = dict(row)
             data["next_race"] = self._format_next_race(data["schedule_today"], data["schedule_1"])
 
             for c, k in enumerate(REG_CELLS.keys()):
                 val = data.get(k)
-                lbl = cLbl(self.fr_body2, text="" if val is None else val, **CELL_B, fg="white")
+                lbl = cLbl(self.inner2, text="" if val is None else val, **CELL_B, fg="white")
                 lbl._grid(R=r, C=c, Stk=ALL)
                 self._regist_cells[(r, c)] = lbl
 
     # --------------------------------------------
     def _search_players(self):
 
-        f_y, f_m, f_d = self.df_y.get().strip(), self.df_m.get().strip(), self.df_d.get().strip()
-        t_y, t_m, t_d = self.dt_y.get().strip(), self.dt_m.get().strip(), self.dt_d.get().strip()
-        d_from = f"{f_y}-{f_m}-{f_d}"
-        d_to   = f"{t_y}-{t_m}-{t_d}"
+        d_from = f"{self.date_vars["fy"].get()}-{self.date_vars["fm"].get()}-{self.date_vars["fd"].get()}"
+        d_to   = f"{self.date_vars["ty"].get()}-{self.date_vars["tm"].get()}-{self.date_vars["td"].get()}"
 
         venues   = [k for k, v in self.ven_vars.items() if v.get()]
         venues   = [v for v in range(1,25)] if not venues else venues

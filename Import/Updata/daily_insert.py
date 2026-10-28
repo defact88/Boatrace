@@ -115,7 +115,7 @@ def run_ETL(d_from:str, d_to:str, background:bool):
     if background:
 
         for prc, _path in (("B_info", BEF_PATH), ("odds", ODDS_PATH)), ("schedule", SCH_PATH):
-            if prc = "schedule": argv = ["--regist_player",]
+            if prc == "schedule": argv = ["--regist_player",]
 
             d         = f"{d_from}" if d_from == d_to else f"{d_from} - {d_to}"
             file_name = f"{prc}_{d}.log"
@@ -225,7 +225,7 @@ def main():
         d = days_pass(d, 1)
 
     update_FLstate()
-    get_player_shedule.main("--all")
+    get_player_schedule.get_schedule(all=True)
     run_ETL(yesterday(date_from), yesterday(date_to), args.background)
 
     sys.exit(0)
