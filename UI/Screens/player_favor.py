@@ -5,15 +5,22 @@ import argparse, sys, sqlite3, json
 import tkinter as tk
 from tkinter  import ttk, messagebox
 from datetime import datetime as dt, date, timedelta, timezone
+from pathlib  import Path
 
 from Custum_func import cFr, cLbl, cBtn, cCvs, cSrb, cEnt, cSpbx
 import Dal as dal
+
+FAVORITE_JSON = Path(r"C:\boatrace\tmp\json\favorite_players.json")
+
+SEL_BG = "#2F6DB3"
 
 VENUES  = [ " 桐生 ", " 戸田 ", "江戸川", "平和島", "多摩川", "浜名湖", " 蒲郡 ", " 常滑 ",
             "  津  ", " 三国 ", "びわこ", "住之江", " 尼崎 ", " 鳴門 ", " 丸亀 ", " 児島 ",
             " 宮島 ", " 徳山 ", " 下関 ", " 若松 ", " 芦屋 ", " 福岡 ", " 唐津 ", " 大村 ", ]
 
 GRADES  = [ ["SG",(5,)], ["G1",(4,3)] ,["G2",(2,)], ["一般",(0,1)] ]
+G_LIST  = ["一般", "G3", "G2", "G1", "PG1", "SG"]
+
 
 W_MOVES = ['逃げ', '差し', 'まくり', 'まくり差し', '抜き', '恵まれ']
 
@@ -30,7 +37,7 @@ CELLS1 = {    "rank":("順位",    45),
 CELLS2 = {    "rank":("順位",    45),
               "name":("選手名", 145),
                "cls":("級",      45),
-            "self_c":("自ｺｰｽ", 50),
+            "self_c":("自ｺｰｽ",   50),
             "othr_c":("対象ｺｰｽ", 50),
               "rate":("指定着率",65),
           "all_over":("全体平均",65),
@@ -38,6 +45,16 @@ CELLS2 = {    "rank":("順位",    45),
                "cnt":("指定着数",60),
              "total":("出走数",  60),  }
 
+REG_CELLS = {     "player_id":("登番",     60),
+                       "name":("選手名",  140),
+                        "age":("年齢",     45),
+                  "class_now":("級",       45),
+                    "regions":("支部",     55),
+              "regist_period":("期",       60),
+                  "flying_st":("F",        30),
+                    "late_st":("L",        30),
+                  "next_race":("出走予定",443),
+                 "conditions":("設定条件",250), }
 
 GUI, MUI, HNH, CBR = "Yu Gothic UI", "Meiryo UI", "Helvetica Neue Heavy", "Cambria"
 GR, SD, RD, RA, SK = "groove", "solid", "ridge", "raised", "sunken"
@@ -93,6 +110,9 @@ def to_date(x) -> date:
     if isinstance(x,  str): return date.fromisoformat(x)
     raise ValueError("date conv error")
 # ------------------
+def to_range(df, dt) -> date:
+    return f"{to_date(df).strftime('%m/%d')} ～ {to_date(df).strftime('%m/%d')}"
+# ------------------
 def days_ago(d:str, range:int)-> str:
     d = to_date(d)
     return to_str(d -timedelta(days=range))
@@ -120,6 +140,10 @@ class PlayerFavorScreen(tk.Frame):
         self.best       = tk.BooleanVar(value=True)
         self.other      = False
 
+        self._current_rows      = []
+        self.selected_row       = None
+        self.selected_player_id = None
+
         style = ttk.Style()
         style.configure("fpw.TCheckbutton", font=(MUI,10), background=MAIN_BG)
         style.configure("fpw.TRadiobutton", font=(MUI,10,BD), background=MAIN_BG)
@@ -127,11 +151,11 @@ class PlayerFavorScreen(tk.Frame):
         fr_main = cFr(self, W=1220, H=1400, bg=MAIN_BG, px=10, py=15) ;fr_main.Pgate()
         fr_main._grid(R=0, C=0, Stk=ALL)
 
-        cntrl  = cFr(fr_main, W= 500, H=600, **BG)  ;cntrl._grid(R=0, C=0, px=5) ;cntrl.Pgate()
-        result = cFr(fr_main, W= 680, H=600, **BG) ;result._grid(R=0, C=1, px=5) ;result.Pgate()
-        regist = cFr(fr_main, W=1180, H=770, **BG) ;regist._grid(R=1, C=0, Cspan=2) ;regist.Pgate()
+        cntrl  = cFr(fr_main, W= 490, H=600, **BG)  ;cntrl._grid(R=0, C=0, px=5) ;cntrl.Pgate()
+        result = cFr(fr_main, W= 680, H=600, **BG) ;result._grid(R=0, C=1, px=5, py=(0,20)) ;result.Pgate()
+        regist = cFr(fr_main, W=1190, H=750, **BG) ;regist._grid(R=1, C=0, Cspan=2) ;regist.Pgate()
 
-        fr_date = cFr(cntrl, W=500, H=60, **BG, py=5) ;fr_date._grid(R=0, C=0) ;fr_date.Pgate()
+        fr_date = cFr(cntrl, W=490, H=60, **BG, py=5) ;fr_date._grid(R=0, C=0) ;fr_date.Pgate()
 
         cLbl(fr_date, text="DATE ( FROM )", **HDR)._grid(R=0, C=1, Cspan=3, Stk=ALL) 
         cLbl(fr_date, text=" DATE ( TO ) ", **HDR)._grid(R=0, C=5, Cspan=3, Stk=ALL)
@@ -154,16 +178,15 @@ class PlayerFavorScreen(tk.Frame):
         self.dt_m.grid(row=1, column=6, sticky="w", padx=2, pady=4)
         self.dt_d.grid(row=1, column=7, sticky="w", padx=2, pady=4)
 
-        fr_dbtn =  cFr(cntrl, W=500, H=45,  **BG, py= 5)  ;fr_dbtn._grid(R=1, C=0) ;fr_dbtn.Pgate()
-        fr_venue = cFr(cntrl, W=500, H=135, **BG, py= 5) ;fr_venue._grid(R=2, C=0) ;fr_venue.Pgate()
-        fr_grade = cFr(cntrl, W=500, H= 50, **BG, py=10) ;fr_grade._grid(R=3, C=0) ;fr_grade.Pgate()
-        fr_self  = cFr(cntrl, W=500, H= 45, **BG, py=10)  ;fr_self._grid(R=4, C=0) ;fr_self.Pgate()
-        fr_othr  = cFr(cntrl, W=500, H= 45, **BG, py=10)  ;fr_othr._grid(R=5, C=0) ;fr_othr.Pgate()
-        fr_rank  = cFr(cntrl, W=500, H= 45, **BG, py=10)  ;fr_rank._grid(R=6, C=0) ;fr_rank.Pgate()
-        fr_wmvs  = cFr(cntrl, W=500, H= 45, **BG, py=10)  ;fr_wmvs._grid(R=7, C=0) ;fr_wmvs.Pgate()
-        fr_param = cFr(cntrl, W=500, H= 45, **BG, py=10) ;fr_param._grid(R=8, C=0) ;fr_param.Pgate()
-
-        fr_sbtn  = cFr(cntrl, W=500, H= 50, **BG, py=10)  ;fr_sbtn._grid(R=9, C=0) ;fr_sbtn.Pgate()
+        fr_dbtn   = cFr(cntrl, W=490, H=45,  **BG, py= 5)  ;fr_dbtn._grid(R=1, C=0) ;fr_dbtn.Pgate()
+        fr_venue  = cFr(cntrl, W=490, H=135, **BG, py= 5) ;fr_venue._grid(R=2, C=0) ;fr_venue.Pgate()
+        fr_grade  = cFr(cntrl, W=490, H= 50, **BG, py=10) ;fr_grade._grid(R=3, C=0) ;fr_grade.Pgate()
+        fr_self   = cFr(cntrl, W=490, H= 45, **BG, py=10)  ;fr_self._grid(R=4, C=0) ;fr_self.Pgate()
+        fr_othr   = cFr(cntrl, W=490, H= 45, **BG, py=10)  ;fr_othr._grid(R=5, C=0) ;fr_othr.Pgate()
+        fr_rank   = cFr(cntrl, W=490, H= 45, **BG, py=10)  ;fr_rank._grid(R=6, C=0) ;fr_rank.Pgate()
+        fr_wmvs   = cFr(cntrl, W=490, H= 45, **BG, py=10)  ;fr_wmvs._grid(R=7, C=0) ;fr_wmvs.Pgate()
+        fr_param  = cFr(cntrl, W=490, H= 45, **BG, py=10) ;fr_param._grid(R=8, C=0) ;fr_param.Pgate()
+        fr_sbtn   = cFr(cntrl, W=490, H= 50, **BG, py=10)  ;fr_sbtn._grid(R=9, C=0) ;fr_sbtn.Pgate()
 
         cBtn( fr_dbtn, W=7, text="  本日  ", **BTN, Com=self._today_only
              )._grid(R=0, C=0, Stk=ALL, px=5, py=(0,20))
@@ -231,15 +254,17 @@ class PlayerFavorScreen(tk.Frame):
                                   style="fpw.TRadiobutton"
                             ).grid(row=0, column=1, sticky="w", padx=6, pady=2)
 
-        cLbl(fr_sbtn, text="上位 ", **BGFNT, px=2)._grid(R=0, C=0)
-        cSpbx(fr_sbtn, W=4, Frm=1, To=50, Inc=10, font=(MUI,11), Txtv=self.num_var)._grid(R=0, C=1)
-        cLbl(fr_sbtn, text="出走数", **BGFNT, px=5)._grid(R=0, C=2, px=(20,0))
-        cSpbx(fr_sbtn, W=4, Frm=1, To=50, Inc=10, font=(MUI,11), Txtv=self.run_var)._grid(R=0, C=3)
-        cLbl(fr_sbtn, text="以上", **BGFNT)._grid(R=0, C=4)
+        cLbl(fr_param, text="上位 ", **BGFNT, px=2)._grid(R=0, C=2, px=(20,0))
+        cSpbx(fr_param, W=4, Frm=1, To=50, Inc=10, font=(MUI,11), Txtv=self.num_var)._grid(R=0, C=3)
+        cLbl(fr_param, text="出走数", **BGFNT, px=5)._grid(R=0, C=4, px=(20,0))
+        cSpbx(fr_param, W=4, Frm=1, To=50, Inc=10, font=(MUI,11), Txtv=self.run_var)._grid(R=0, C=5)
+        cLbl(fr_param, text="以上", **BGFNT)._grid(R=0, C=6)
 
-        cBtn(fr_sbtn, text="検索実行", **BTN, Com=self._on_search, W=12)._grid(R=0, C=5, px=(130,0))
+        cBtn(fr_sbtn, W=11, text="検索 実行", **BTN, Com=self._on_search)._grid(R=0, C=1, px=(130,0))
+        cBtn(fr_sbtn, W=11, text="選手 登録", **BTN, Com=self._register_favorite)._grid(R=0, C=0, px=(60,0))
 
         self._init_result_table(result)
+        self._init_regist_table(regist)
 
     # --------------------------------------------
     def _init_result_table(self, parent):
@@ -270,6 +295,44 @@ class PlayerFavorScreen(tk.Frame):
         self.canvas.bind("<Leave>", lambda e:self.canvas.unbind_all("<MouseWheel>"))
         self.fr_body.bind("<Configure>", _on_conf)
         self.canvas.bind("<Configure>", _on_conf)
+
+    # --------------------------------------------
+    def _init_regist_table(self, parent):
+
+        table = cFr(parent, W=1190, H=490) ;table._grid(R=0, C=0) ;table.Pgate()
+        cntrl = cFr(parent, W=1190, H=250) ;cntrl._grid(R=1, C=0) ;cntrl.Pgate()
+
+        table.Rconf(0, Min=28)  ;table.Cconf(0, Min=1160)
+        table.Rconf(1, Min=462)
+        table.Rconf(2, Min=250)
+
+        self._regist_cells = {}
+
+        self.fr_hdr2  = cFr(table,  W=1160, H= 28, **HDR_B, Bd=(1,RD))
+        self.canvas2  = cCvs(table, W=1155, H=462, bg=BLACK1)
+        self.fr_body2 = cFr(self.canvas2, Bd=(1,SD))
+        scr_bar2      = cSrb(table, orient="vertical", Com=self.canvas2.yview)
+        self.canvas2.config(yscrollcommand=scr_bar2.set)
+
+        self.fr_hdr2._grid( R=0, C=0)           ;self.fr_hdr2.Pgate()
+        self.canvas2._grid( R=1, C=0, Stk=ALL)
+        scr_bar2._grid(     R=1, C=1, Stk="ns")
+
+        self.window2 = self.canvas2.create_window((0, 0), window=self.fr_body2, anchor="nw")
+        #-----------
+        def _mw2(e):
+            self.canvas2.yview_scroll(int(-1 *(e.delta / 120)), "units")
+        #-----------
+        def _on_conf2(event=None):
+            self.canvas2._config(Scrgn=self.canvas2.bbox("all"))
+            self.canvas2.itemconfig(self.window2, width=self.canvas2.winfo_width())
+        #-----------
+        self.canvas2.bind("<Enter>", lambda e:self.canvas2.bind_all("<MouseWheel>", _mw2))
+        self.canvas2.bind("<Leave>", lambda e:self.canvas2.unbind_all("<MouseWheel>"))
+        self.fr_body2.bind("<Configure>", _on_conf2)
+        self.canvas2.bind("<Configure>", _on_conf2)
+
+        self._load_regist_list()
 
     # --------------------------------------------
     def _on_rank_changed(self, var, key):
@@ -333,6 +396,10 @@ class PlayerFavorScreen(tk.Frame):
             widget.destroy()
         self._cells.clear()
 
+        self._current_rows      = rows
+        self.selected_row       = None
+        self.selected_player_id = None
+
         cells = CELLS2 if self.other else CELLS1
         self.fr_hdr.Rconf(0, Min=28)
 
@@ -345,7 +412,113 @@ class PlayerFavorScreen(tk.Frame):
                 self.fr_body.Rconf(r, Min=30, W=1)
                 fg  = "yellow" if k == "rate" else "white"
                 lbl = cLbl(self.fr_body, text=data[k], **CELL_B, fg=fg) ;lbl._grid(R=r, C=c, Stk=ALL)
+                lbl.bind("<Button-1>", lambda e, idx=r:self._select_row(idx))
                 self._cells[(r, c)] = lbl
+
+    # --------------------------------------------
+    def _select_row(self, idx):
+
+        cells   = CELLS2 if self.other else CELLS1
+        n_cols  = len(cells)
+
+        if self.selected_row is not None:
+            for c in range(n_cols):
+                w = self._cells.get((self.selected_row, c))
+                if w: w._config(bg=CELL_B["bg"])
+
+        for c in range(n_cols):
+            w = self._cells.get((idx, c))
+            if w: w._config(bg=SEL_BG)
+
+        self.selected_row       = idx
+        self.selected_player_id = self._current_rows[idx]["pid"]
+
+    # --------------------------------------------
+    def _register_favorite(self):
+
+        if self.selected_player_id is None:
+            messagebox.showwarning("注目選手登録", "選手を選択してください。")
+            return
+
+        ids = self._load_favorite_ids()
+        if self.selected_player_id in ids:
+            messagebox.showinfo("注目選手登録", "既に登録済みです。")
+            return
+
+        ids.append(self.selected_player_id)
+        self._save_favorite_ids(ids)
+        self._load_regist_list()
+
+    # --------------------------------------------
+    def _load_favorite_ids(self) -> list[int]:
+
+        if not FAVORITE_JSON.exists(): return []
+
+        try:
+            return json.loads(FAVORITE_JSON.read_text(encoding="utf-8"))
+        except (json.JSONDecodeError, OSError):
+            return []
+
+    # --------------------------------------------
+    def _save_favorite_ids(self, ids:list[int]):
+
+        FAVORITE_JSON.parent.mkdir(parents=True, exist_ok=True)
+        FAVORITE_JSON.write_text(json.dumps(ids, ensure_ascii=False, indent=2), encoding="utf-8")
+
+    # --------------------------------------------
+    def _format_next_race(self, schedule_today, schedule_1) -> str:
+
+        if schedule_today:
+            d, title, grade, venue, rno = schedule_today.split(",")
+            vname = VENUES[int(venue)-1].strip() if venue else ""
+            return f"本日 {vname}  {G_LIST[int(grade)]}  {title}  {rno}R"
+
+        if schedule_1:
+            d_from, d_to, title, grade, venue = schedule_1.split(",")
+            vname = VENUES[int(venue)-1].strip() if venue else ""
+            return f"{to_range(d_from, d_to)}  {vname}  {G_LIST[int(grade)]}  {title}"
+
+        return "予定なし"
+
+    # --------------------------------------------
+    def _load_regist_list(self):
+
+        for widget in self._regist_cells.values():
+            widget.destroy()
+        self._regist_cells.clear()
+
+        self.fr_hdr2.Rconf(0, Min=28)
+
+        for c, (k, v) in enumerate(REG_CELLS.items()):
+            self.fr_hdr2.Cconf( c, Min=v[1], W=1)
+            self.fr_body2.Cconf(c, Min=v[1], W=1)
+            hdr = cLbl(self.fr_hdr2, text=v[0], **HDR) ;hdr._grid(R=0, C=c, Stk=ALL)
+            self._regist_cells[c] = hdr
+
+        ids = self._load_favorite_ids()
+        if not ids: return
+
+        ph   = ",".join("?" * len(ids))
+        rows = dal.fetch_all(
+                  f"""
+                    SELECT player_id, name, age, class_now, regions,
+                           regist_period, flying_st, late_st,
+                           schedule_today, schedule_1
+                      FROM Players
+                     WHERE player_id IN ({ph})
+                  """,
+                  ids )
+
+        for r, row in enumerate(rows):
+            self.fr_body2.Rconf(r, Min=30, W=1)
+            data              = dict(row)
+            data["next_race"] = self._format_next_race(data["schedule_today"], data["schedule_1"])
+
+            for c, k in enumerate(REG_CELLS.keys()):
+                val = data.get(k)
+                lbl = cLbl(self.fr_body2, text="" if val is None else val, **CELL_B, fg="white")
+                lbl._grid(R=r, C=c, Stk=ALL)
+                self._regist_cells[(r, c)] = lbl
 
     # --------------------------------------------
     def _search_players(self):
@@ -395,6 +568,7 @@ class PlayerFavorScreen(tk.Frame):
                                HAVING COUNT(DISTINCT e1.race_id) >= ?                     )
 
               SELECT ROW_NUMBER() OVER (ORDER BY (100.0*cnt / total) DESC) AS rank,
+                     pid,
                      name,
                      cls,
                      self_c,
@@ -432,6 +606,7 @@ class PlayerFavorScreen(tk.Frame):
                                HAVING COUNT(*) >= {run}                                  )
 
               SELECT ROW_NUMBER() OVER (ORDER BY (100.0*cnt / total) DESC) AS rank,
+                     p.player_id                   AS pid,
                      p.name,
                      p.class_now                   AS cls,
                      course,
