@@ -377,7 +377,7 @@ class OddsWindow(tk.Tk):
                     self.tbl_canvas.yview_scroll(int(-1 *(e.delta / 120)), "units")
 
                 elif str(hovered_widget).startswith(str(self.inner)):
-                    self._tbl_inner.yview_scroll(int(-1 *(e.delta / 120)), "units")
+                    self.inner.yview_scroll(int(-1 *(e.delta / 120)), "units")
         #-----------
         self.inner.bind("<Configure>", _on_inner_cfg)
         self.tbl_canvas.bind("<Configure>", _on_canvas_cfg)
@@ -1061,7 +1061,7 @@ class OddsWindow(tk.Tk):
     #================= ベットテーブル更新 ==================
     def _refresh_tree(self):
 
-        for w in self._tbl_inner.winfo_children(): w.destroy()
+        for w in self.inner.winfo_children(): w.destroy()
         self.tbl_rows.clear()
 
         valid_odds = []
@@ -1075,8 +1075,8 @@ class OddsWindow(tk.Tk):
             if v > 0: valid_odds.append(v)
 
             row_bg = TBL_BG if ri % 2 == 0 else ALT_BG
-            sep    = cFr(self._tbl_inner, bg=SEP_C, H=1)
-            row_fr = cFr(self._tbl_inner, bg=row_bg, H=CELL_H)
+            sep    = cFr(self.inner, bg=SEP_C, H=1)
+            row_fr = cFr(self.inner, bg=row_bg, H=CELL_H)
             sep._grid(R=ri*2, C=0, Cspan=6, Stk="ew")
             row_fr._grid(R=ri*2+1, C=0, Stk="ew") ;row_fr.grid_propagate(False)
 
@@ -1131,10 +1131,10 @@ class OddsWindow(tk.Tk):
             self.tbl_rows.append((alloc_var, ret_lbl, bt, key, odds_str))
 
         if self.selected:
-            cFr( self._tbl_inner, bg=SEP_C, H=1
+            cFr( self.inner, bg=SEP_C, H=1
                 )._grid(R=len(self.selected)*2, C=0, Cspan=6, Stk="ew")
 
-        self._tbl_inner.grid_columnconfigure(0, minsize=sum(w for _, w, _ in self._COL_DEF))
+        self.inner.grid_columnconfigure(0, minsize=sum(w for _, w, _ in self._COL_DEF))
 
         self.lbl_count.config(text=f"{len(self.selected)} 点")
         self._update_total_bet()

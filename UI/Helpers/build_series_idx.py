@@ -319,9 +319,9 @@ def _paint_abcd(self, cells:list, r_no:int, course:int, st:str, rank:str, f_no:i
     fg  = "red" if rank in ("F", "L", "S", "K") else "black"
 
     cells[0]._config(text=w_txt(f"{r_no}R"), font=(GUI,8,BD), **R_N_OPT, Csr="hand2", Anc="n", py=5)
-    cells[1]._config(text=course,            font=(GUI,9,BD), **col, Bd=(3,GR))
+    cells[1]._config(text=course,            font=(MUI,8,BD), **col, Bd=(3,GR))
     cells[2]._config(text=st,                font=(MUI,8),    fg=fg, bg=WHITE, Bd=(1,GR))
-    cells[3]._config(text=rank,              font=(GUI,9,BD), fg=fg, bg=WHITE, Bd=(1,GR))
+    cells[3]._config(text=rank,              font=(MUI,8,BD), fg=fg, bg=WHITE, Bd=(1,GR))
     cells[0].bind("<Button-1>", lambda e:self._reload_for(d, self.venue_id, r_no, result=True))
 
 # --------------- 2走インデックス 表示/更新 ----------------

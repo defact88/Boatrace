@@ -2,6 +2,7 @@
 # C:\boatrace\Import\Updata\get_player_schedule.py
 
 import sys, argparse, re, warnings, random, time
+from datetime import datetime as dt, date, timedelta, timezone
 from bs4       import BeautifulSoup, XMLParsedAsHTMLWarning
 from curl_cffi import requests
 import Dal as dal
@@ -24,6 +25,10 @@ URL = "https://www.boatrace.jp/owpc/pc/data/racersearch/profile?toban={player_id
 GRADE_IDX = {"一般":0, "G3":1, "G2":2, "G1":3, "PG1":4, "SG":5, "ippan":0}
 GRADE_RE  = re.compile(r"is-(SG|PG1|G1|G2|G3|ippan)")
 
+# ------------------
+def today_iso() -> str:
+    JST = timezone(timedelta(hours=9))
+    return dt.now(JST).date().strftime("%Y-%m-%d")
 # ------------------------------------------------------------
 def fetch_profile_html(player_id:int):
 
@@ -43,7 +48,6 @@ def fetch_profile_html(player_id:int):
 
 # ------------------------------------------------------------
 def _grade_from_td(td) -> int|None:
-    # 戻り値はDB規約に合わせたグレードコード(0-5): GRADE_IDX参照
 
     if td is None: return None
 
@@ -54,7 +58,6 @@ def _grade_from_td(td) -> int|None:
 
 # ------------------------------------------------------------
 def _venue_id_from_jcd(a_tag) -> int|None:
-    # jcd=01-24 はそのままDBのvenue_idと一致する
 
     if a_tag is None: return None
 
@@ -82,36 +85,32 @@ def _find_table(soup:BeautifulSoup, label:str):
     return None
 
 # ------------------------------------------------------------
-def parse_schedule_today(soup:BeautifulSoup) -> str|None:
+def fetch_schedule_today(player_id:int) -> str|None:
 
-    table = _find_table(soup, "本日出走予定")
-    if not table: return None
+    rows = dal.fetch_all(f"""
+               SELECT venue_id      AS vid,
+                      grade         AS grd,
+                      series_title  AS titl,
+                      race_no       AS rno,
+                      frame_no      AS frn
+                 FROM Race_programs
+                WHERE date      = ?
+                  AND player_id = ?
+                ORDER BY race_no
+               """,
+               (today_iso(), player_id) )
+    if rows:
+        r1   = rows[0]['rno']
+        r2   = rows[1]['rno'] if len(rows) >= 2 else 0
+        r1c  = rows[0]['frn']
+        r2c  = rows[1]['frn'] if r2 else 0
+        vid  = rows[0]['vid']
+        grd  = rows[0]['grd']
+        titl = rows[0]['titl']
 
-    tbody = table.find("tbody")
-    if not tbody: return None
-
-    tr = tbody.find("tr")
-    if not tr: return None
-
-    tds = tr.find_all("td")
-    if len(tds) < 7: return None
-
-    d_text = tds[0].get_text(strip=True)
-    grade  = _grade_from_td(tds[2])
-    title  = tds[4].get_text(strip=True)
-    venue  = _venue_id_from_jcd(tds[4].find("a"))
-    rno1   = tds[5].get_text(strip=True)
-    rno2   = tds[6].get_text(strip=True)
-
-    rno_text = rno2 if rno2 and rno2 != "-" else rno1
-    if not rno_text or rno_text == "-": return None
-
-    m = re.search(r"\d+", rno_text)
-    if not m: return None
-
-    d_iso = d_text.replace("/", "-")
-
-    return f"{d_iso},{title},{grade},{venue},{int(m.group())}"
+        return f"{today_iso()},{titl},{grd},{vid},{r1},{r1c},{r2},{r2c}"
+    else:
+        return None
 
 # ------------------------------------------------------------
 def parse_schedule_upcoming(soup:BeautifulSoup) -> list[str]:
@@ -142,16 +141,16 @@ def parse_schedule_upcoming(soup:BeautifulSoup) -> list[str]:
     return out[:4]
 
 # ------------------------------------------------------------
-def parse_player_schedule(soup:BeautifulSoup) -> dict:
+def parse_player_schedule(soup:BeautifulSoup, player_id:int) -> dict:
 
     upcoming  = parse_schedule_upcoming(soup)
     upcoming += [None] * (4 - len(upcoming))
 
-    return { "schedule_today": parse_schedule_today(soup),
-             "schedule_1":     upcoming[0],
-             "schedule_2":     upcoming[1],
-             "schedule_3":     upcoming[2],
-             "schedule_4":     upcoming[3],              }
+    return { "schedule_today":fetch_schedule_today(player_id),
+                 "schedule_1":upcoming[0],
+                 "schedule_2":upcoming[1],
+                 "schedule_3":upcoming[2],
+                 "schedule_4":upcoming[3],                     }
 
 # ------------------------------------------------------------
 def upsert_player_schedule(player_id:int, soup:BeautifulSoup=None):
@@ -161,7 +160,7 @@ def upsert_player_schedule(player_id:int, soup:BeautifulSoup=None):
         if not res: return
         soup = BeautifulSoup(res.text, "lxml")
 
-    data = parse_player_schedule(soup)
+    data = parse_player_schedule(soup, player_id)
 
     sql = """
             UPDATE Players

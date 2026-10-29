@@ -52,8 +52,7 @@ REG_CELLS = {     "player_id":("登番",     60),
               "regist_period":("期",       60),
                   "flying_st":("F",        30),
                     "late_st":("L",        30),
-                  "next_race":("出走予定",443),
-                 "conditions":("設定条件",250), }
+                  "next_race":("出走予定",693), }
 
 GUI, MUI, HNH, CBR = "Yu Gothic UI", "Meiryo UI", "Helvetica Neue Heavy", "Cambria"
 GR, SD, RD, RA, SK = "groove", "solid", "ridge", "raised", "sunken"
@@ -113,7 +112,7 @@ def to_date(x) -> date:
     raise ValueError("date conv error")
 # ------------------
 def to_range(df, dt) -> date:
-    return f"{to_date(df).strftime('%m/%d')} ～ {to_date(df).strftime('%m/%d')}"
+    return f"{to_date(df).strftime('%m/%d')}～{to_date(df).strftime('%m/%d')}"
 # ------------------
 def days_ago(d:str, range:int)-> str:
     d = to_date(d)
@@ -246,10 +245,10 @@ class PlayerFavorScreen(tk.Frame):
 
         ttk.Radiobutton( fr_param, text=f"Best", variable=self.best, value=True,
                                   style="fpw.TRadiobutton"
-                            ).grid(row=0, column=0, sticky="w", padx=6, pady=2)
+                        ).grid(row=0, column=0, sticky="w", padx=6, pady=2)
         ttk.Radiobutton( fr_param, text=f"Worst", variable=self.best, value=False,
                                   style="fpw.TRadiobutton"
-                            ).grid(row=0, column=1, sticky="w", padx=6, pady=2)
+                        ).grid(row=0, column=1, sticky="w", padx=6, pady=2)
 
         cLbl(fr_param, text="上位 ", **BGFNT, px=2)._grid(R=0, C=2, px=(20,0))
         cSpbx(fr_param, W=4, Frm=1, To=50, Inc=10, font=(MUI,11), Txtv=self.num_var)._grid(R=0, C=3)
@@ -296,19 +295,19 @@ class PlayerFavorScreen(tk.Frame):
     # --------------------------------------------
     def _init_regist_table(self, parent):
 
-        table = cFr(parent, W=1190, H=390) ;table._grid(R=0, C=0) ;table.Pgate()
-        cntrl = cFr(parent, W=1190, H=350) ;cntrl._grid(R=1, C=0) ;cntrl.Pgate()
+        table1 = cFr(parent, W=1190, H=390) ;table1._grid(R=0, C=0) ;table1.Pgate()
+        pannel = cFr(parent, W=1190, H=350) ;pannel._grid(R=1, C=0) ;pannel.Pgate()
 
-        table.Rconf(0, Min=28)  ;table.Cconf(0, Min=1160)
-        table.Rconf(1, Min=362)
-        cntrl.Rconf(0, Min=350) ;cntrl.Cconf(0, Min=1160)
+        table1.Rconf(0, Min=28)  ;table1.Cconf(0, Min=1160)
+        table1.Rconf(1, Min=362)
+        pannel.Rconf(0, Min=350) ;pannel.Cconf(0, Min=1160)
 
         self._regist_cells = {}
 
-        self.fr_hdr2 = cFr(table,  W=1160, H= 28, **HDR_B, Bd=(1,RD))
-        self.canvas2 = cCvs(table, W=1155, H=362, bg=BLACK1)
+        self.fr_hdr2 = cFr(table1,  W=1160, H= 28, **HDR_B, Bd=(1,RD))
+        self.canvas2 = cCvs(table1, W=1155, H=362, bg=BLACK1)
         self.inner2  = cFr(self.canvas2, Bd=(1,SD))
-        scr_bar2     = cSrb(table, orient="vertical", Com=self.canvas2.yview)
+        scr_bar2     = cSrb(table1, orient="vertical", Com=self.canvas2.yview)
         self.canvas2.config(yscrollcommand=scr_bar2.set)
 
         self.fr_hdr2._grid( R=0, C=0)           ;self.fr_hdr2.Pgate()
@@ -328,6 +327,9 @@ class PlayerFavorScreen(tk.Frame):
         self.canvas2.bind("<Leave>", lambda e:self.canvas2.unbind_all("<MouseWheel>"))
         self.inner2.bind("<Configure>", _on_conf2)
         self.canvas2.bind("<Configure>", _on_conf2)
+
+        cntrl  = cFr(pannel, W=500, H=350)  ;cntrl._grid(R=0, C=0)  ;cntrl.Pgate()
+        table2 = cFr(pannel, W=690, H=350) ;table2._grid(R=0, C=1) ;table2.Pgate()
 
         self._load_regist_list()
 
@@ -465,14 +467,18 @@ class PlayerFavorScreen(tk.Frame):
     def _format_next_race(self, schedule_today, schedule_1) -> str:
 
         if schedule_today:
-            d, title, grade, venue, rno = schedule_today.split(",")
-            vname = VENUES[int(venue)-1].strip() if venue else ""
-            return f"本日 {vname}  {G_LIST[int(grade)]}  {title}  {rno}R"
+            d, title, grade, venue, rno1, frn1, rno2, frn2 = schedule_today.split(",")
+            r1    = f"{rno1}R"
+            r2    = f"{rno2}R" if int(rno2) else None
+            r1c   = f"{frn1} 号艇"
+            r2c   = f"{frn2} 号艇" if int(rno2) else None
+            race  = f"[{r1}]  {r1c} / [{r2}]  {r2c}" if int(rno2) else f"[{r1}]  {r1c}"
+            return f"[本日]   {VENUES[int(venue)-1]}  {G_LIST[int(grade)]}  {title}  {race}"
 
         if schedule_1:
             d_from, d_to, title, grade, venue = schedule_1.split(",")
             vname = VENUES[int(venue)-1].strip() if venue else ""
-            return f"{to_range(d_from, d_to)}  {vname}  {G_LIST[int(grade)]}  {title}"
+            return f"[{to_range(d_from, d_to)}]   {vname}  {G_LIST[int(grade)]}  {title}"
 
         return "予定なし"
 
@@ -485,8 +491,8 @@ class PlayerFavorScreen(tk.Frame):
 
         self.fr_hdr2.Rconf(0, Min=28)
         for c, (k, v) in enumerate(REG_CELLS.items()):
-            self.fr_hdr2.Cconf( c, Min=v[1], W=1)
-            self.inner2.Cconf(c, Min=v[1], W=1)
+            self.fr_hdr2.Cconf(c, Min=v[1], W=1)
+            self.inner2.Cconf( c, Min=v[1], W=1)
             hdr = cLbl(self.fr_hdr2, text=v[0], **HDR) ;hdr._grid(R=0, C=c, Stk=ALL)
             self._regist_cells[c] = hdr
 
@@ -498,7 +504,8 @@ class PlayerFavorScreen(tk.Frame):
                   f"""
                     SELECT player_id, name, age, class_now, regions,
                            regist_period, flying_st, late_st,
-                           schedule_today, schedule_1
+                           schedule_today AS schdl_t,
+                           schedule_1     AS schdl_1
                       FROM Players
                      WHERE player_id IN ({ph})
                   """,
@@ -506,9 +513,8 @@ class PlayerFavorScreen(tk.Frame):
 
         for r, row in enumerate(rows):
             self.inner2.Rconf(r, Min=30, W=1)
-            data              = dict(row)
-            data["next_race"] = self._format_next_race(data["schedule_today"], data["schedule_1"])
-
+            data = dict(row)
+            data["next_race"] = self._format_next_race(data["schdl_t"], data["schdl_1"])
             for c, k in enumerate(REG_CELLS.keys()):
                 val = data.get(k)
                 lbl = cLbl(self.inner2, text="" if val is None else val, **CELL_B, fg="white")
