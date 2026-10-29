@@ -261,15 +261,15 @@ class PlayerFavorScreen(tk.Frame):
         self._init_regist_table(fr_btm)
         self._past_days(365)
     # --------------------------------------------
-    def _init_result_table(self, parent):
+    def _init_result_table(self, table1):
 
-        parent.Rconf(0, Min=28)  ;parent.Cconf(0, Min=650)
-        parent.Rconf(1, Min=572)
+        table1.Rconf(0, Min=28)  ;table1.Cconf(0, Min=650)
+        table1.Rconf(1, Min=572)
 
-        self.fr_hdr = cFr(parent,  W=650, H= 28, **HDR_B, Bd=(1,RD))
-        self.canvas = cCvs(parent, W=650, H=572, bg=BLACK1)
+        self.fr_hdr = cFr(table1,  W=650, H= 28, **HDR_B, Bd=(1,RD))
+        self.canvas = cCvs(table1, W=650, H=572, bg=BLACK1)
         self.inner  = cFr(self.canvas, Bd=(1,SD))
-        scr_bar     = cSrb(parent, orient="vertical", Com=self.canvas.yview)
+        scr_bar     = cSrb(table1, orient="vertical", Com=self.canvas.yview)
         self.canvas.config(yscrollcommand=scr_bar.set)
 
         self.fr_hdr._grid( R=0, C=0)           ;self.fr_hdr.Pgate()
@@ -293,19 +293,19 @@ class PlayerFavorScreen(tk.Frame):
     # --------------------------------------------
     def _init_regist_table(self, parent):
 
-        table1 = cFr(parent, W=1190, H=390) ;table1._grid(R=0, C=0) ;table1.Pgate()
+        table2 = cFr(parent, W=1190, H=390) ;table2._grid(R=0, C=0) ;table2.Pgate()
         pannel = cFr(parent, W=1190, H=350) ;pannel._grid(R=1, C=0) ;pannel.Pgate()
 
-        table1.Rconf(0, Min=28)  ;table1.Cconf(0, Min=1160)
-        table1.Rconf(1, Min=362)
+        table2.Rconf(0, Min=28)  ;table2.Cconf(0, Min=1160)
+        table2.Rconf(1, Min=362)
         pannel.Rconf(0, Min=350) ;pannel.Cconf(0, Min=1160)
 
         self._regist_cells = {}
 
-        self.fr_hdr2 = cFr(table1,  W=1160, H= 28, **HDR_B, Bd=(1,RD))
-        self.canvas2 = cCvs(table1, W=1155, H=362, bg=BLACK1)
+        self.fr_hdr2 = cFr(table2,  W=1160, H= 28, **HDR_B, Bd=(1,RD))
+        self.canvas2 = cCvs(table2, W=1155, H=362, bg=BLACK1)
         self.inner2  = cFr(self.canvas2, Bd=(1,SD))
-        scr_bar2     = cSrb(table1, orient="vertical", Com=self.canvas2.yview)
+        scr_bar2     = cSrb(table2, orient="vertical", Com=self.canvas2.yview)
         self.canvas2.config(yscrollcommand=scr_bar2.set)
 
         self.fr_hdr2._grid( R=0, C=0)           ;self.fr_hdr2.Pgate()
@@ -327,7 +327,7 @@ class PlayerFavorScreen(tk.Frame):
         self.canvas2.bind("<Configure>", _on_conf2)
 
         cntrl  = cFr(pannel, W=500, H=350)  ;cntrl._grid(R=0, C=0)  ;cntrl.Pgate()
-        table2 = cFr(pannel, W=690, H=350) ;table2._grid(R=0, C=1) ;table2.Pgate()
+        table3 = cFr(pannel, W=690, H=350) ;table3._grid(R=0, C=1) ;table2.Pgate()
 
         self._load_regist_list()
 
