@@ -138,7 +138,7 @@ class PlayerFavorScreen(tk.Frame):
         self.self_c_var = tk.IntVar(value=1)
         self.othr_c_var = tk.IntVar(value=None)
         self.num_var    = tk.IntVar(value=10)
-        self.run_var    = tk.IntVar(value=30)
+        self.run_var    = tk.IntVar(value=25)
         self.best       = tk.BooleanVar(value=True)
         self.other      = False
 
@@ -184,12 +184,10 @@ class PlayerFavorScreen(tk.Frame):
             cLbl(fr_date, text=texts[n], **BGFNT)._grid(R=1, C=col+1, Stk=ALL) 
             self.date_vars[keys[0]] = var
 
-        cBtn( fr_dbtn, W=7, text="  本日  ", **BTN, Com=self._today_only
-             )._grid(R=0, C=0, Stk=ALL, px=5, py=(0,10))
         cBtn( fr_dbtn, W=8, text="直近 1年", **BTN, Com=lambda:self._past_days(365)
-             )._grid(R=0, C=1, Stk=ALL, px=5, py=(0,10))
+             )._grid(R=0, C=0, Stk=ALL, px=5, py=(0,10))
         cBtn( fr_dbtn, W=8, text="直近 半年", **BTN, Com=lambda:self._past_days(182)
-             )._grid(R=0, C=3, Stk=ALL, px=5, py=(0,10))
+             )._grid(R=0, C=1, Stk=ALL, px=5, py=(0,10))
 
         for c in range(6):
             for r in range(4):
@@ -200,9 +198,9 @@ class PlayerFavorScreen(tk.Frame):
                                 ).grid(row=r, column=c, sticky="w", padx=(4,0), pady=4)
                 self.ven_vars[key] = var
 
-        cBtn( fr_venue, W=7, text="全選択", **BTN, Com=self._select_all, px=3
+        cBtn( fr_venue, W=7, text="全 選択", **BTN, Com=self._select_all, px=3
              )._grid(R=4, C=0, py=(8,0))
-        cBtn( fr_venue, W=7, text="全解除", **BTN, Com=self._reset_all,  px=3
+        cBtn( fr_venue, W=7, text="全 解除", **BTN, Com=self._reset_all,  px=3
              )._grid(R=4, C=1, py=(8,0))
 
         for c in range(4):
@@ -256,12 +254,12 @@ class PlayerFavorScreen(tk.Frame):
         cSpbx(fr_param, W=4, Frm=1, To=50, Inc=10, font=(MUI,11), Txtv=self.run_var)._grid(R=0, C=5)
         cLbl(fr_param, text="以上", **BGFNT)._grid(R=0, C=6)
 
-        cBtn(fr_sbtn, W=11, text="選手 登録", **BTN, Com=self._register_favorite)._grid(R=0, C=0, px=(270,0))
-        cBtn(fr_sbtn, W=11, text="検索 実行", **BTN, Com=self._on_search)._grid(R=0, C=1, px=(20,0))
+        cBtn(fr_sbtn, W=11, text="登 録", **BTN, Com=self._register_favorite)._grid(R=0, C=0, px=(270,0))
+        cBtn(fr_sbtn, W=11, text="検 索", **BTN, Com=self._on_search)._grid(R=0, C=1, px=(20,0))
 
         self._init_result_table(result)
         self._init_regist_table(fr_btm)
-
+        self._past_days(365)
     # --------------------------------------------
     def _init_result_table(self, parent):
 
@@ -346,10 +344,6 @@ class PlayerFavorScreen(tk.Frame):
         for n, (k, v) in enumerate(DATE_KEYS):
             if n < 3: self.date_vars[k].set(int(_past(d).strftime(v)))
             else:     self.date_vars[k].set(int(_today().strftime(v))) 
-    # --------------------------------------------
-    def _today_only(self):
-        for (k, v) in DATE_KEYS:
-            self.date_vars[k].set(int(_today().strftime(v)))
     # --------------------------------------------
     def _on_rank_changed(self, var, key):
 
