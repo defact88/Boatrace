@@ -358,16 +358,21 @@ def upsert_entry(c:dal.transaction, race_id:int, venue_id:int, e:Dict):
                      :fault_code, :fault_level, :motor_no, :boat_no,  :slit_ADJ,    :race_time )
 
             ON CONFLICT(entry_id) DO UPDATE SET
-                date       = excluded.date,
-                boat_no    = excluded.boat_no,
-                motor_no   = excluded.motor_no,
-                course     = excluded.course,
-                win_move   = excluded.win_move,
-                slit_ADJ   = excluded.slit_ADJ,
-               finish_rank = excluded.finish_rank,
-                fault_code = excluded.fault_code,
-               fault_level = excluded.fault_level,
-                race_time  = excluded.race_time
+                race_id     = excluded.race_id,
+                venue_id    = excluded.venue_id,
+                race_no     = excluded.race_no,
+                date        = excluded.date,
+                frame_no    = excluded.frame_no,
+                player_id   = excluded.player_id,
+                course      = excluded.course,
+                win_move    = excluded.win_move,
+                finish_rank = excluded.finish_rank,
+                fault_code  = excluded.fault_code,
+                fault_level = excluded.fault_level,
+                boat_no     = excluded.boat_no,
+                motor_no    = excluded.motor_no,
+                slit_ADJ    = excluded.slit_ADJ,
+                race_time   = excluded.race_time
               """, e)
 
 #=================== Entry =======================
@@ -379,7 +384,7 @@ def upsert_Race_entries(venue_id:int, body:str, date_iso:str):
     with dal.transaction() as c:
         for race_no, start, end in subblocks:
 
-            row = dal.fetch_one("""
+            row = c.execute("""
                       SELECT race_id,
                              status
                         FROM races
@@ -387,13 +392,12 @@ def upsert_Race_entries(venue_id:int, body:str, date_iso:str):
                          AND venue_id =?
                          AND race_no  =?
                       """,
-                      (date_iso, venue_id, race_no) )
+                      (date_iso, venue_id, race_no) ).fetchone()
 
             if not row: continue
 
             race_id, status = row
             if status == 'cancelled': continue
-
             sub = body[start:end]
             mh  = RE_RESULT_HEAD.search(sub)
             if not mh: continue

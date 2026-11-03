@@ -129,7 +129,7 @@ def get_data(d, v, r):
         print(f"\n[ERROR] {e}")
 
 #---------------------------------------------------------------------
-def ETL_run(date_f:str, date_t:str, venue:int, race:int, overwrite:bool=False):
+def run_ETL(date_f:str, date_t:str, venue:int, race:int, overwrite:bool=False):
 
     curr_date = date_f
     while curr_date <= date_t:

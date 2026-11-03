@@ -2,7 +2,7 @@
 # DAL (Data Access Layer) for BoatRaceDB  ── 高速化改修版
 
 from __future__ import annotations
-import os, re, sqlite3
+import os, re, sqlite3, json
 from contextlib import contextmanager
 from datetime   import date, datetime as dt
 from pathlib    import Path
@@ -10,12 +10,12 @@ from typing     import Iterable, Iterator, Optional, Sequence, Any
 
 def adapt_date_iso(val):
     return val.isoformat()
-
 def adapt_datetime_iso(val):
     return val.isoformat()
 
 sqlite3.register_adapter(date, adapt_date_iso)
 sqlite3.register_adapter(dt, adapt_datetime_iso)
+sqlite3.register_adapter(list, json.dumps)
 #---------------------------------------
 
 DB_PATH    = r"C:\boatrace\boatrace.db"
@@ -34,12 +34,12 @@ def _get_shared_conn() -> sqlite3.Connection:
         _shared_conn = sqlite3.connect(DB_PATH, check_same_thread=False)
         _shared_conn.row_factory = sqlite3.Row
 
-        _shared_conn.execute("PRAGMA foreign_keys  = ON")
-        _shared_conn.execute("PRAGMA journal_mode  = WAL")
-        _shared_conn.execute("PRAGMA synchronous   = NORMAL")
-        _shared_conn.execute("PRAGMA cache_size    = -32000")
-        _shared_conn.execute("PRAGMA temp_store    = MEMORY")
-        _shared_conn.execute("PRAGMA mmap_size     = 268435456")
+        _shared_conn.execute("PRAGMA foreign_keys = ON")
+        _shared_conn.execute("PRAGMA journal_mode = WAL")
+        _shared_conn.execute("PRAGMA synchronous  = NORMAL")
+        _shared_conn.execute("PRAGMA cache_size   = -32000")
+        _shared_conn.execute("PRAGMA temp_store   = MEMORY")
+        _shared_conn.execute("PRAGMA mmap_size    = 268435456")
 
     return _shared_conn
 

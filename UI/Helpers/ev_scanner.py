@@ -8,6 +8,22 @@ import sqlite3
 BET_TYPES_PERSISTED        = ("3T", "3F", "2T", "2F", "KK", "TT", "FF")
 FULL_SNAPSHOT_INTERVAL_SEC = 300
 
+# ------------------
+def to_str(x) -> str:
+
+    if isinstance(x,  str): return x
+    if isinstance(x, date): return x.strftime("%Y-%m-%d")
+
+    raise ValueError("str conv error")
+
+# ------------------
+def to_date(x) -> date:
+
+    if isinstance(x, date): return x
+    if isinstance(x,  str): return date.fromisoformat(x)
+
+    raise ValueError("date conv error")
+
 #=====================================================================
 class ProbabilityProvider:
     """
@@ -58,9 +74,9 @@ def evaluate_ev( data:dict, d:date, venue_id:int, race_no:int,
     return hits
 
 #-----------------------------------------------------------
-def _build_race_id(d:date, venue_id:int, race_no:int) -> int:
+def _build_race_id(d:str, venue_id:int, race_no:int) -> int:
 
-    ymd = d.strftime("%y%m%d")
+    ymd = to_date(d).strftime("%y%m%d")
 
     return int(f"{ymd}{venue_id:02d}{race_no:02d}")
 
@@ -76,10 +92,10 @@ def _parse_odds_value(raw:str):
     except Exception: return None, None
 
 #-----------------------------------------------------------
-def insert_odds_snapshot(data:dict, d:date, venue_id:int, race_no:int, hits:list):
+def insert_odds_snapshot(data:dict, d:str, venue_id:int, race_no:int, hits:list):
 
     race_id  = _build_race_id(d, venue_id, race_no)
-    date_str = d.isoformat()
+    date_iso = to_date(d)
     hit_keys = {(bt, key) for bt, key, *_ in hits} if hits else set()
     cnt      = 0
 
@@ -90,7 +106,7 @@ def insert_odds_snapshot(data:dict, d:date, venue_id:int, race_no:int, hits:list
             if not bet_data:
                 continue
             record = { "race_id": race_id,
-                          "date": date_str,
+                          "date": date_iso,
                       "venue_id": venue_id,
                        "race_no": race_no   }
 

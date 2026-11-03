@@ -10,8 +10,8 @@ from requests.adapters  import HTTPAdapter
 from urllib3.util.retry import Retry
 
 DB_PATH       = r"C:\boatrace\boatrace.db"
-ARCHIVE_DIR   = Path(r"C:\boatrace\archive\FAN_newcomer")
-DL_PLAYER_IMG = r"C:\boatrace\Import\DL_player_img.py"
+ARCHIVE_DIR   = Path(r"C:\boatrace\Archive\FAN\Newcomer")
+DL_PLAYER_IMG = r"C:\boatrace\Import\FAN\DL_player_img.py"
 PROFILE_URL   = "https://www.boatrace.jp/owpc/pc/data/racersearch/profile?toban={pid}"
 
 HEADERS = { "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:142.0) Gecko/20100101 Firefox/142.0",

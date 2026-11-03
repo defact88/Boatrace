@@ -15,6 +15,7 @@ UI,Helpers,player_picker,               C:\boatrace\UI\Helpers\player_picker.py,
 UI,Helpers,Custum_func,                 C:\boatrace\UI\Helpers\Custum_func.py,1
 UI,Helpers,queries,                     C:\boatrace\UI\Helpers\queries.py,1
 UI,Helpers,ev_scanner.py,               C:\boatrace\UI\Helpers\ev_scanner.py,0
+UI,Helpers,brouse_race_replay.py,       C:\boatrace\UI\Helpers\brouse_race_replay.py,0
 UI,Helpers,__init__,                    C:\boatrace\UI\Helpers\__init__.py,0
 
 UI,Widgets,widgets.py,                  C:\boatrace\UI\Widgets\widgets.py,1
@@ -41,6 +42,7 @@ UI,Scraper,scraper_odds,                C:\boatrace\UI\Scraper\scraper_odds.py,0
 UI,Scraper,selenium_buyer,              C:\boatrace\UI\Scraper\selenium_buyer.py,1
 UI,Scraper,get_payouts.py,              C:\boatrace\UI\Scraper\get_payouts.py,0
 UI,Scraper,get_oriten_info.py,          C:\boatrace\UI\Scraper\get_oriten_info.py
+UI,Scraper,get_player_schedule.py,      C:\boatrace\UI\Scraper\get_player_schedule.py,0
 
 Import,Import_B,import_B_txt.py,        C:\boatrace\Import\B\import_B_txt.py,1
 Import,Import_K,ETL_K_results.py,       C:\boatrace\Import\K\ETL_K_results.py,1
@@ -57,7 +59,6 @@ Import,Updata,update_FLstate.py,        C:\boatrace\Import\Updata\update_FLstate
 Import,Updata,ETL_Before_info.py,       C:\boatrace\Import\Updata\ETL_Before_info.py,0
 Import,Updata,ETL_odds_data.py,         C:\boatrace\Import\Updata\ETL_odds_data.py,0
 Import,Updata,ETL_payouts_data.py,      C:\boatrace\Import\Updata\ETL_payouts_data.py,0
-Import,Updata,get_player_schedule.py,   C:\boatrace\Import\Updata\get_player_schedule.py,0
 
 Checker,Player,check_score_ave.py,      C:\boatrace\Checker\Player\check_score_ave.py,0
 Checker,Player,check_score_ave_ALL.py,  C:\boatrace\Checker\Player\check_score_ave_ALL.py,0

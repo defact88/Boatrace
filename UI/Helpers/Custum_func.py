@@ -70,6 +70,19 @@ class cFr(tk.Frame):
 
         self.pack(**kwargs)
 
+    # ------------------------
+    def _config(self, Anc=None, W=None, H=None, Bd=None, Rel=None,px=None, py=None, **kwargs):
+
+        if W    is not None: kwargs['width']               = W
+        if H    is not None: kwargs['height']              = H
+        if Anc  is not None: kwargs['anchor']              = Anc
+        if Bd   is not None: kwargs['bd']                  = Bd[0] ;kwargs['relief'] = Bd[1]
+        if Rel  is not None: kwargs['relief']              = Rel
+        if px   is not None: kwargs['padx']                = px
+        if py   is not None: kwargs['pady']                = py
+
+        self.configure(**kwargs)
+
 # カスタム短縮表記ラベル -----------------------------------
 class cLbl(tk.Label):
     def __init__( self, master=None, *, W=None, H=None, Anc=None, Jst=None, Bd=None, Rel=None,

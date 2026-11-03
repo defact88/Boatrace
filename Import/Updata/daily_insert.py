@@ -108,18 +108,15 @@ def call_B(d_iso:str, overwrite:bool=False, background:bool=False):
     import_B_txt.main(argv)
 
 #-----------------------------------------------------------
-def run_ETL(d_from:str, d_to:str, background:bool):
-
-    argv = ["--date_from", d_from, "--date_to", d_to,]
+def run_ETL(date_f:str, date_t:str, background:bool):
 
     if background:
+        for prc, _path in (("B_info", BEF_PATH), ("odds", ODDS_PATH), ("schedule", SCH_PATH)):
 
-        for prc, _path in (("B_info", BEF_PATH), ("odds", ODDS_PATH)), ("schedule", SCH_PATH):
-            if prc == "schedule": argv = ["--regist_player",]
-
-            d         = f"{d_from}" if d_from == d_to else f"{d_from} - {d_to}"
-            file_name = f"{prc}_{d}.log"
-            log       = LOG_PATH / prc / file_name
+            argv = ["--regist_player",] if prc == "schedule" else ["--date_from", date_f, "--date_to", date_t,]
+            d    = f"{date_f}" if date_f == date_t else f"{date_f} - {date_t}"
+            file = f"{prc}_{d}.log"
+            log  = LOG_PATH / prc / file
 
             log.parent.mkdir(parents=True, exist_ok=True)
 
@@ -147,17 +144,18 @@ def run_ETL(d_from:str, d_to:str, background:bool):
                     print(str(e))
 
     else:
-        ETL_Before_info.main(argv)
-        ETL_odds_data.main(argv)
+        ETL_Before_info.run_ETL(date_f, date_t, None, None)
+        ETL_odds_data.run_ETL(date_f, date_t, None, None)
+        get_player_schedule.get_schedule(registed_players=True)
 
 #-----------------------------------------------------------
-def update_overall(d_iso:str, overwrite:bool=False):
+def update_overall(date_iso:str, overwrite:bool=False):
 
-    d_from  = days_ago(d_iso, 270)
-    d_to    = d_iso
-    data1   = Query( d_from, d_to, q_results=True, exclude_rookie=[True,False]
+    date_f = days_ago(date_iso, 270)
+    date_t = date_iso
+    data1  = Query( date_f, date_t, q_results=True, exclude_rookie=[True,False]
                       )._pack(by_course=True)
-    data2   = Query( d_from, d_to, q_results=True, exclude_rookie=[True,False], exclude_venue=3
+    data2  = Query( date_f, date_t, q_results=True, exclude_rookie=[True,False], exclude_venue=3
                       )._pack(by_course=True)
 
     json1 = json.dumps(data1, ensure_ascii=False)
@@ -168,12 +166,12 @@ def update_overall(d_iso:str, overwrite:bool=False):
     try:
         dal.execute(f"""
                 INSERT OR {sql}
-                          INTO Daily_Overall (date, all_venue, excld_edo)
+                          INTO Daily_Overall(date, all_venue, excld_edo)
                         VALUES (?, ?, ?)
                     """,
-                    (d_iso, json1, json2) )
+                    (date_iso, json1, json2) )
 
-        print(f"[{d_iso}] Daily_Overall created.")
+        print(f"[{date_iso}] Daily_Overall created.")
 
     except Exception as e:
         print(str(e))
@@ -198,20 +196,20 @@ def main():
         raise SystemExit(2)
 
     if args.days:
-        date_to   = today_iso()
-        date_from = days_ago(date_to, args.days)
+        date_t = today_iso()
+        date_f = days_ago(date_t, args.days)
     elif args.date:
-        date_to   = args.date
-        date_from = args.date
+        date_t = args.date
+        date_f = args.date
     elif args.date_from and args.date_to:
-        date_to   = args.date_to
-        date_from = args.date_from
+        date_t = args.date_to
+        date_f = args.date_from
     else:
-        date_to   = today_iso()
-        date_from = today_iso()
+        date_t = today_iso()
+        date_f = today_iso()
 
-    d = date_from
-    while d <= date_to:
+    d = date_f
+    while d <= date_t:
 
         if not args.overwrite and ensure_programs(d):
             print(f"[{d}] B_file is already imported")
@@ -221,12 +219,10 @@ def main():
             call_K(yesterday(d),      args.background)
 
         update_overall(d, args.overwrite)
-
         d = days_pass(d, 1)
 
     update_FLstate()
-    get_player_schedule.get_schedule(all=True)
-    run_ETL(yesterday(date_from), yesterday(date_to), args.background)
+    run_ETL(yesterday(date_f), yesterday(date_t), args.background)
 
     sys.exit(0)
 

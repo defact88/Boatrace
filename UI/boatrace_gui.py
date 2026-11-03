@@ -167,10 +167,10 @@ class App(tk.Tk):
             except Exception as e: print("[WARN] on_show failed:", e)
 
     # =========  出走表ウィンドウを開く ==========
-    def open_race_window(self, d_iso:str, venue_id:int, range_d:int, sub_window:bool):
+    def open_race_window(self, d_iso:str, venue_id:int, range_d:int, sub_window:bool, race_no=1):
 
         try:
-            win = RaceWindow(self.contanr, self, d_iso, venue_id, range_d, sub_window)
+            win = RaceWindow(self.contanr, self, d_iso, venue_id, race_no, range_d, sub_window)
             win.grab_set()
         except Exception as e:
             messagebox.showerror("ウィンドウ生成エラー", f"{e}\n\n{traceback.format_exc()}")

@@ -121,7 +121,8 @@ def w_txt(s:str) -> str:
 # --------------------------------------------------------------------
 class RaceWindow(tk.Toplevel):
 
-    def __init__(self, master, app, d_iso:str, venue_id:int, range_d:int=270, sub_window:bool=False):
+    def __init__( self, master, app, d_iso:str, venue_id:int,
+                  race_no:int=1, range_d:int=270, sub_window:bool=False ):
         super().__init__(master)
 
         self.geometry("1220x1400+75+0")
@@ -131,7 +132,7 @@ class RaceWindow(tk.Toplevel):
         self.app         = app
         self.date        = d_iso
         self.venue_id    = venue_id
-        self.race_no     = 1
+        self.race_no     = race_no
         self.date_to     = d_iso
         self.date_from   = days_ago(d_iso, range_d)
         self.vrange_d    = 1100

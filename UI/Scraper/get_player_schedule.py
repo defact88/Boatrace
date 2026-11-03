@@ -1,10 +1,11 @@
 ﻿# -*- coding: utf-8 -*-
 # C:\boatrace\Import\Updata\get_player_schedule.py
 
-import sys, argparse, re, warnings, random, time
-from datetime import datetime as dt, date, timedelta, timezone
+import sys, argparse, re, warnings, random, time, json
+from datetime  import datetime as dt, date, timedelta, timezone
 from bs4       import BeautifulSoup, XMLParsedAsHTMLWarning
 from curl_cffi import requests
+from pathlib   import Path
 import Dal as dal
 
 warnings.filterwarnings("ignore", category=XMLParsedAsHTMLWarning)
@@ -20,6 +21,8 @@ HEADERS = { "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:142.0) G
             "Sec-Fetch-User": "?1",
             "Connection": "keep-alive",                  }
 
+FAVORITE_JSON = Path(r"C:\boatrace\tmp\json\favorite_players.json")
+
 URL = "https://www.boatrace.jp/owpc/pc/data/racersearch/profile?toban={player_id}"
 
 GRADE_IDX = {"一般":0, "G3":1, "G2":2, "G1":3, "PG1":4, "SG":5, "ippan":0}
@@ -29,6 +32,21 @@ GRADE_RE  = re.compile(r"is-(SG|PG1|G1|G2|G3|ippan)")
 def today_iso() -> str:
     JST = timezone(timedelta(hours=9))
     return dt.now(JST).date().strftime("%Y-%m-%d")
+# ------------------------------------------------------------
+def _load_favorite_data() -> dict:
+
+    if not FAVORITE_JSON.exists(): return {}
+
+    try:
+        data = json.loads(FAVORITE_JSON.read_text(encoding="utf-8"))
+        if isinstance(data, list):
+            return {str(pid): {"conditions": []} for pid in data}
+        if isinstance(data, dict):
+            return data
+        return {}
+    except (json.JSONDecodeError, OSError):
+        return {}
+
 # ------------------------------------------------------------
 def fetch_profile_html(player_id:int):
 
@@ -65,8 +83,7 @@ def _venue_id_from_jcd(a_tag) -> int|None:
     m    = re.search(r"jcd=(\d+)", href)
     if not m: return None
 
-    jcd = int(m.group(1))
-    return jcd if 1 <= jcd <= 24 else None
+    return int(m.group(1))
 
 # ------------------------------------------------------------
 def _find_table(soup:BeautifulSoup, label:str):
@@ -100,15 +117,15 @@ def fetch_schedule_today(player_id:int) -> str|None:
                """,
                (today_iso(), player_id) )
     if rows:
-        r1   = rows[0]['rno']
-        r2   = rows[1]['rno'] if len(rows) >= 2 else 0
-        r1c  = rows[0]['frn']
-        r2c  = rows[1]['frn'] if r2 else 0
         vid  = rows[0]['vid']
         grd  = rows[0]['grd']
         titl = rows[0]['titl']
+        r1   = rows[0]['rno']
+        r1c  = rows[0]['frn']
+        r2   = rows[1]['rno'] if len(rows) >= 2 else None
+        r2c  = rows[1]['frn'] if r2 else None
 
-        return f"{today_iso()},{titl},{grd},{vid},{r1},{r1c},{r2},{r2c}"
+        return [today_iso(), titl, grd, vid, r1, r1c, r2, r2c]
     else:
         return None
 
@@ -136,7 +153,7 @@ def parse_schedule_upcoming(soup:BeautifulSoup) -> list[str]:
         title  = tds[4].get_text(strip=True)
         venue  = _venue_id_from_jcd(tds[4].find("a"))
 
-        out.append(f"{d_from},{d_to},{title},{grade},{venue}")
+        out.append([d_from, d_to, title, grade, venue])
 
     return out[:4]
 
@@ -189,6 +206,13 @@ def active_player_ids(days:int=365) -> list[int]:
               (f"-{days} days",) )
 
     return [r[0] for r in rows]
+# ------------------------------------------------------------
+def upsert_registed_players():
+
+    rows = _load_favorite_data()
+    for pid in rows.keys():
+        upsert_player_schedule(int(pid))
+        print(f"player_id={pid} 更新完了")
 
 # ------------------------------------------------------------
 def update_all_schedules(days:int=365):
@@ -201,14 +225,14 @@ def update_all_schedules(days:int=365):
         print(f"[{i}/{n}] player_id={pid} 更新完了")
 
 # ------------------------------------------------------------
-def get_schedule(player:int=None, all:bool=False, regist_player:bool=False):
+def get_schedule(player:int=None, registed_players:bool=False):
 
-    if all:
-        update_all_schedules()
-    elif player:
-        upsert_player_schedule(args.player)
+    if player:
+        upsert_player_schedule(player)
+    elif registed_players:
+        upsert_registed_players()
     else:
-        print("assignment player")
+        update_all_schedules()
 
 #=====================================================================
 def main(argv=None):
@@ -216,13 +240,15 @@ def main(argv=None):
     p = argparse.ArgumentParser()
     p.add_argument("--player",        type=int,            help="対象選手(player_id)")
     p.add_argument("--all",           action="store_true", help="直近1年出走選手を一括更新")
-    p.add_argument("--regist_player", action="store_true", help="登録注目選手を一括更新")
+    p.add_argument("--registed_players", action="store_true", help="登録注目選手を一括更新")
     args = p.parse_args(argv)
 
     if args.all:
         update_all_schedules()
     elif args.player:
         upsert_player_schedule(args.player)
+    elif args.registed_players:
+        upsert_registed_players()
     else:
         print("assignment player")
 

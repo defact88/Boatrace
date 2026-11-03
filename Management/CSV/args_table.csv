@@ -125,9 +125,15 @@ get_today_info.py,          --first,     required=False
 
 get_player_schedule.py,     --player,    required=False
 get_player_schedule.py,     --all,       required=False
+get_player_schedule.py, --registed_players, required=False
 
 summarize_today.py,         --date,      required=False
 
 odds_window.py,             --date,      required=True
 odds_window.py,             --venue,     required=True
 odds_window.py,             --race,      required=True
+
+brouse_race_replay.py,      --date,      required=True
+brouse_race_replay.py,      --venue_id,  required=True
+brouse_race_replay.py,      --race_no,   required=True
+brouse_race_replay.py,      --v_name,    required=True
