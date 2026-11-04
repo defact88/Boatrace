@@ -7,8 +7,9 @@ from datetime    import datetime as dt, date, timedelta, timezone
 from collections import defaultdict
 import re, tkinter as tk
 
-from Helpers.Custum_func import cFr, cLbl, cBtn
-from widgets import apply_absent_bg
+from Custum_func        import cFr, cLbl, cBtn
+from widgets            import apply_absent_bg
+from brouse_race_replay import brouse_race_replay
 import Dal as dal
 
 RE_FINAL = re.compile(    r"(?<!準)"
@@ -43,19 +44,19 @@ GR, SD, RD, RA, BD = "groove", "solid", "ridge", "raised", "bold"
 ALL, CT            = "nsew", "center"
 "#E9F1F2"
 
-BG_COL   = "#F0F4FA"
-HL_BLU   = "#D0E3FF"
-BLUE2    = "#0D7DDA"
-WHITE    = "#FFFFFF"
-BLACK    = "#000000"
-HDR_BG   = "#2B4A7A"
-BTN_BG   = "#4A6A9A"
-R_N_OPT = dict(bg="#bacae2", fg="BLACK", Bd=(1,GR))
+BG_COL  = "#F0F4FA"
+HL_BLU  = "#D0E3FF"
+BLUE2   = "#0D7DDA"
+WHITE   = "#FFFFFF"
+BLACK   = "#000000"
+HDR_BG  = "#2B4A7A"
+BTN_BG  = "#4A6A9A"
+RN_OPT  = dict(bg="#e4ecff", fg="BLACK", Bd=(1,GR))
 
-HDR_B    = dict(bg=HDR_BG)
-HDR_BF   = dict(bg=HDR_BG, fg=WHITE)
-BTN_BF   = dict(bg=BTN_BG, fg=WHITE)
-BTN_OPT  = dict(bg=BTN_BG, fg=WHITE, Bd=(1,RA), Csr="hand2")
+HDR_B   = dict(bg=HDR_BG)
+HDR_BF  = dict(bg=HDR_BG, fg=WHITE)
+BTN_BF  = dict(bg=BTN_BG, fg=WHITE)
+BTN_OPT = dict(bg=BTN_BG, fg=WHITE, Bd=(1,RA), Csr="hand2")
 
 TODAY = dict(fg=WHITE, bg="#006cc5", Bd=(1,RD))
 OTHER = dict(fg=WHITE, bg=HDR_BG,    Bd=(1,GR))
@@ -295,6 +296,7 @@ def _assign_series_idx(self, slots, lineup):
 
         for col_cells in cells:
             col_cells[0].unbind("<Button-1>")
+            col_cells[3].unbind("<Button-1>")
             for r in range(4):
                 col_cells[r]._config(text="", bg=BG_COL, Bd=(1,GR), fg="black", Csr="")
 
@@ -304,7 +306,7 @@ def _assign_series_idx(self, slots, lineup):
             d_iso = info.get("date")
             row   = _filter_rows(d_iso, result_map.get((p_id, d_iso), []))[:2]
             if d_iso < self.date and len(row) >= 1:
-                cells[i*2 +1][0]._config(text="", **R_N_OPT)
+                cells[i*2 +1][0]._config(text="", bg=BG_COL)
 
             L     = _conv_one(row[0]) if len(row) >= 1 else None
             R     = _conv_one(row[1]) if len(row) >= 2 else None
@@ -318,11 +320,12 @@ def _paint_abcd(self, cells:list, r_no:int, course:int, st:str, rank:str, f_no:i
     col = FRAME_COLORS[f_no]
     fg  = "red" if rank in ("F", "L", "S", "K") else "black"
 
-    cells[0]._config(text=w_txt(f"{r_no}R"), font=(GUI,8,BD), **R_N_OPT, Csr="hand2", Anc="n", py=5)
+    cells[0]._config(text=w_txt(f"{r_no}R"), font=(GUI,8,BD), **RN_OPT, Csr="hand2", Anc="n", py=5)
     cells[1]._config(text=course,            font=(MUI,8,BD), **col, Bd=(3,GR))
     cells[2]._config(text=st,                font=(MUI,8),    fg=fg, bg=WHITE, Bd=(1,GR))
-    cells[3]._config(text=rank,              font=(MUI,8,BD), fg=fg, bg=WHITE, Bd=(1,GR))
+    cells[3]._config(text=rank,              font=(MUI,8,BD), fg=fg, bg=WHITE, Bd=(1,GR), Csr="hand2")
     cells[0].bind("<Button-1>", lambda e:self._reload_for(d, self.venue_id, r_no, result=True))
+    cells[3].bind("<Button-1>", lambda e:brouse_race_replay(d, self.venue_id, r_no))
 
 # --------------- 2走インデックス 表示/更新 ----------------
 def _assign_other_run(self, lineup):

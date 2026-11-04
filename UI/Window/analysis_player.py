@@ -10,11 +10,11 @@ from collections            import defaultdict
 from datetime               import datetime as dt, date, time, timedelta
 import os, tkinter as tk, Dal as dal
 
-from Helpers.Custum_func    import cFr, cLbl, cBtn, cCvs
-from Helpers.queries        import Query
-from Widgets.widgets        import set_player_image, framing_graph
-from Window.classification  import PlayerClassificationWindow
-
+from Custum_func        import cFr, cLbl, cBtn, cCvs
+from queries            import Query
+from widgets            import set_player_image, framing_graph
+from classification     import PlayerClassificationWindow
+from brouse_race_replay import brouse_race_replay
 
 GUI, MUI, HNH, CBR     = "Yu Gothic UI", "Meiryo UI", "Helvetica Neue Heavy", "Cambria"
 GR, SD, RD, RA, SK, BD = "groove", "solid", "ridge", "raised", "sunken", "bold"
@@ -127,7 +127,7 @@ class PlayerAnalysisWindow(tk.Toplevel):
         super().__init__(parent)
 
         self.title("")
-        self.geometry("1201x970+750+200")
+        self.geometry("1201x970+85+94")
         self.resizable(False, False)
 
         self.date_from  = date.today()
@@ -770,13 +770,13 @@ class PlayerAnalysisWindow(tk.Toplevel):
                 row = self.series_rows[year]
 
         for r, seri in enumerate(reversed(row.values())):
-            d_min, d_max, title, grade, _, slots = seri.values()
+            d_min, d_max, v_id, title, grade, _, slots = seri.values()
 
-            fr_grid = cFr(self.body, W=352, H= 146, **TITLE_B, Bd=(1,SD))
+            fr_grid = cFr(self.body, W=352, H= 176, **TITLE_B, Bd=(1,SD))
             fr_term = cFr(fr_grid,   W=350, H=  22, **TITLE_B, px=30)
             fr_grde = cFr(fr_grid,   W= 46, H=  20, Bd=(1,RD))
             fr_titl = cFr(fr_grid,   W=300, H=  22, **TITLE_B)
-            fr_cell = cFr(fr_grid,   W=350, H=  90, Bd=(1,GR))
+            fr_cell = cFr(fr_grid,   W=350, H= 120, Bd=(1,GR))
 
             fr_grid._grid(R=r, C=0,          Stk=ALL,           py=(10,0)) ;fr_grid.Pgate()
             fr_term._grid(R=0, C=0, Cspan=2, Stk=ALL,           py=(1,2))  ;fr_term.Pgate()
@@ -797,25 +797,33 @@ class PlayerAnalysisWindow(tk.Toplevel):
                  )._grid(R=0, C=0, px=(20,0), Stk=ALL)
 
             for col, item in enumerate(slots):
+                d     = item['date'].strip()
+                r_no  = f"{item['r_no']}R" if item['r_no'] else ""
                 frn   = item["fr_no"]
                 cour  = item["cour"]
-                slit  = f"{item['s_adj']:.2f}"[1:] if item['s_adj'] else ""
-                rank  = convert_rank(item["finish"], item["is_fnl"], item["prefnl"])
+                s_adj = float(abs(item['s_adj'])) if item['s_adj'] else None
+                slit  = f"{s_adj:.2f}"[1:] if s_adj else ""
+                rank  = convert_rank(item["finish"], item["final"], item["prefnl"])
                 fcolr = ("red" if item["finish"] in ("F","L","S","K") else "black")
                 bg    = YELL if cour == self.course else "white"
 
                 fr_cell.Cconf(col, Min=25)
 
-                for row in range(3):
-                    opt = { 0: dict(text=cour, **FRM_COLOR[frn],     font=(GUI, 9,BD) ),
-                            1: dict(text=slit, fg=fcolr, bg="white", font=(MUI, 8   ) ),
-                            2: dict(text=rank, fg=fcolr, bg=bg,      font=(GUI,10,BD) ), }
-                    if item["is_fnl"]: opt[2]["font"] = (MUI,12,BD) ;opt[2]["py"] = 3
-                    if item["prefnl"]: opt[2]["font"] = (GUI,9,BD)
+                for row in range(4):
+                    opt = { 0: dict(text=r_no,                       font=(GUI, 9,BD) ),
+                            1: dict(text=cour, **FRM_COLOR[frn],     font=(GUI, 9,BD) ),
+                            2: dict(text=slit, fg=fcolr, bg="white", font=(MUI, 8   ) ),
+                            3: dict(text=rank, fg=fcolr, bg=bg,      font=(GUI,10,BD) ), }
+                    if item["final"]:  opt[3]["font"] = (MUI,12,BD) ;opt[3]["py"] = 3
+                    if item["prefnl"]: opt[3]["font"] = (GUI,9,BD)
 
                     fr_cell.Rconf(row, Min=30) ;
 
-                    cLbl(fr_cell, **opt[row], Anc=CT, Bd=(1,GR))._grid(R=row, C=col, Stk=ALL, px=1, py=1)
+                    lbl = cLbl(fr_cell, **opt[row], Anc=CT, Bd=(1,GR))
+                    lbl._grid(R=row, C=col, Stk=ALL, px=1, py=1)
+                    if row == 3 and rank:
+                        lbl.bind("<Button-1>", lambda e, d=d, v=v_id, r=item['r_no']:brouse_race_replay(d, v, r))
+                        lbl._config(Csr="hand2")
 
         self.canvs.configure(scrollregion= self.canvs.bbox("all"))
 
@@ -880,19 +888,19 @@ class PlayerAnalysisWindow(tk.Toplevel):
 
         for w in self.win.winfo_children(): w.destroy()
 
-        fr_left  = cFr(self.win, W=440, H=250)
-        fr_right = cFr(self.win, W=330, H=250)
-
-        for r in range(7):
-            fr_left.Rconf(r, minsize=28)
-            fr_right.Rconf(r, minsize=28)
-            for c in range(7):
-                fr_left.Cconf(c, minsize=55)
-                if c <= 5:
-                    fr_right.Cconf(c, minsize=55)
+        fr_left  = cFr(self.win, W=430, H=210)
+        fr_right = cFr(self.win, W=330, H=210)
 
         fr_left._grid( R=0, C=0, py=(20,0))  ;fr_left.Pgate()
         fr_right._grid(R=0, C=1, py=(20,0)) ;fr_right.Pgate()
+
+        for r in range(7):
+            fr_left.Rconf(r, minsize=30)
+            fr_right.Rconf(r, minsize=30)
+            for c in range(7):
+                fr_left.Cconf(c, minsize=60)
+                if c <= 5:
+                    fr_right.Cconf(c, minsize=55)
 
         self.dist_refs = {   "fr_left": fr_left, "fr_right": fr_right,
                             "rank_btn": {}, "cells": {}, "move_cells": {},
@@ -908,33 +916,33 @@ class PlayerAnalysisWindow(tk.Toplevel):
         self.lb_totl._grid(R=0, C=0, px=1, py=1, Stk=ALL)
         self.lb_totl.bind("<Button-1>",lambda e:self._change_disp())
 
-        for rk in range(1, 7):
-            rbtn = cBtn( fr_left, text=f"{rk} 着", font=(MUI,8), **HDR_OPT,
-                             Com=lambda _rk=rk: self._toggle_subject_rank(_rk) )
-            rbtn.grid(row=0, column=rk, padx=1, pady=1, sticky=tk.NSEW)
-            self.dist_refs["rank_btn"][rk] = rbtn
+        for rnk in range(1, 7):
+            rbtn = cBtn( fr_left, text=f"{rnk} 着", font=(MUI,8), **HDR_OPT,
+                             Com=lambda r=rnk: self._toggle_subject_rank(r) )
+            rbtn._grid(R=0, C=rnk, px=1, py=(0,1), Stk=ALL)
+            self.dist_refs["rank_btn"][rnk] = rbtn
 
         for c in range(1, 7):
             cbtn = cBtn( fr_left, text=f"{c}コース", font=(MUI,8,BD), **HDR_OPT,
-                              Com=lambda _c=c:self._on_subject_course_btn(_c) )
-            cbtn.grid(row=c, column=0, padx=(0, 1), pady=0, sticky=tk.NSEW)
+                              Com=lambda c=c:self._on_subject_course_btn(c) )
+            cbtn._grid(R=c, C=0, px=1, Stk=ALL)
             self.dist_refs["course_btn"][c] = cbtn
 
-            for rk in range(1, 7):
-                cell = cLbl(fr_left, text="", Bd=(1,RD), Anc=CT, py=0)
-                cell._grid(R=c, C=rk, Stk=ALL)
-                self.dist_refs["cells"][(c, rk)] = cell
+            for rnk in range(1, 7):
+                cell = cLbl(fr_left, text="", Bd=(1,RD), Anc=CT)
+                cell._grid(R=c, C=rnk, Stk=ALL)
+                self.dist_refs["cells"][(c, rnk)] = cell
 
         for j, (label, keys) in enumerate(self.dist_refs["move_cols"]):
-            cLbl(fr_right, text=label, py=4, font=(MUI,8,BD), **HDR_OPT, Anc=CT
-                 )._grid(R=0, C=j, py=(0,2), Stk=ALL)
+            cLbl(fr_right, text=label, py=1, font=(MUI,8,BD), **HDR_OPT, Anc=CT
+                 )._grid(R=0, C=j, py=(0,1), Stk=ALL)
 
         for r in range(1, 7):
             for c, (label, keys) in enumerate(self.dist_refs["move_cols"]):
                 bg ="#e9e6e6" if r >=2 and c == 0 else "white"
-                cell = cLbl(fr_right, text="", W=6, py=2, Bd=(1,RD), Anc=CT, bg=bg)
+                cell = cLbl(fr_right, text="", py=1, Bd=(1,RD), Anc=CT, bg=bg)
                 cell._grid(R=r, C=c, Stk=ALL)
-                self.dist_refs["move_cells"][(r, label)] = cell
+                self.dist_refs["move_cells"][(r,label)] = cell
 
         self._render_distribute_table()
 

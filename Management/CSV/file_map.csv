@@ -15,13 +15,11 @@ UI,Helpers,player_picker,               C:\boatrace\UI\Helpers\player_picker.py,
 UI,Helpers,Custum_func,                 C:\boatrace\UI\Helpers\Custum_func.py,1
 UI,Helpers,queries,                     C:\boatrace\UI\Helpers\queries.py,1
 UI,Helpers,ev_scanner.py,               C:\boatrace\UI\Helpers\ev_scanner.py,0
-UI,Helpers,brouse_race_replay.py,       C:\boatrace\UI\Helpers\brouse_race_replay.py,0
-UI,Helpers,__init__,                    C:\boatrace\UI\Helpers\__init__.py,0
+UI,Helpers,brouse_race_replay.py,        C:\boatrace\UI\Helpers\brouse_race_replay.py,0
 
 UI,Widgets,widgets.py,                  C:\boatrace\UI\Widgets\widgets.py,1
 UI,Widgets,center_widgets.py,           C:\boatrace\UI\Widgets\center_widgets.py,0
 UI,Widgets,placeholder.py,              C:\boatrace\UI\Widgets\placeholder.py,1
-UI,Widgets,__init__,                    C:\boatrace\UI\Widgets\__init__.py,0
 
 UI,Window,RaceWindow,                   C:\boatrace\UI\Window\race_window.py,1
 UI,Window,PlayerAnalysisWindow,         C:\boatrace\UI\Window\analysis_player.py,1

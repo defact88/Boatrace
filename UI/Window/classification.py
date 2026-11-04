@@ -6,8 +6,8 @@ from tkinter             import ttk, messagebox
 from typing              import Dict
 from datetime            import datetime as dt, date
 
-from Helpers.Custum_func import cFr, cLbl, cBtn, cCvs, cSrb
-from Helpers.queries     import Query
+from Custum_func import cFr, cLbl, cBtn, cCvs, cSrb
+from queries     import Query
 import Dal as dal
 
 GUI, MUI           = "Yu Gothic UI", "Meiryo UI"
@@ -18,7 +18,7 @@ COLS           = [ ("player_id", "登番"     ),
                    ("name",      "選手名"   ),
                    ("age",       "年齢"     ),
                    ("regions",   "所属支部" ),
-                   ("class_now", "現適用級" ),
+                   ("class_now", "現 級"    ),
                    ("score_ave", "適用勝率" ),
                    ("sc_now",    "今期勝率" ),
                    ("to_final",  "優 出"    ),
@@ -29,7 +29,7 @@ COLS           = [ ("player_id", "登番"     ),
 
 CEL_W = 70
 CEL_H = 30
-CELLS = [70, 120, 60, 70, 70, 70, 70, 60, 60, 60, 60, 60]
+CELLS = [70, 120, 60, 70, 60, 70, 70, 60, 60, 60, 60, 60]
 
 P_GEN_PRE  = [0, 10,  8, 6, 4, 2, 1]
 P_GEN_FIN  = [0, 11,  9, 7, 6, 4, 3]
@@ -73,7 +73,7 @@ class PlayerClassificationWindow(tk.Toplevel):
         super().__init__(master)
 
         self.title("")
-        self.geometry("866x970+1145+200")
+        self.geometry("866x970+420+93")
         self.resizable(False, False)
         self.regist_period = regist_period
         self.region        = region
@@ -84,13 +84,13 @@ class PlayerClassificationWindow(tk.Toplevel):
     # ------------------------------------------------------
     def build_ui(self):
 
-        fr_main = cFr(self, W=866, H=970, px=9, py=5)
+        fr_main = cFr(self, W=856, H=970, px=9, py=5)
         fr_main._grid(R=0, C=0) ;fr_main.Pgate()
 
-        fr_info      = cFr(fr_main,     W=848, H= 50)
-        fr_hdr       = cFr(fr_main,     W=832, H= 30, Bd=(1,SD))
-        self.canvas  = cCvs(fr_main,    W=832, H=870)
-        self.fr_body = cFr(self.canvas, W=832,        Bd=(1,SD))
+        fr_info      = cFr(fr_main,     W=838, H= 50)
+        fr_hdr       = cFr(fr_main,     W=822, H= 30, Bd=(1,SD))
+        self.canvas  = cCvs(fr_main,    W=822, H=870)
+        self.fr_body = cFr(self.canvas, W=822,        Bd=(1,SD))
         scr_bar      = cSrb(fr_main, orient="vertical", Com=self.canvas.yview)
         self.canvas.config(yscrollcommand=scr_bar.set)
 
@@ -317,7 +317,7 @@ class PlayerClassificationWindow(tk.Toplevel):
     #-------------------------------------------------------
     def _player_screen(self, pid):
 
-        from Screens import PlayerAnalysisWindow
+        from Window import PlayerAnalysisWindow
         PlayerAnalysisWindow(self, pid, cou=1)
 
 

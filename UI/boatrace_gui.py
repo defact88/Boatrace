@@ -125,7 +125,6 @@ class App(tk.Tk):
 
         self.protocol("WM_DELETE_WINDOW", self._on_close)
         self.title(APP_TITLE)
-        self.geometry("700x600+500+250")
         self.minsize(500, 400)
         self.configure(bg=MAIN_BG)
 
@@ -155,12 +154,13 @@ class App(tk.Tk):
         scr = self.screens[name] ;scr.pack(fill=tk.BOTH, expand=True)
         self.current = scr
 
-        if   name == "DBO": self.geometry("1800x1200")
-        elif name == "DBS": self.geometry("1300x900")
-        elif name == "DBQ": self.geometry("1350x900")
-        elif name == "RSS": self.geometry( "800x650+350+300")
-        elif name == "PFS": self.geometry( "1220x1400+75+0")
-        else:               self.geometry( "600x500+90+0")
+        if   name == "Main": self.geometry( "600x500+120+60")
+        elif name == "DBO":  self.geometry("1800x1200")
+        elif name == "DBS":  self.geometry("1300x900")
+        elif name == "DBQ":  self.geometry("1350x900")
+        elif name == "RSS":  self.geometry( "800x650+120+60")
+        elif name == "PFS":  self.geometry("1220x1400+75+0")
+        else:                self.geometry( "600x500+90+0")
 
         if hasattr(scr, "on_show"):
             try: scr.on_show()

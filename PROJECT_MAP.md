@@ -22,18 +22,21 @@ boatrace/
     summarize_today.py               # 当日情報取得ｻ各ﾌﾞﾌﾟﾛｾｽの実行管理ﾚｲﾔｰ(botrace_gui.py起動時に実行)
     odds_window.py(OddsWindow)       # RaceWindowと並列でｻﾌﾞﾌﾟﾛｾｽ表示されるｵｯｽﾞ画面
     results_window.py(ResultsWindow) # RaceWindowと並列でｻﾌﾞﾌﾟﾛｾｽ表示されるﾚｰｽ結果画面
+
     Window/
       race_window.py                 # 出走表メイン
       analysis_player.py             # PlayerAnalysisWindow・・・選手詳細情報ｳｨﾝﾄﾞｳ
       analysis_venue.py              # VenueAnalysisWindow・・・ ﾚｰｽ場詳細情報ｳｨﾝﾄﾞｳ
       analysis_motor.py              # MotorAnalysisWindow・・・モーター詳細情報ｳｨﾝﾄﾞｳ
       classification.py              # PlayerClassificationWindow・・・同期/同支部選手一覧表示ｳｨﾝﾄﾞｳ
+
     Screens/                         # 遷移画面クラス
       race_serect.py                 # RaceSelectScreen・・・RaceWindow表示レース選択画面
       DB_ops.py                      # DBOpsScreen・・・DB参照
       DB_schem.py                    # DBSchemScreen・・・ﾃｰﾌﾞﾙ/ｶﾗﾑ 追加/削除/更新
       DB_query.py                    # DBQueryScreen・・・特定ﾚｰｽ条件でﾚｰｽ結果の比較検証
       player_Favor.py                # 指定条件成績 選手検索, 注目選手登録/管理画面
+
     Scraper/                         # summarize_today.pyから管理/実行
       get_Before_info.py             # 展示航走/直前情報ﾃﾞｰﾀの取得/ﾊﾟｰｽ/挿入
       get_results_today.py           # ﾚｰｽ結果ﾃﾞｰﾀの取得/ﾊﾟｰｽ/挿入(翌日の日時更新時に正規ﾃﾞｰﾀでUPDATE)
@@ -45,6 +48,8 @@ boatrace/
       get_oriten_info.py             # ｵﾘｼﾞﾅﾙ展示情報 取得/ﾊﾟｰｽ/挿入ｽｸﾘﾌﾟﾄ
       scraper_odds.py/
           fetch_all_odds             # OddsWindowのｵｯｽﾞﾃﾞｰﾀ ｽｸﾚｲﾋﾟﾝｸﾞ/ﾊﾟｰｽ
+      get_player_schedule.py         # 選手の出走予定データの取得/ﾊﾟｰｽ/挿入ｽｸﾘﾌﾟﾄ
+
     Helpers/
       Custum_func.py                 # tkinterのｵﾘｼﾞﾅﾙ短縮表記ｸﾗｽ, ﾒｿｯﾄﾞ
       queries.py/                    # DB 汎用クエリクラス
@@ -62,6 +67,7 @@ boatrace/
       ev_scanner.py/
           evaluate_ev                # 予想ｴﾝｼﾞﾝ（未完成）
           persist_odds_snapshot      # oddsﾃﾞｰﾀ挿入, evaluate_evのﾗｯﾊﾟｰ
+      brouse_race_replay.py          # ﾌﾞﾗｳｻﾞで指定のﾚｰｽﾘﾌﾟﾚｲを再生
 
     Widgets/
       widgets.py/
@@ -92,7 +98,6 @@ boatrace/
       ETL_odds_data.py               # ｵｯｽﾞﾃﾞｰﾀ(Odds)を指定期間で一括取得
       ETL_Before_info.py             # 展示航走/直線情報(Before_info)を指定期間で一括取得
       update_FLstate.py              # Race_entriesからPlayers.flying_st, late_st(今期ﾌﾗｲﾝｸﾞ,出遅れ)ﾃﾞｰﾀ算出/挿入ﾌﾟﾛｾｽ
-      get_player_schedule.py         # 選手の出走予定データの取得/ﾊﾟｰｽ/挿入ｽｸﾘﾌﾟﾄ
 
   Checker/
     data/

@@ -136,4 +136,3 @@ odds_window.py,             --race,      required=True
 brouse_race_replay.py,      --date,      required=True
 brouse_race_replay.py,      --venue_id,  required=True
 brouse_race_replay.py,      --race_no,   required=True
-brouse_race_replay.py,      --v_name,    required=True
