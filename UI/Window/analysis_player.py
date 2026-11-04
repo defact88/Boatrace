@@ -151,7 +151,7 @@ class PlayerAnalysisWindow(tk.Toplevel):
 
         self.grade_state  = { (0, 1):True, (2,):True, (3, 4):True, (5,):True }
 
-        self.trend_state  = {  "sr_single":True,   "sr_cumltv":False,
+        self.trend_state  = {  "sr_single":True,   "sr_cumltv":True,
                                "st_single":False,  "st_cumltv":False  }
 
         self.filter_state = {   "str_wind":False,      "local":False,
@@ -695,7 +695,7 @@ class PlayerAnalysisWindow(tk.Toplevel):
                 y = T + YH - int( (yv / 10.0) * YH )
                 cv._crtxt(W-R +5, y, text=f"{yv}", Anc="w", font=(GUI,9)) # 右軸ﾗﾍﾞﾙ
                 if yv == 6.0:
-                    cv.create_line(L, y, XW+L, y, fill="#c1c1c1", width=1)
+                    cv.create_line(L, y, XW+L, y, fill="#d7d7d7", width=1)
                 if yv in [3.0]:
                     cv.create_line(L, y, XW+L, y, fill="#dedede", width=1)
             if not data:
@@ -715,19 +715,20 @@ class PlayerAnalysisWindow(tk.Toplevel):
                 x = xs[i]
                 cv.create_line(x, T, x, T+YH, fill="#FF2A2A", width=1)
         #-----------
-        def draw_line(xs, ys, color):
+        def draw_line(xs, ys, color, line=False):
             pts = [(xs[i], ys[i]) for i in range(n) if ys[i] is not None]
             for i in range(1, len(pts)):
                 x1,y1 = pts[i-1] ;x2,y2 = pts[i]
                 cv.create_line(x1, y1, x2, y2, fill=color, width=1)
             for i,(x,y) in enumerate(pts):
                 g = grade[i]
-                cv.create_oval(x-1.8, y-1.8, x+1.8, y+1.8, fill=G_COL[g], outline="")
+                if not line:
+                    cv.create_oval(x-1.8, y-1.8, x+1.8, y+1.8, fill=G_COL[g], outline="")          
         #-----------
-        if self.trend_state.get("sr_cumltv"): draw_line(xs, ys_sr_c, SRC_COL)
+        if self.trend_state.get("sr_cumltv"): draw_line(xs, ys_sr_c, SRC_COL, True)
         if self.trend_state.get("sr_single"): draw_line(xs, ys_sr_s, SRS_COL)
         if self.trend_state.get("st_cumltv") and any(v is not None for v in ys_st_c):
-            draw_line(xs, ys_st_c, STR_COL)
+            draw_line(xs, ys_st_c, STR_COL, True)
         if self.trend_state.get("st_single") and any(v is not None for v in ys_st_s):
             draw_line(xs, ys_st_s, STC_COL)
 

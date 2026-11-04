@@ -210,7 +210,7 @@ class Query():
                           "r4":0, "r5":0, "r6":0  } for g in ["ALL","SG","G1","G2","G0"] }
 
         cnts = { g:{ "sc_sum":0, "st_sum":0,
-                    "sc_cnt":0, "st_cnt":0, "series":set() } for g in ["ALL","SG","G1","G2","G0"] }
+                     "sc_cnt":0, "st_cnt":0, "series":set() } for g in ["ALL","SG","G1","G2","G0"] }
 
         for _, _, title, grade, _, is_final, _, _, _, s_adj, rank, f_code, f_level in rows:
 
@@ -231,7 +231,7 @@ class Query():
                 if point_up:
                     pts, cnt = self._point_for(title, grade, is_final, rank, f_level)
                 else:   # grade別成績にgrade加点しない
-                    pts, cnt = self._point_for("",    0,     is_final, rank, f_level) 
+                    pts, cnt = self._point_for(title, 0,     is_final, rank, f_level) 
                 c["sc_sum"] += pts
                 c["sc_cnt"] += cnt
 
@@ -253,7 +253,7 @@ class Query():
     # ------------------------------------------------------
     def _packing_by_course(self, rows):
 
-        out = { c:{ "cnt":0, "st_ave":0, "sc_ave":0,
+        out = { c:{ "cnt":0, "st_ave":0, "sc_ave":0, "F_L":0,
                    "rate":{rk:0 for rk in range(1,7)}         } for c in range(0,7) }
 
         sum = { c:{ "st":0, "rk":{rk:0 for rk in range(1,7)}  } for c in range(0,7) }
@@ -266,8 +266,8 @@ class Query():
             sc_cnt += cnt
             sc_sum += pts
 
-            #out[c]["F_L"] += 1 if f_code in ["F","L"] else 0
-            if f_code in ["F","L","K"]: continue
+            if f_code in ["F","L"] and c: out[c]["F_L"] += 1 
+            if f_code in ["F","L","K"]:   continue
 
             out[c]["cnt"] += 1
             out[0]["cnt"] += 1
@@ -290,39 +290,45 @@ class Query():
     # ------------------------------------------------------
     def _packing_by_series(self, rows):
 
-        out = {}
+        out = [{},{}]
+        cnts, sum = 0, 0
+
         for _date, v_id, title, grade, r_no, final, prefnl, frno, cour, s_adj, rank, fcode, flevel in rows:
 
             year = dt.fromisoformat(_date).year
 
-            if year not in out: out[year] = {}
-            if title not in out[year]:
-                out[year][title] = { "start":_date, "end":_date, "v_id":v_id, "title":title,
-                                     "grade":grade,
-                                     "results":[], "slots":[], "d_pack":{},                   }
+            if year not in out[0]: out[0][year] = {}
+            if title not in out[0][year]:
+                out[0][year][title] = { "start":_date,  "end":_date, "v_id":v_id,
+                                        "title":title, "grade":grade,
+                                        "results":[], "slots":[], "d_pack":{},    }
 
-            if _date < out[year][title]["start"]: out[year][title]["start"] = _date
-            if _date > out[year][title]["end"]:   out[year][title]["end"]   = _date
+            if _date < out[0][year][title]["start"]: out[0][year][title]["start"] = _date
+            if _date > out[0][year][title]["end"]:   out[0][year][title]["end"]   = _date
 
-            out[year][title]["results"].append([grade, final, rank, fcode, flevel, s_adj])
+            out[0][year][title]["results"].append([grade, final, rank, fcode, flevel, s_adj])
+            pts, cnt = self._point_for(title, grade, final, rank, flevel)
+            sum  += pts ;cnts += cnt
 
-            if _date not in out[year][title]["d_pack"]: out[year][title]["d_pack"][_date] = []
+            if _date not in out[0][year][title]["d_pack"]:
+                out[0][year][title]["d_pack"][_date] = []
 
-            out[year][title]["d_pack"][_date].append({   "date":_date,
-                                                         "r_no":r_no,
-                                                        "final":final,
-                                                       "prefnl":prefnl,
-                                                        "fr_no":frno,
-                                                         "cour":cour  if cour  else "",
-                                                        "s_adj":s_adj if s_adj else None,
-                                                       "finish":rank  if rank  else fcode } )
+            out[0][year][title]["d_pack"][_date].append({   "date":_date,
+                                                            "r_no":r_no,
+                                                           "final":final,
+                                                          "prefnl":prefnl,
+                                                           "fr_no":frno,
+                                                            "cour":cour  if cour  else "",
+                                                           "s_adj":s_adj if s_adj else None,
+                                                          "finish":rank  if rank  else fcode } )
+        out[1]["sc_total"] = (sum / cnts)*5
 
         return out
 
     # ------------------------------------------------------
     def _repacking_index(self, rows):
 
-        for year in rows.values():
+        for year in rows[0].values():
             for seri in year.keys():
                 for day in year[seri]["d_pack"].keys(): 
                     for items in year[seri]["d_pack"][day]:
@@ -339,17 +345,17 @@ class Query():
  
                 year[seri].pop("d_pack", None)
 
-        return rows
+        return rows[0]
 
     # ------------------------------------------------------
     def _repacking_trend(self, rows):
 
         out    = []
-        cumltv = dict(sc_cnt=0, st_cnt=0, sc_sum=0, st_sum=0)
+        cumltv = dict(sr_cnt=5, st_cnt=0, sr_sum=rows[1]["sc_total"], st_sum=0)
 
-        for idx, year in enumerate(rows.values()):
+        for idx, year in enumerate(rows[0].values()):
             for title in year.keys():
-                single = dict(sc_cnt=0, st_cnt=0, sc_sum=0, st_sum=0)
+                single = dict(sr_cnt=0, st_cnt=0, sr_sum=0, st_sum=0)
                 has_F  = False
 
                 for grade, is_final, rank, f_code, f_level, s_adj in year[title]["results"]:
@@ -357,16 +363,16 @@ class Query():
                     if (f_code == 'F') or (f_code == 'L' and f_level != 0): has_F = True
                     pts, cnt = self._point_for(title, grade, is_final, rank, f_level)
 
-                    single["sc_cnt"] += cnt
-                    single["sc_sum"] += pts
+                    single["sr_cnt"] += cnt
+                    single["sr_sum"] += pts
                     single["st_cnt"] += 1     if (f_code not in ('F','L')) and s_adj else 0 
                     single["st_sum"] += s_adj if (f_code not in ('F','L')) and s_adj else 0 
 
-                cumltv["sc_cnt"] += single["sc_cnt"] ;cumltv["sc_sum"] += single["sc_sum"]
+                cumltv["sr_cnt"] += single["sr_cnt"] ;cumltv["sr_sum"] += single["sr_sum"]
                 cumltv["st_cnt"] += single["st_cnt"] ;cumltv["st_sum"] += single["st_sum"]
 
-                sr_single = (single["sc_sum"] / single["sc_cnt"]) if single["sc_cnt"] else 0
-                sr_cumltv = (cumltv["sc_sum"] / cumltv["sc_cnt"]) if cumltv["sc_cnt"] else 0
+                sr_single = (single["sr_sum"] / single["sr_cnt"]) if single["sr_cnt"] else 0
+                sr_cumltv = (cumltv["sr_sum"] / cumltv["sr_cnt"]) if cumltv["sr_cnt"] else 0
                 st_single = (single["st_sum"] / single["st_cnt"]) if single["st_cnt"] else None
                 st_cumltv = (cumltv["st_sum"] / cumltv["st_cnt"]) if cumltv["st_cnt"] else None
 
@@ -617,7 +623,7 @@ class Query():
         raise ValueError("str conv error")
 
     # --------------------------------------------
-    def _point_for( self, title:str, grade:int, is_final:int, rank:int|None, f_level:int|None):
+    def _point_for( self, title:str, grade:int, is_final:int, rank:int, f_level:int):
 
         if f_level == 0 or rank == 0: return 0, 0
 
