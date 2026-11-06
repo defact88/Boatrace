@@ -348,7 +348,7 @@ class OddsWindow(tk.Tk):
             btn._grid(R=0, C=c, Stk="ns", px=2)
             self.amount_btns.append(btn)
         cBtn(fr2, W=8, text="入 金", py=3, **CHARGE_BT,
-                 Com=self._on_charge())._grid(R=0, C=4, px=(10,0), Stk=ALL)
+                 Com=lambda:self._on_charge())._grid(R=0, C=4, px=(10,0), Stk=ALL)
 
         cLbl(fr3,  text="一律 配分", **base)._grid(R=0, C=0, px=25,       Stk=ALL)
         self.ent_equal_bet._grid(                 R=0, C=1, px=3, py=6, Stk=ALL)
@@ -1364,13 +1364,98 @@ class OddsWindow(tk.Tk):
 
     # ----------------------------------
     def _on_charge(self):
+        # 1. 選択されている金額を取得
+        selected_amount = None
+        for amt, is_sel in self.amount.items():
+            if is_sel:
+                selected_amount = amt
+                break
 
-        pass
+        if not selected_amount:
+            messagebox.showwarning("入金", "入金する金額を選択してください。")
+            return
+
+        venue_name = VENUES[self.venue_id]
+        if not messagebox.askyesno("入金確認", f"{venue_name}画面から\n【 {selected_amount:,} 円 】の入金を行いますか？"):
+            return
+
+        # 認証情報の取得（購入ダイアログと同様に環境変数等から取得）
+        k = os.environ.get("MBRACE_KANYUSHA", "")
+        a = os.environ.get("MBRACE_ANSYO", "")
+        ap = os.environ.get("MBRACE_AUTHPW", "")
+        bp = os.environ.get("MBRACE_BETPW", "")
+
+        if not all([k, a, ap, bp]):
+            messagebox.showerror("設定エラー", "加入者番号・暗証番号・パスワードが環境変数に設定されていません。")
+            return
+
+        # 進捗ダイアログの表示
+        prog = tk.Toplevel(self)
+        prog.title("入金処理中...")
+        prog.geometry("260x80+2000+600")
+        prog.resizable(False, False)
+        prog.grab_set()
+        cLbl(prog, text="テレボートへ入金処理中...", font=(MUI,10), py=16).pack()
+
+        def _charge_worker():
+            buyer = None
+            try:
+                # 購入時と同様にSeleniumBuyerを起動してログイン・場選択(#todayForm)まで進める
+                buyer = SeleniumBuyer(
+                    kanyusha_no=k,
+                    ansyo_no=a,
+                    auth_pw=ap,
+                    bet_pw=bp,
+                    headless=False, # 必要に応じて変更
+                    timeout=10
+                )
+                buyer.login(venue_id=self.venue_id)
+                
+                # 入金実行 ＆ 最新残高取得
+                new_balance = buyer.execute_charge(amount=selected_amount)
+                
+                # メインスレッドでUI（残高ラベル）を更新
+                self.after(0, lambda: self._complete_charge(prog, new_balance, selected_amount))
+
+            except Exception as e:
+                self.after(0, lambda: (prog.destroy(), messagebox.showerror("入金エラー", f"エラーが発生しました:\n{e}")))
+            finally:
+                if buyer:
+                    buyer.shutdown()
+
+        threading.Thread(target=_charge_worker, daemon=True).start()
 
     # ----------------------------------
-    def _toggle_amount(self, k):
+    def _complete_charge(self, prog_dlg, new_balance: str, amount: int):
+        if prog_dlg:
+            try: prog_dlg.destroy()
+            except Exception: pass
+            
+        # self.remain ラベルを更新
+        self.remain.config(text=new_balance)
+        messagebox.showinfo("入金完了", f"{amount:,}円の入金処理が完了しました。\n現在の残高: {new_balance}")
 
-        pass
+ # ----------------------------------
+    def _toggle_amount(self, k: int):
+        # 排他選択の切り替え
+        current_state = self.amount.get(k, False)
+        for amt in self.amount:
+            self.amount[amt] = False
+            
+        if not current_state:
+            self.amount[k] = True
+
+        self._update_amount_buttons()
+
+    # ----------------------------------
+    def _update_amount_buttons(self):
+        for btn, k in zip(self.amount_btns, TRANSFER):
+            if self.amount.get(k, False):
+                # 選択中のハイライト表示
+                btn.config(bg=YELL1, fg=BLACK2, relief=SK)
+            else:
+                # 非選択時
+                btn.config(bg="#329af4", fg="black", relief=RA)
 
     # ======================== 購入ダイアログ ========================
     def _open_purchase_dialog(self):
@@ -1392,7 +1477,7 @@ class OddsWindow(tk.Tk):
 
         dlg = tk.Toplevel(self)
         dlg.title("自動購入 設定")
-        dlg.geometry("430x360+2100+700")
+        dlg.geometry("480x450+2100+700")
         dlg.resizable(False, False)
         dlg.grab_set()
         dlg.configure(bg="#f5f5f5")

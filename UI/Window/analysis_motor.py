@@ -5,6 +5,7 @@ from tkinter                import ttk
 from datetime               import datetime as dt, date, time, timedelta
 from Helpers.Custum_func    import cFr, cLbl, cBtn
 from dateutil.relativedelta import relativedelta
+from collections            import Counter
 import Dal as dal, tkinter as tk
 
 P_GEN_PRE  = [0, 10,  8, 6, 4, 2, 1]
@@ -90,7 +91,7 @@ class MotorAnalysisWindow(tk.Toplevel):
         y = dt.now().year if upd_m <= dt.now().month else dt.now().year -1
         self.date_from = f"{y}-{upd_m:02d}-01"
         self.date_to   = dt.now().strftime("%Y-%m-%d")
-
+        self.repr_counter = {}
         self._build_ui()
         self._refresh_data()
 
@@ -247,30 +248,27 @@ class MotorAnalysisWindow(tk.Toplevel):
             if current_group:
                 series_groups.append(current_group)
 
-        propeller = 0
-        set_parts = 0
+        propeller      = 0
+        set_parts      = 0
+        self.repr_by_s = {}
 
         for r, rows in enumerate(series_groups):
+            self.repr_by_s[r] = {}
+            fr_block = cFr(self.fr_body, W=337, H=178, Bd=(1,SD))
+            fr_block._grid(R=r, C=0, py=(0,20))
 
-            fr_block = cFr(self.fr_body, W=337, H=148, Bd=(1,SD))
-            fr_block._grid(R=r, C=0, py=(0,20)) ;fr_block.Pgate()
+            fr_head  = cFr(fr_block, W=335, H=60)             ;fr_head._grid(R=0, C=0)
+            fr_data  = cFr(fr_block, W=335, H=116, Bd=(1,GR)) ;fr_data._grid(R=1, C=0)
 
-            fr_head  = cFr(fr_block, W=335, H=60)
-            fr_data  = cFr(fr_block, W=335, H=86, Bd=(1,GR))
-            fr_head._grid(R=0, C=0) ;fr_head.Pgate()
-            fr_data._grid(R=1, C=0) ;fr_data.Pgate()
+            fr_head1  = cFr(fr_head, W=335, H=30) ;fr_head1._grid(R=0, C=0)
+            fr_head2  = cFr(fr_head, W=335, H=30) ;fr_head2._grid(R=1, C=0)
 
-            fr_head1  = cFr(fr_head, W=335, H=30)
-            fr_head2  = cFr(fr_head, W=335, H=30)
-            fr_head1._grid(R=0, C=0) ;fr_head1.Pgate()
-            fr_head2._grid(R=1, C=0) ;fr_head2.Pgate()
-
-            fr_term  = cFr(fr_head1, W=285, H=30, **BTN_B,    Bd=(1,GR)) ;fr_term.Pgate()
-            fr_grad  = cFr(fr_head1, W= 50, H=30,             Bd=(1,GR)) ;fr_grad.Pgate()
-            fr_name  = cFr(fr_head2, W=135, H=30, bg="white", Bd=(1,GR)) ;fr_name.Pgate()
-            fr_clas  = cFr(fr_head2, W= 40, H=30, bg="white", Bd=(1,GR)) ;fr_clas.Pgate()
-            fr_sc_p  = cFr(fr_head2, W= 80, H=30, bg=PLAYER,  Bd=(1,GR)) ;fr_sc_p.Pgate()
-            fr_sc_m  = cFr(fr_head2, W= 80, H=30, bg="white", Bd=(1,GR)) ;fr_sc_m.Pgate()
+            fr_term  = cFr(fr_head1, W=285, H=30, **BTN_B,    Bd=(1,GR))
+            fr_grad  = cFr(fr_head1, W= 50, H=30,             Bd=(1,GR))
+            fr_name  = cFr(fr_head2, W=135, H=30, bg="white", Bd=(1,GR))
+            fr_clas  = cFr(fr_head2, W= 40, H=30, bg="white", Bd=(1,GR))
+            fr_sc_p  = cFr(fr_head2, W= 80, H=30, bg=PLAYER,  Bd=(1,GR))
+            fr_sc_m  = cFr(fr_head2, W= 80, H=30, bg="white", Bd=(1,GR))
 
             fr_term._grid(R=0, C=0) ;fr_term.Rconf(0, W=1) ;fr_term.Cconf(0, W=1)
             fr_grad._grid(R=0, C=1) ;fr_grad.Rconf(0, W=1) ;fr_grad.Cconf(0, W=1)
@@ -293,38 +291,39 @@ class MotorAnalysisWindow(tk.Toplevel):
             sc_cnt    = 0
             pid       = None
             rep_parts = []
+            fr_data.Rconf(0, Min=28) ;fr_data.Rconf(1, Min=28)
+            fr_data.Rconf(2, Min=30) ;fr_data.Rconf(3, Min=30)
 
             for c, row in enumerate(reversed(rows)):
+                self.repr_by_s[r][c] = None
+                fr_data.Cconf(c, Min=26)
 
-                fr_A = cFr(fr_data, W=26, H=28, Bd=(1,GR)) ;fr_A._grid(R=0, C=c) ;fr_A.Pgate()
-                fr_B = cFr(fr_data, W=26, H=28, Bd=(1,GR)) ;fr_B._grid(R=1, C=c) ;fr_B.Pgate()
-                fr_C = cFr(fr_data, W=26, H=30, Bd=(1,GR)) ;fr_C._grid(R=2, C=c) ;fr_C.Pgate()
-                fr_A.Rconf(0, W=1) ;fr_A.Cconf(0, W=1)
-                fr_B.Rconf(0, W=1) ;fr_B.Cconf(0, W=1)
-                fr_C.Rconf(0, W=1) ;fr_C.Cconf(0, W=1)
-
-                opt  = FRM[row["fr_no"]]
-                if row["fault"] != "F" : slit = f"{row['slit']:.2f}"[1:] if row['slit'] else ""
-                else: slit = f"{row['slit']:.2f}"[2:]
-                fin  = row["rank"] if row["rank"] else row["fault"]
-                fg   = "red" if fin in ("F","L","S","K") else "black"
+                opt = FRM[row["fr_no"]]
+                fin = row["rank"] if row["rank"] else row["fault"]
+                fg  = "red" if fin in ("F","L","S","K") else "black"
+                if row["fault"] != "F": slit = f"{row['slit']:.2f}"[1:] if row['slit'] else ""
+                else:                   slit = f"{row['slit']:.2f}"[2:]
                 if row["prefinal"]: txt = PREFINAL[fin]
                 elif row["final"]:  txt = FINAL[fin]
-                else:               txt= fin
+                else:               txt = fin
+
+                if row["parts"]:
+                    rep_parts.extend([s.strip() for s in row["parts"].split(",")])
+                    set_parts += 1 if SET_PARTS.issubset(rep_parts) else 0
+                    self.repr_counter    = Counter(rep_parts)
+                    self.repr_by_s[r][c] = rep_parts
 
                 i = row["prefinal"]
                 if row["final"]:
                     i = 3 if fin in ("F","L","S","K") else 2
 
-
-                cLbl(fr_A, text=row["cour"], **opt    )._grid(R=0, C=0, Stk=ALL)
-                cLbl(fr_B, text=slit, **SLIT          )._grid(R=0, C=0, Stk=ALL)
-                cLbl(fr_C, text=txt, **FIN[i], fg=fg  )._grid(R=0, C=0, Stk=ALL)
-
+                cLbl(fr_data, text=row["cour"], **opt    )._grid(R=0, C=c, Stk=ALL)
+                cLbl(fr_data, text=slit, **SLIT , Bd=(1,GR)         )._grid(R=1, C=c, Stk=ALL)
+                cLbl(fr_data, text=txt, **FIN[i], fg=fg, Bd=(1,GR)  )._grid(R=2, C=c, Stk=ALL)
+                lbl = cLbl(fr_data, text=f"{len(rep_parts)}" if rep_parts else "",
+                     font=(MUI,8,BD), Bd=(1,GR), cursor="hand2") ;lbl._grid(R=3, C=c, Stk=ALL)
                 if row["parts"]:
-                    rep_parts.extend([s.strip() for s in row["parts"].split(",")])
-                    set_parts += 1 if SET_PARTS.issubset(rep_parts) else 0
-
+                    lbl.bind("<Button-1>", lambda e, r=r, c=c:self._show_parts(r,c)) 
                 pid = row["p_id"]
 
                 if row["f_lvl"] != 0 or row["rank"] != 0:
@@ -341,6 +340,12 @@ class MotorAnalysisWindow(tk.Toplevel):
             propeller += rep_parts.count("プロペラ")
         self.stat_labels[8].config(text=f"{propeller}")
         self.stat_labels[9].config(text=f"{set_parts}")
+
+    #-----------------------------------
+    def _show_parts(self, r, c):
+
+        pass
+
     #-----------------------------------
     @staticmethod
     def _to_date(x) -> date:
@@ -395,5 +400,6 @@ class MotorAnalysisWindow(tk.Toplevel):
                     sc_sum += p
 
         return  f"{(sc_sum / sc_cnt):.2f}"
+    # --------------------------------------------
 
         

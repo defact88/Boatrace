@@ -64,7 +64,7 @@ class SeleniumBuyer:
                         auth_pw     :Optional[str] = None,
                         bet_pw      :Optional[str] = None,
                         headless    :bool          = False,
-                        timeout     :int           = 3      ):
+                        timeout     :int           = 5      ):
 
         self.kanyusha_no = kanyusha_no or os.environ.get("MBRACE_KANYUSHA", "")
         self.ansyo_no    = ansyo_no    or os.environ.get("MBRACE_ANSYO",    "")
@@ -86,6 +86,13 @@ class SeleniumBuyer:
         opts.binary_location = (r"C:\Program Files\BraveSoftware\Brave-Browser\Application\brave.exe")
 
         if headless: opts.add_argument("--headless=new")
+
+        prefs = {
+            "credentials_enable_service": False,
+            "profile.password_manager_enabled": False,
+            "autofill.credit_card_enabled": False
+        }
+        opts.add_experimental_option("prefs", prefs)
 
         opts.add_argument("--no-first-run")
         opts.add_argument("--no-default-browser-check")
@@ -514,5 +521,101 @@ class SeleniumBuyer:
     def _wait(self, time:int):
 
         return WebDriverWait(self._driver, time)
-
     #-----------------------------------------------------------------
+    def get_balance(self) -> str:
+
+        try:
+            time.sleep(2.0)
+            el = self._driver.find_element(By.CSS_SELECTOR, "#currentBetLimitAmount")
+            balance_str = el.text.strip()
+            if balance_str:
+                logger.info(f"残高取得成功 (#currentBetLimitAmount): {balance_str}")
+                return balance_str
+
+            logger.warning("残高要素のテキストが空です。")
+            return "----"
+
+        except Exception as e:
+            logger.warning(f"残高取得エラー: {e}")
+            return "----"
+
+    # -----------------------------------------------------------------
+    def execute_charge(self, amount: int) -> str:
+
+        wait = self._wait(3)
+        try:
+            deposit_tab = self._driver.find_element(By.ID, "gnavi01")
+            deposit_tab.click()
+            time.sleep(0.8)
+            logger.info("「入金・精算」タブ展開完了")
+        except Exception as e:
+            raise BetError(f"「入金・精算」タブのクリックに失敗しました: {e}")
+
+        try:
+            nyukin_link = self._driver.find_element( By.XPATH,
+                                 "//a[normalize-space()='入金' or contains(text(), '入金')]" )
+            nyukin_link.click()
+            time.sleep(1.0)
+            logger.info("「入金」ページへ遷移完了")
+        except Exception as e:
+            raise BetError(f"「入金」リンクのクリックに失敗しました: {e}")
+
+        try:
+            unit_amount = amount // 1000
+            amount_input = self._driver.find_element(By.CSS_SELECTOR, "#amount")
+            amount_input.clear()
+            time.sleep(0.2)
+            amount_input.send_keys(str(unit_amount))
+            time.sleep(0.3)
+
+            actual_val = amount_input.get_attribute("value")
+            logger.info(f"入金金額入力: 設定値={unit_amount} / 実際のフォーム値=[{actual_val}]")
+        except Exception as e:
+            raise BetError(f"金額入力に失敗しました: {e}")
+        #---------------------------------------------------  NG
+        try:
+            pw_el = wait.until(
+                EC.element_to_be_clickable((By.CSS_SELECTOR, "#pass, input[type='password'], input#chargeBetPassword"))
+            )
+            pw_el.clear()
+            time.sleep(0.3)
+            pw_el.send_keys(self.bet_pw)
+            time.sleep(0.5)
+            logger.info("入金用パスワード入力完了")
+        except TimeoutException:
+            raise BetError("入金用パスワードフィールドが見つかりません。")
+        #---------------------------------------------------  NG
+        try:
+            vote_btn = self._driver.find_element(By.CSS_SELECTOR, "#executeCharge a")
+            vote_btn.click()
+            logger.info("「入金する」ボタンクリック完了")
+            time.sleep(0.5)
+        except Exception as e:
+            try:
+                self._driver.execute_script("arguments[0].click();", vote_btn)
+                logger.info("「入金する」ボタン（JSクリック）完了")
+                time.sleep(0.5)
+            except Exception as e2:
+                raise BetError(f"「入金する」ボタンのクリックに失敗しました: {e2}")
+
+        try:
+            time.sleep(0.3)
+            ok_btn = self._driver.find_element(By.CSS_SELECTOR, "#ok")
+            ok_btn.click()
+            logger.info("確認ダイアログの「OK」ボタン(#ok)をクリックしました")
+            time.sleep(1.0)
+        except Exception as e:
+            logger.warning(f"確認ダイアログの「OK」ボタンが見つかりませんでした（スキップします）: {e}")
+
+        try:
+            close_btn = wait.until(
+                EC.element_to_be_clickable((By.CSS_SELECTOR, "#closeChargecomp > a"))
+            )
+            time.sleep(0.3)
+            close_btn.click()
+            logger.info("「入金指示結果」の「閉じる」ボタン(#closeChargecomp > a)をクリックしました")
+            time.sleep(0.5)
+        except TimeoutException:
+            logger.warning("「入金指示結果」の「閉じる」ボタンが見つかりませんでした")
+
+        return self.get_balance()
