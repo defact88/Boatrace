@@ -85,7 +85,7 @@ class PlayerClassificationWindow(tk.Toplevel):
     def build_ui(self):
 
         fr_main = cFr(self, W=856, H=970, px=9, py=5)
-        fr_main._grid(R=0, C=0) ;fr_main.Pgate()
+        fr_main._grid(R=0, C=0)
 
         fr_info      = cFr(fr_main,     W=838, H= 50)
         fr_hdr       = cFr(fr_main,     W=822, H= 30, Bd=(1,SD))
@@ -94,8 +94,8 @@ class PlayerClassificationWindow(tk.Toplevel):
         scr_bar      = cSrb(fr_main, orient="vertical", Com=self.canvas.yview)
         self.canvas.config(yscrollcommand=scr_bar.set)
 
-        fr_info._grid(     R=0, C=0, Cspan=2) ;fr_info.Pgate()
-        fr_hdr._grid(      R=1, C=0)          ;fr_hdr.Pgate()
+        fr_info._grid(     R=0, C=0, Cspan=2)
+        fr_hdr._grid(      R=1, C=0)
         self.canvas._grid( R=2, C=0, Stk=ALL)
         scr_bar._grid(     R=2, C=1, Stk="ns")
 

@@ -36,7 +36,7 @@ import_Fan.py,             --overwrite,  required=False
 
 DL_player_img.py,          --overwrite,  required=False
 DL_player_img.py,          --sleep,      required=False
-DL_player_img.py,          player_id,    required=-True
+DL_player_img.py,          --player_id,  required=False
 
 insert_newcomer.py,        --rp,         required=True
 insert_newcomer.py,        --from,       required=True
@@ -133,6 +133,6 @@ odds_window.py,             --date,      required=True
 odds_window.py,             --venue,     required=True
 odds_window.py,             --race,      required=True
 
-brouse_race_replay.py,      --date,      required=True
-brouse_race_replay.py,      --venue_id,  required=True
-brouse_race_replay.py,      --race_no,   required=True
+brouse_race_play.py,        --date,      required=True
+brouse_race_play.py,        --venue_id,  required=True
+brouse_race_play.py,        --race_no,   required=True

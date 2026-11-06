@@ -8,7 +8,7 @@ GR, SD, RD, RA, SK, BD = "groove", "solid", "ridge", "raised", "sunken", "bold"
 ALL, CT                = "nsew", "center"
 MAIN_BG  = "#F0F4FA"
 
-# カスタム短縮表記フレーム(tk) -----------------------------
+# カスタム短縮表記 Frame -----------------------------------
 class cFr(tk.Frame):
     def __init__( self, master=None, *, W=None, H=None, Rel=None, Bd=None, bg=None,
                                    hlbg=None, hlth=None, px=None, py=None, **kwargs ):
@@ -30,7 +30,6 @@ class cFr(tk.Frame):
     def Pgate(self):
 
         self.grid_propagate(False)
-
     # ------------------------
     def Cconf(self, col, W=None, Min=None, **kwargs):
 
@@ -44,6 +43,96 @@ class cFr(tk.Frame):
 
         if W   is not None: kwargs['weight']  = W
         if Min is not None: kwargs['minsize'] = Min
+
+        self.grid_rowconfigure(row, **kwargs)
+
+    # ------------------------
+    def _grid(self, R=None, C=None, Cspan=None, Rspan=None, Stk=None, px=None, py=None, **kwargs):
+
+        if R     is not None: kwargs['row']        = R
+        if C     is not None: kwargs['column']     = C
+        if Cspan is not None: kwargs['columnspan'] = Cspan
+        if Rspan is not None: kwargs['rowspan']    = Rspan
+        if Stk   is not None: kwargs['sticky']     = Stk
+        if px    is not None: kwargs['padx']       = px
+        if py    is not None: kwargs['pady']       = py
+
+        self.grid(**kwargs)
+        self.grid_propagate(False)
+
+    # ------------------------
+    def _pack(self, Anc=None, Exp=None, px=None, py=None, **kwargs):
+
+        if Exp is not None: kwargs['expand'] = Exp
+        if Anc is not None: kwargs['anchor'] = Anc
+        if px  is not None: kwargs['padx']   = px
+        if py  is not None: kwargs['pady']   = py
+
+        self.pack(**kwargs)
+        #self.pack_propagate(False)
+
+    # ------------------------
+    def _config(self, Anc=None, W=None, H=None, Bd=None, Rel=None,px=None, py=None, **kwargs):
+
+        if W    is not None: kwargs['width']               = W
+        if H    is not None: kwargs['height']              = H
+        if Anc  is not None: kwargs['anchor']              = Anc
+        if Bd   is not None: kwargs['bd']                  = Bd[0] ;kwargs['relief'] = Bd[1]
+        if Rel  is not None: kwargs['relief']              = Rel
+        if px   is not None: kwargs['padx']                = px
+        if py   is not None: kwargs['pady']                = py
+
+        self.configure(**kwargs)
+
+# カスタム短縮表記 Text ------------------------------------
+class cTxt(tk.Text):
+    def __init__( self, master=None, *, W=None, H=None, Txt=None, Jst=None, Bd=None, Rel=None,
+                  Wrap=None, Img=None, Csr=None, HLbg=None, HLth=None, px=None, py=None,
+                  bg=None, Sp1=2, Sp2=6, **kwargs ):
+
+        if W    is not None: kwargs['width']               = W
+        if H    is not None: kwargs['height']              = H
+        if Bd   is not None: kwargs['bd']                  = Bd[0] ;kwargs['relief'] = Bd[1]
+        if Rel  is not None: kwargs['relief']              = Rel
+        if Csr  is not None: kwargs['cursor']              = Csr
+        if HLbg is not None: kwargs['highlightbackground'] = HLbg
+        if HLth is not None: kwargs['highlightthickness']  = HLth
+        if px   is not None: kwargs['padx']                = px
+        if py   is not None: kwargs['pady']                = py
+
+        kwargs['spacing1']   = Sp1
+        kwargs['spacing2']   = Sp2
+        kwargs['background'] = bg if bg else (master["bg"] if master else MAIN_BG)
+        kwargs['wrap']       = Wrap if Wrap else tk.WORD
+
+        super().__init__(master, **kwargs)
+
+        if Jst is not None:
+            self.tag_config("custom_alignment", justify=Jst)
+        if Img is not None:
+            self.image_create(tk.END, image=Img)
+        if Txt is not None:
+            tag = "custom_alignment" if Jst is not None else ""
+            self.insert(tk.END, Txt, tag)
+
+    # ------------------------
+    def Pgate(self):
+
+        self.grid_propagate(False)
+
+    # ------------------------
+    def Cconf(self, col, W=None, Min=None, **kwargs):
+
+        if W   is not None: kwargs['weight']  = W
+        if min is not None: kwargs['minsize'] = Min
+
+        self.grid_columnconfigure(col, **kwargs)
+
+    # ------------------------
+    def Rconf(self, row, W=None, Min=None, **kwargs):
+
+        if W   is not None: kwargs['weight']  = W
+        if min is not None: kwargs['minsize'] = Min
 
         self.grid_rowconfigure(row, **kwargs)
 
@@ -71,19 +160,38 @@ class cFr(tk.Frame):
         self.pack(**kwargs)
 
     # ------------------------
-    def _config(self, Anc=None, W=None, H=None, Bd=None, Rel=None,px=None, py=None, **kwargs):
+    def _config( self, W=None, H=None, Bd=None, Rel=None, Jst=None, Wrap=tk.WORD,
+                 Txt=None, Img=None, Csr=None, HLbg=None, HLth=None, px=None, py=None, **kwargs ):
 
         if W    is not None: kwargs['width']               = W
         if H    is not None: kwargs['height']              = H
-        if Anc  is not None: kwargs['anchor']              = Anc
-        if Bd   is not None: kwargs['bd']                  = Bd[0] ;kwargs['relief'] = Bd[1]
+        if Bd   is not None: kwargs['bd']                  = Bd
         if Rel  is not None: kwargs['relief']              = Rel
+        if Csr  is not None: kwargs['cursor']              = Csr
+        if HLbg is not None: kwargs['highlightbackground'] = HLbg
+        if HLth is not None: kwargs['highlightthickness']  = HLth
         if px   is not None: kwargs['padx']                = px
         if py   is not None: kwargs['pady']                = py
+        if Wrap is not None: kwargs['wrap']                = Wrap 
 
-        self.configure(**kwargs)
+        if (Txt is not None) or (Img is not None) or (Jst is not None):
+            self.configure(state=tk.NORMAL)
+            if (Txt is not None) or (Img is not None):
+                self.delete("1.0", tk.END)
+            tag = ""
+            if Jst is not None:
+                self.tag_config("custom_alignment", justify=Jst)
+                tag = "custom_alignment"
+            if Img is not None:
+                self.image_create(tk.END, image=Img)
+            if Txt is not None:
+                self.insert(tk.END, Txt, tag)
 
-# カスタム短縮表記ラベル -----------------------------------
+            #self.configure(state=tk.DISABLED)
+        if kwargs:
+            self.configure(**kwargs)
+
+# カスタム短縮表記 Label -----------------------------------
 class cLbl(tk.Label):
     def __init__( self, master=None, *, W=None, H=None, Anc=None, Jst=None, Bd=None, Rel=None,
                   Wrap=None, Txtv=None, Img=None, Csr=None, HLbg=None, HLth=None, px=None, py=None,
@@ -99,12 +207,12 @@ class cLbl(tk.Label):
         if Txtv is not None: kwargs['textvariable']        = Txtv
         if Img  is not None: kwargs['image']               = Img
         if Csr  is not None: kwargs['cursor']              = Csr
-        if HLbg is not None: kwargs['highlightbackground'] = hlbg
-        if HLth is not None: kwargs['highlightthickness']  = hlth
+        if HLbg is not None: kwargs['highlightbackground'] = HLbg
+        if HLth is not None: kwargs['highlightthickness']  = HLth
         if px   is not None: kwargs['padx']                = px
         if py   is not None: kwargs['pady']                = py
 
-        kwargs['background'] = bg if bg else MAIN_BG
+        kwargs['background'] = bg if bg else (master["bg"] if master else MAIN_BG)
 
         super().__init__(master, **kwargs)
 
@@ -141,6 +249,7 @@ class cLbl(tk.Label):
         if py    is not None: kwargs['pady']       = py
 
         self.grid(**kwargs)
+        self.grid_propagate(False)
 
     # ------------------------
     def _pack(self, Anc=None, Exp=None, px=None, py=None, **kwargs):
@@ -174,7 +283,7 @@ class cLbl(tk.Label):
 
         self.configure(**kwargs)
 
-# カスタム短縮表記tkボタン ---------------------------------
+# カスタム短縮表記 Button ----------------------------------
 class cBtn(tk.Button):
     def __init__(self, master=None, *, W=None, H=None, Anc=None, Jst=None, Bd=None, Rel=None,
                                    Img=None, Com=None, Csr=None,  px=None, py=None, **kwargs ):
@@ -205,6 +314,7 @@ class cBtn(tk.Button):
         if py    is not None: kwargs['pady']       = py
 
         self.grid(**kwargs)
+        self.grid_propagate(False)
 
     # ------------------------
     def _pack(self, Anc=None, Exp=None, px=None, py=None, **kwargs):
@@ -237,7 +347,7 @@ class cBtn(tk.Button):
 
         self.configure(**kwargs)
 
-# カスタム短縮表記tkキャンバス------------------------------
+# カスタム短縮表記 キャンバス ------------------------------
 class cCvs(tk.Canvas):
     def __init__( self, master=None, *, W=None, H=None, Rel=None, Bd=None, bg=None, HLth=None,
                   **kwargs ):
@@ -284,6 +394,7 @@ class cCvs(tk.Canvas):
         if py    is not None: kwargs['pady']       = py
 
         self.grid(**kwargs)
+        self.grid_propagate(False)
 
     # ------------------------
     def _pack(self, Anc=None, Exp=None, px=None, py=None, **kwargs):
@@ -296,19 +407,20 @@ class cCvs(tk.Canvas):
         self.pack(**kwargs)
 
     def _config(self, W=None, H=None, Bd=None, Rel=None, Csr=None, HLbg=None, HLth=None,
-                      Scrgn=None, **kwargs ):
+                      Scrgn=None, YscrCom=None, **kwargs ):
 
-        if W     is not None: kwargs['width']               = W
-        if H     is not None: kwargs['height']              = H
-        if Bd    is not None: kwargs['bd']                  = Bd[0] ;kwargs['relief'] = Bd[1]
-        if Rel   is not None: kwargs['relief']              = Rel
-        if Csr   is not None: kwargs['cursor']              = Csr
-        if HLth  is not None: kwargs['highlightthickness']  = hlth
-        if Scrgn is not None: kwargs['scrollregion']        = Scrgn
+        if W       is not None: kwargs['width']               = W
+        if H       is not None: kwargs['height']              = H
+        if Bd      is not None: kwargs['bd']                  = Bd[0] ;kwargs['relief'] = Bd[1]
+        if Rel     is not None: kwargs['relief']              = Rel
+        if Csr     is not None: kwargs['cursor']              = Csr
+        if HLth    is not None: kwargs['highlightthickness']  = hlth
+        if Scrgn   is not None: kwargs['scrollregion']        = Scrgn
+        if YscrCom is not None: kwargs['yscrollcommand']      = YscrCom
 
         self.configure(**kwargs)
 
-# カスタム短縮表記テキストボックス -------------------------
+# カスタム短縮表記 テキストボックス ------------------------
 class cEnt(tk.Entry):
     def __init__( self, master=None, *, W=None, H=None, Com=None, Bd=None, Rel=None, Jst=None,
                                                                            Txtv=None, **kwargs ):
@@ -345,7 +457,7 @@ class cEnt(tk.Entry):
 
         self.pack(**kwargs)
 
-# カスタム短縮表記tkスクロールバー--------------------------
+# カスタム短縮表記 スクロールバー --------------------------
 class cSrb(tk.Scrollbar):
     def __init__(self, master=None, *, Com=None, **kwargs):
 
@@ -365,6 +477,7 @@ class cSrb(tk.Scrollbar):
         if py    is not None: kwargs['pady']       = py
 
         self.grid(**kwargs)
+        self.grid_propagate(False)
 
     # ------------------------
     def _pack(self, Anc=None, Exp=None, px=None, py=None, **kwargs):
@@ -376,7 +489,7 @@ class cSrb(tk.Scrollbar):
 
         self.pack(**kwargs)
 
-# カスタム短縮表記スピンボックス ---------------------------
+# カスタム短縮表記 SpinBox ---------------------------------
 class cSpbx(tk.Spinbox):
     def __init__( self, master=None, *, W=None, Frm=None, To=None, Inc=None, Val=None, Txtv=None,
                                                                         Jst=None, **kwargs ):

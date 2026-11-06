@@ -10,11 +10,12 @@ from collections            import defaultdict
 from datetime               import datetime as dt, date, time, timedelta
 import os, tkinter as tk, Dal as dal
 
-from Custum_func        import cFr, cLbl, cBtn, cCvs
+from Custum_func        import cFr, cLbl, cBtn, cCvs, cSrb
 from queries            import Query
 from widgets            import set_player_image, framing_graph
 from classification     import PlayerClassificationWindow
-from brouse_race_replay import brouse_race_replay
+from brouse_play        import brouse_replay
+from color_picker       import MyColor
 
 GUI, MUI, HNH, CBR     = "Yu Gothic UI", "Meiryo UI", "Helvetica Neue Heavy", "Cambria"
 GR, SD, RD, RA, SK, BD = "groove", "solid", "ridge", "raised", "sunken", "bold"
@@ -53,12 +54,57 @@ FINAL_RNK    = { 1:"①", 2:"②", 3:"③", 4:"④", 5:"⑤", 6:"⑥",
 PREFINAL_RNK = { 1:"[１]", 2:"[２]", 3:"[３]", 4:"[４]", 5:"[５]", 6:"[６]",
                  "F":"[Ｆ]", "L":"[Ｌ]", "S":"[Ｓ]", "K":"[Ｋ]"       }
 
-GOPT      = { 0: dict(text="一般",            font=(MUI,8   )),
-              1: dict(text="G3",              font=(MUI,8   )), 
-              2: dict(text="G2",  fg="green", font=(MUI,8,BD)),
-              3: dict(text="G1",  fg="blue",  font=(MUI,8,BD)),
-              4: dict(text="PG1", fg="blue",  font=(MUI,8,BD)),
-              5: dict(text="SG",  fg="red",   font=(MUI,8,BD))  }
+SRC_COL, SRS_COL = "#A463FF", "#505050"
+STC_COL, STR_COL = "#2A62FF", "#2A9A01"
+
+G_COL   = {0:"#616161", 1:"#616161", 2:"#00B008", 3:"#3F76FF", 4:"#3F76FF", 5:"RED"}
+NOR_COL = dict(bg="white", fg="black")
+
+HDR_COL = "#E0E1F4"
+HDR_BG  = "#2B4A7A"
+WHITE   = "#FFFFFF"
+PURPLE  = "#b050d0"
+YELL1   = "#FFF6B0"
+YELL2   = "#FFD700"
+YELL3   = "#F1EE62"
+GRAY1   = "#EBEBEB"
+GRAY2   = "#B9B9B9"
+GRAY3   = "#E3E3E3"
+BLACK1  = "#000000"
+BLACK2  = "#222222"
+BLUE1   = "#002AFF"
+BLUE2   = "#003ED9"
+BLUE3   = "#CCE8FF"
+RED1    = "#FF0000"
+RED2    = "#D50202"
+GREEN1  = "#007F02"
+GREEN2  = "#00980A"
+
+HDR_B   = dict(bg=HDR_BG)
+HDR_BF  = dict(bg=HDR_BG, fg=WHITE)
+BTN_BF  = dict(bg=GRAY1,  fg=BLACK1)            # gray
+BTN_OPT = dict(bg=GRAY1,  fg=BLACK1, Bd=(1,RA)) # gray
+HDR_OPT = dict(bg=HDR_BG, fg=WHITE,  Bd=(2,RA))
+
+HL_BLUE = dict(bg=BLUE3,  fg=BLACK1, Bd=(1,GR))
+HL_YELL = dict(bg=YELL1,  fg=BLACK1, Bd=(1,SK), font=(MUI,8))
+
+TITLE_B  = dict(bg=GRAY3)
+TITLE_BF = dict(bg=GRAY3, fg=BLACK1)
+
+GOPT      = { 0: dict(text="一般", bg=GRAY2,  fg=BLACK1, font=(MUI,8,BD)),
+              1: dict(text="G3",   bg=GRAY2,  fg=BLACK1, font=(MUI,8,BD)), 
+              2: dict(text="G2",   bg=GREEN2, fg=WHITE,  font=(MUI,8,BD)),
+              3: dict(text="G1",   bg=BLUE2,  fg=WHITE,  font=(MUI,8,BD)),
+              4: dict(text="PG1",  bg=BLUE2,  fg=WHITE,  font=(MUI,8,BD)),
+              5: dict(text="SG",   bg=RED2,   fg=WHITE,  font=(MUI,8,BD))  }
+
+GTITLE    = { 0: dict(fg=BLACK1, font=(MUI,8)),
+              1: dict(fg=BLACK1, font=(MUI,8)),
+              2: dict(fg=GREEN1, font=(MUI,8,BD)),
+              3: dict(fg=BLUE1,  font=(MUI,8,BD)),
+              4: dict(fg=BLUE1,  font=(MUI,8,BD)),
+              5: dict(fg=RED1,   font=(MUI,8,BD)), }
 
 FRM_COLOR = { 0: dict(bg="SystemButtonFace", fg=  "black"),
               1: dict(bg="#FFFFFF",          fg="#000000"),
@@ -72,29 +118,6 @@ CLS_COLOR = { "A1": dict(fg="blue",    bg="white", font=(GUI,10,BD)),
               "A2": dict(fg="#008000", bg="white", font=(GUI,10,BD)),
               "B1": dict(fg="black",   bg="white", font=(GUI,10   )),
               "B2": dict(fg="red",     bg="white", font=(GUI,10,BD))  }
-
-SRC_COL, SRS_COL = "#A463FF", "#505050"
-STC_COL, STR_COL = "#2A62FF", "#2A9A01"
-
-G_COL   = {0:"#616161", 1:"#616161", 2:"#00B008", 3:"#3F76FF", 4:"#3F76FF", 5:"RED"}
-NOR_COL = dict(bg="white", fg="black")
-
-HDR_COL = "#E0E1F4"
-YELL    = "#fff6b0"
-HDR_BG  = "#2B4A7A"
-HDR_FG  = "#FFFFFF"
-
-HDR_B   = dict(bg="#2B4A7A")
-BTN_BF  = dict(bg="#ebebeb", fg="black")              # gray
-HDR_BF  = dict(bg="#2B4A7A", fg="#FFFFFF")
-BTN_OPT = dict(bg="#ebebeb", fg="black",   Bd=(1,RA)) # gray
-HDR_OPT = dict(bg="#2B4A7A", fg="#FFFFFF", Bd=(2,RA))
-
-HL_BLUE = dict(bg="#CCE8FF", fg="black", Bd=(1,GR))
-HL_YELL = dict(bg="#fff6b0", fg="black", Bd=(1,SK), font=(MUI,8))
-
-TITLE_B  = dict(bg="#4A6A9A")
-TITLE_BF = dict(bg="#4A6A9A", fg="#FFFFFF")
 
 CEL_W  = 65
 CEL_H  = 27
@@ -173,6 +196,9 @@ class PlayerAnalysisWindow(tk.Toplevel):
                               "has_flying":("flying",       True),
                                 "point_up":("point_up",     True),   }
 
+        self.bg = MyColor("#336699")
+        self.fg = MyColor("#FF5733")
+
         self._build_ui()
         self._load_player_basic(self.player_id)
         self._refresh_classes()
@@ -190,12 +216,12 @@ class PlayerAnalysisWindow(tk.Toplevel):
     def _build_ui(self):
 
         fr_root  = cFr(   self, W=1181, H=960)
-        fr_main  = cFr(fr_root, W= 800, H=710)
+        fr_main  = cFr(fr_root, W= 800, H=720)
         fr_side  = cFr(fr_root, W= 381, H=702, Bd=(1,SD))
-        fr_botm  = cFr(fr_root, W=1181, H=250)
+        fr_botm  = cFr(fr_root, W=1181, H=240)
 
         fr_body  = cFr(fr_main, W= 800, H=420)
-        fr_grph  = cFr(fr_main, W= 800, H=300)
+        fr_grph  = cFr(fr_main, W= 800, H=310)
 
         fr_left  = cFr(fr_body, W= 390, H=420)
         fr_right = cFr(fr_body, W= 390, H=420)
@@ -210,61 +236,36 @@ class PlayerAnalysisWindow(tk.Toplevel):
         fr_imag  = cFr(fr_plyr, W= 140, H=198)
         fr_prof  = cFr(fr_plyr, W= 218, H=205, Bd=(1,SD))
 
-        self.bar = cFr(fr_grph, W= 320, H=253)   # 棒グラフ
-        fr_Gbtn  = cFr(fr_grph, W= 320, H= 35)   # グレードボタン
-        fr_trnd  = cFr(fr_grph, W= 480, H=260)   # 折れ線グラフ
-        fr_Tbtn  = cFr(fr_grph, W= 480, H= 35)   # 単値/累積値切り替えボタン
+        self.bar = cFr(fr_grph, W= 320, H=253)
+        fr_trnd  = cFr(fr_grph, W= 480, H=260)
+        fr_Gbtn  = cFr(fr_grph, W= 320, H= 45)
+        fr_Tbtn  = cFr(fr_grph, W= 480, H= 45)
 
-        fr_info  = cFr(self.bar,W= 320, H= 25)
-        self.win = cFr(fr_botm, W= 800, H=250)
-        self.achievement = cFr(fr_botm, W=380, H=250)
+        self.win = cFr(fr_botm, W= 780, H=222)
+        self.achiev = cFr(fr_botm, W=401, H=222, Bd=(1,SD))
 
-        fr_root._grid( R=0, C=0, px=10,     py=( 0,10))  ; fr_root.Pgate()
-        fr_main._grid( R=0, C=0                       )  ; fr_main.Pgate()
-        fr_side._grid( R=0, C=1,            py=( 0, 8))  ; fr_side.Pgate()
-        fr_botm._grid( R=1, C=0, Cspan=2              )  ; fr_botm.Pgate()
-        fr_body._grid( R=0, C=0                       )  ; fr_body.Pgate()
-        fr_grph._grid( R=1, C=0                       )  ; fr_grph.Pgate()
-        fr_left._grid( R=0, C=0                       )  ; fr_left.Pgate()
-        fr_right._grid(R=0, C=1                       )  ;fr_right.Pgate()
-        fr_plyr._grid( R=0, C=0                       )  ; fr_plyr.Pgate()
-        fr_imag._grid( R=0, C=0                       )  ; fr_imag.Pgate()
-        fr_prof._grid( R=0, C=1, px=(15,10),py=( 3, 0))  ; fr_prof.Pgate()
-        fr_clss._grid( R=1, C=0,            py=(10,10))  ; fr_clss.Pgate()
-        fr_btnA._grid( R=2, C=0,            py=( 0, 6))  ; fr_btnA.Pgate()
-        fr_btnB._grid( R=3, C=0,            py=( 0, 6))  ; fr_btnB.Pgate()
-        fr_btnC._grid( R=4, C=0,            py=( 0, 6))  ; fr_btnC.Pgate()
-        fr_btnD._grid( R=5, C=0,            py=( 0, 6))  ; fr_btnD.Pgate()
-        fr_trnd._grid( R=0, C=1                       )  ; fr_grph.Pgate()
-        fr_Gbtn._grid( R=1, C=0                       )  ; fr_Gbtn.Pgate()
-        fr_Tbtn._grid( R=1, C=1                       )  ; fr_Tbtn.Pgate()
-        self.win._grid(R=0, C=0)                         ; self.win.Pgate()
-        self.bar._grid(R=0, C=0)
-        self.achievement._grid(R=0, C=1)                 ; self.achievement.Pgate()
-
-        lbl_ach_hdr = cLbl(self.achievement, text="タイトル 実績", **HDR_BF, font=(MUI,9), Anc=CT)
-        lbl_ach_hdr._grid(R=0, C=0, py=(0,3), Stk=ALL)
-
-        fr_ach_body = cFr(self.achievement, W=380, H=222)
-        fr_ach_body._grid(R=1, C=0) ;fr_ach_body.Pgate()
-
-        self.ach_canvs = tk.Canvas(fr_ach_body, width=360, height=222, highlightthickness=0)
-        self.ach_sbar  = tk.Scrollbar(fr_ach_body, orient="vertical", command=self.ach_canvs.yview)
-        self.ach_list  = tk.Frame(self.ach_canvs, width=360, height=222)
-
-        self.ach_canvs.configure(yscrollcommand=self.ach_sbar.set)
-
-        self.ach_canvs.grid( row=0, column=0, sticky=ALL)  ;self.ach_canvs.grid_propagate(False)
-        self.ach_sbar.grid(  row=0, column=1, sticky="ns") ;self.ach_sbar.grid_propagate(False)
-
-        self.ach_window = self.ach_canvs.create_window((0,0), window=self.ach_list, anchor="nw")
-        #----------┐
-        def _ach_on_conf(event=None):
-            self.ach_canvs.config(scrollregion=self.ach_canvs.bbox("all"))
-            self.ach_canvs.itemconfig(self.ach_window, width=self.ach_canvs.winfo_width())
-        #----------┘
-        self.ach_list.bind( "<Configure>", _ach_on_conf)
-        self.ach_canvs.bind("<Configure>", _ach_on_conf)
+        fr_root._grid( R=0, C=0, px=10,     py=( 0,10))
+        fr_main._grid( R=0, C=0                       )
+        fr_side._grid( R=0, C=1,            py=( 0, 8))
+        fr_botm._grid( R=1, C=0, Cspan=2              )
+        fr_body._grid( R=0, C=0                       )
+        fr_grph._grid( R=1, C=0                       )
+        fr_left._grid( R=0, C=0                       )
+        fr_right._grid(R=0, C=1                       )
+        fr_plyr._grid( R=0, C=0                       )
+        fr_imag._grid( R=0, C=0                       )
+        fr_prof._grid( R=0, C=1, px=(15,10),py=( 3, 0))
+        fr_clss._grid( R=1, C=0,            py=(10,10))
+        fr_btnA._grid( R=2, C=0,            py=( 0, 6))
+        fr_btnB._grid( R=3, C=0,            py=( 0, 6))
+        fr_btnC._grid( R=4, C=0,            py=( 0, 6))
+        fr_btnD._grid( R=5, C=0,            py=( 0, 6))
+        fr_trnd._grid( R=0, C=1                       )
+        fr_Gbtn._grid( R=1, C=0, py=(8,0)             )
+        fr_Tbtn._grid( R=1, C=1, py=(8,0)             )
+        self.win._grid(R=0, C=0)
+        self.bar._grid(R=0, C=0, py=(8,0))
+        self.achiev._grid(R=0, C=1)
 
         # グラフ -------------
         self.cv_trend_graph  = cCvs(fr_trnd, W=480, H=260)
@@ -310,15 +311,15 @@ class PlayerAnalysisWindow(tk.Toplevel):
         y_s = self._5seasons()
 
         for c in range(5):
-            frA = cFr(fr_clss, W=C_W, H=20) ;frA._grid(R=0, C=c) ;frA.Pgate()
-            frB = cFr(fr_clss, W=C_W, H=22) ;frB._grid(R=1, C=c) ;frB.Pgate()
-            frC = cFr(fr_clss, W=C_W, H=22) ;frC._grid(R=2, C=c) ;frC.Pgate()
+            frA = cFr(fr_clss, W=C_W, H=20) ;frA._grid(R=0, C=c)
+            frB = cFr(fr_clss, W=C_W, H=22) ;frB._grid(R=1, C=c)
+            frC = cFr(fr_clss, W=C_W, H=22) ;frC._grid(R=2, C=c)
             frA.Cconf(0, W=1); frA.Rconf(0, W=1)
             frB.Cconf(0, W=1); frB.Rconf(0, W=1)
             frC.Cconf(0, W=1); frC.Rconf(0, W=1)
-            l_a = cLbl(frA, text="", font=(MUI, 8,BD), **HDR_OPT) ;l_a._grid(R=0, C=0, Stk=ALL)
-            l_b = cLbl(frB, text="", font=(GUI,10), Bd=(1,GR)   ) ;l_b._grid(R=0, C=0, Stk=ALL)
-            l_c = cLbl(frC, text="", font=(MUI, 8), Bd=(1,GR)   ) ;l_c._grid(R=0, C=0, Stk=ALL)
+            l_a = cLbl(frA, font=(MUI, 8,BD), **HDR_OPT) ;l_a._grid(R=0, C=0, Stk=ALL)
+            l_b = cLbl(frB, font=(GUI,10), Bd=(1,GR)   ) ;l_b._grid(R=0, C=0, Stk=ALL)
+            l_c = cLbl(frC, font=(MUI, 8), Bd=(1,GR)   ) ;l_c._grid(R=0, C=0, Stk=ALL)
 
             key = y_s[4-c]
             l_a.config(cursor= "hand2")
@@ -328,7 +329,7 @@ class PlayerAnalysisWindow(tk.Toplevel):
 
         # 成績データテーブル--
         self.fr_tbl = cFr(fr_right, W=TBL_W, H=TBL_H, Bd=(1,RD))
-        self.fr_tbl._grid(R=0, C=0); self.fr_tbl.Pgate()
+        self.fr_tbl._grid(R=0, C=0)
 
         self.fr_tbl.Cconf(0, minsize=CEL_W -3) ;self.fr_tbl.Rconf(0, minsize=CEL_H -3)
 
@@ -362,86 +363,111 @@ class PlayerAnalysisWindow(tk.Toplevel):
             self.btns[idx][key] = b
             return b
         # ----------
-        mk_btn(fr_btnA, "全期間",  "ALL", 0,7,0)
-        mk_btn(fr_btnA, "今期",   "THIS", 0,7,(1,6))
-        mk_btn(fr_btnA, "1 年",     "1Y", 0,6,2)
-        for m in [9,6,3]: mk_btn(fr_btnA, f"{m}ヶ月", f"{m}M", 0,6,2)
-        mk_btn(fr_btnB, "指定期間","adjust", 0,7,(0,10))
-        mk_btn(fr_btnB, "<<", "pre_y", 4,3,0) ;mk_btn(fr_btnB, "<",   "pre_m", 4,3,0)
-        self.lb_period = cLbl(fr_btnB, text=" 1 年  0 ヶ月", font=(MUI,9), Bd=(1,GR), bg="white")
+        mk_btn(fr_btnA, "全期間",  "ALL",            0,  7,  2)
+        mk_btn(fr_btnA, "今期",   "THIS",            0,  7, (0,12))
+        for m in [3,6,9]: mk_btn(fr_btnA, f"{m}ヶ月", f"{m}M", 0,7,2)
+        mk_btn(fr_btnA, "1 年",     "1Y",            0,  7,  2)
+        mk_btn(fr_btnB, "指定期間","adjust",         0,  7, 13)
+        mk_btn(fr_btnB, "<<", "pre_y", 4,3,2) ;mk_btn(fr_btnB, "<",   "pre_m", 4,4,2)
+        self.lb_period = cLbl(fr_btnB, text=" 1 年  0 ヶ月", font=(MUI,9), bg=WHITE, Bd=(1,GR), px=8)
         self.lb_period._pack(side=tk.LEFT, px=3)
-        mk_btn(fr_btnB, ">", "next_m", 4,3,0) ;mk_btn(fr_btnB, ">>", "next_y", 4,3,0)
+        mk_btn(fr_btnB, ">", "next_m", 4,4,2) ;mk_btn(fr_btnB, ">>", "next_y", 4,3,2)
 
-        mk_btn(fr_btnC, "当 地",      "local",       3,  6,  2)
-        mk_btn(fr_btnC, "海水",       "sea_water",   3,  6,  2)
-        mk_btn(fr_btnC, "淡水",       "fresh_water", 3,  6,  2)
-        mk_btn(fr_btnC, "河川",       "river",       3,  6,  2)
-        mk_btn(fr_btnC, "混合戦",     "not_ladies",  3,  6,  2)
-        mk_btn(fr_btnC, "女子戦",     "all_ladies",  3,  6,  2)
+        mk_btn(fr_btnC, "当 地",      "local",       3,  6,  3)
+        mk_btn(fr_btnC, "海水",       "sea_water",   3,  6,  3)
+        mk_btn(fr_btnC, "淡水",       "fresh_water", 3,  6,  3)
+        mk_btn(fr_btnC, "河川",       "river",       3,  6,  3)
+        mk_btn(fr_btnC, "混合戦",     "not_ladies",  3,  6,  3)
+        mk_btn(fr_btnC, "女子戦",     "all_ladies",  3,  6,  3)
 
-        mk_btn(fr_btnD, "強 風",      "str_wind",    3,  6,  2)
-        mk_btn(fr_btnD, "雨",         "rain",        3,  6,  2)
-        mk_btn(fr_btnD, "ﾌﾗｲﾝｸﾞ",     "has_flying",  3,  6,  2)
-        mk_btn(fr_btnD, "点増し",     "point_up",    3,  6, 30)
+        mk_btn(fr_btnD, "強 風",      "str_wind",    3,  6,  3)
+        mk_btn(fr_btnD, "雨",         "rain",        3,  6,  4)
+        mk_btn(fr_btnD, "ﾌﾗｲﾝｸﾞ",     "has_flying",  3,  6,  3)
+        mk_btn(fr_btnD, "点増し",     "point_up",    3,  8, 30)
 
-        mk_btn(fr_Gbtn, "SG",                  (5,), 1,  6,  2)
-        mk_btn(fr_Gbtn, "G1",                (3, 4), 1,  6,  2)
-        mk_btn(fr_Gbtn, "G2",                  (2,), 1,  6,  2)
-        mk_btn(fr_Gbtn, "一般/G3",           (0, 1), 1,  7,  2)
+        mk_btn(fr_Gbtn, "SG",                (5,),   1,  8,(20,4))
+        mk_btn(fr_Gbtn, "G1",                (3, 4), 1,  8,  4)
+        mk_btn(fr_Gbtn, "G2",                (2,),   1,  8,  4)
+        mk_btn(fr_Gbtn, "一般/G3",           (0, 1), 1,  8,  4)
 
-        mk_btn(fr_Tbtn, "勝率 (単)",   "sr_single",  2, 11,  4)
-        mk_btn(fr_Tbtn, "勝率 (累積)", "sr_cumltv",  2, 11,  4)
-        mk_btn(fr_Tbtn, "ＳＴ (単)",   "st_single",  2, 11,  4)
-        mk_btn(fr_Tbtn, "ＳＴ (累積)", "st_cumltv",  2, 11,  4)
+        mk_btn(fr_Tbtn, "勝 率 ( 単 )", "sr_single",  2, 11,(30,5))
+        mk_btn(fr_Tbtn, "勝 率 (累 積)","sr_cumltv",  2, 11,  4)
+        mk_btn(fr_Tbtn, "ＳＴ ( 単 )",  "st_single",  2, 11,(30,5))
+        mk_btn(fr_Tbtn, "ＳＴ (累 積)", "st_cumltv",  2, 11,  4)
 
         # サイド =======================
-        frm = cFr(fr_side, W=379, H=35, **HDR_B, Bd=(1,RD))  #379  700
-        frm._grid(R=0, C=0, Cspan=2, Stk=ALL) ;frm.Pgate()
-
         # 節間成績------------
-        self.btn_y_prev = cBtn(frm, text="＜", W=5, font=(MUI,6,BD), Com=lambda:self._on_series_btn(+1))
-        self.btn_y_next = cBtn(frm, text="＞", W=5, font=(MUI,6,BD), Com=lambda:self._on_series_btn(-1))
+        hdr = cFr(fr_side, W=379, H=30, **HDR_B, Bd=(1,RD))
+        bdy = cFr(fr_side, W=379, H=670)
+        hdr._grid(R=0, C=0, Stk=ALL)
+        bdy._grid(R=1, C=0, Stk=ALL)
 
-        self.lbl_y_disp = cLbl(frm, text="---- 年", font=(MUI,9,BD), **HDR_BF, Anc=CT)
+        self.btn_prev = cBtn(hdr, text="＜", W=6, font=(MUI,7,BD), **HDR_BF, Com=lambda:self._on_series_btn(+1))
+        self.btn_next = cBtn(hdr, text="＞", W=6, font=(MUI,7,BD), **HDR_BF, Com=lambda:self._on_series_btn(-1))
 
-        self.btn_y_prev._pack(side=tk.LEFT, px=(70, 0), py=0, expand=False)
-        self.lbl_y_disp._pack(side=tk.LEFT, px=( 0, 0), py=2, expand=True)
-        self.btn_y_next._pack(side=tk.LEFT, px=( 0,70), py=0, expand=False)
+        self.lbl_year = cLbl(hdr, text="---- 年", font=(MUI,8,BD), **HDR_BF, Anc=CT)
 
-        self.btn_y_prev.config(state="disable", bg="SystemButtonFace")
-        self.btn_y_next.config(state="disable", bg="SystemButtonFace")
+        self.btn_prev._grid(R=0, C=0, px=(90, 0), py=1)
+        self.lbl_year._grid(R=0, C=1, px=(30,30), py=1)
+        self.btn_next._grid(R=0, C=2, px=( 0,90), py=1)
 
-        self.canvs   = tk.Canvas(fr_side, width=352, height=665)
-        self.scr_bar = tk.Scrollbar(fr_side, orient="vertical", command=self.canvs.yview)
-        self.body    = tk.Frame(self.canvs, width=352, height=665)
+        self.btn_prev.config(state="disable")
+        self.btn_next.config(state="disable")
 
-        self.canvs.configure(yscrollcommand=self.scr_bar.set)
+        self.canvas = cCvs(bdy,    W=352, H=665)
+        self.scrbar = cSrb(bdy, orient="vertical", Com=self.canvas.yview)
+        self.body   = cFr(self.canvas, W=352, H=665, bg="#1F1F1F")
 
-        self.canvs.grid(  row=1, column=0, sticky=ALL)  ;self.canvs.grid_propagate(False)
-        self.scr_bar.grid(row=1, column=1, sticky="ns") ;self.scr_bar.grid_propagate(False)
+        self.canvas._config(YscrCom=self.scrbar.set)
 
-        self.window = self.canvs.create_window((0, 0), window=self.body, anchor="nw")
-        #-----------
+        self.canvas._grid(R=0, C=0, Stk=ALL)  ;self.canvas.grid_propagate(False)
+        self.scrbar._grid(R=0, C=1, Stk="ns") ;self.scrbar.grid_propagate(False)
+
+        self.window = self.canvas.create_window((0, 0), window=self.body, anchor="nw")
+        #----------┐
         def _on_close():
            self.destroy()
-        #-----------
+        #------
         def _on_conf(event=None):
-            self.canvs.config(scrollregion=self.canvs.bbox("all"))
-            self.canvs.itemconfig(self.window, width=self.canvs.winfo_width())
-        #-----------
+            self.canvas._config(scrollregion=self.canvas.bbox("all"))
+            self.canvas.itemconfig(self.window, width=self.canvas.winfo_width())
+        #------
         def _on_mousewheel(e):
             hovered_widget = e.widget.winfo_containing(e.x_root, e.y_root)
             if hovered_widget:
-                if str(hovered_widget).startswith(str(self.ach_canvs)):
-                    self.ach_canvs.yview_scroll(int(-1 *(e.delta / 120)), "units")
-
-                elif str(hovered_widget).startswith(str(self.canvs)):
-                    self.canvs.yview_scroll(int(-1 *(e.delta / 120)), "units")
-        #-----------
+                if str(hovered_widget).startswith(str(self.ach_canvas)):
+                    self.ach_canvas.yview_scroll(int(-1 *(e.delta / 120)), "units")
+                elif str(hovered_widget).startswith(str(self.canvas)):
+                    self.canvas.yview_scroll(int(-1 *(e.delta / 120)), "units")
+        #----------┘
         self.bind("<MouseWheel>", _on_mousewheel)
         self.body.bind( "<Configure>", _on_conf)
-        self.canvs.bind("<Configure>", _on_conf)
+        self.canvas.bind("<Configure>", _on_conf)
         self.protocol("WM_DELETE_WINDOW", _on_close)
+
+        lb_ach_hdr = cLbl(self.achiev, text="タイトル 実績", **HDR_BF, font=(MUI,9), Anc=CT)
+        lb_ach_hdr._grid(R=0, C=0, Stk=ALL)
+
+        fr_ach_body = cFr(self.achiev, W=399, H=198)
+        fr_ach_body._grid(R=1, C=0, Stk=ALL)
+
+        self.ach_canvas = cCvs(fr_ach_body, W=376, H=198, HLth=0)
+        self.ach_scrbar = cSrb(fr_ach_body, orient="vertical", Com=self.ach_canvas.yview)
+        self.ach_list   = cFr(self.ach_canvas, W=376, H=198)
+
+        self.ach_canvas._config(YscrCom=self.ach_scrbar.set)
+
+        self.ach_canvas._grid(R=0, C=0, Stk=ALL)  ;self.ach_canvas.grid_propagate(False)
+        self.ach_scrbar._grid(R=0, C=1, Stk="ns") ;self.ach_scrbar.grid_propagate(False)
+
+        self.ach_window = self.ach_canvas.create_window((0,0), window=self.ach_list, anchor="nw")
+        #----------┐
+        def _ach_on_conf(event=None):
+            self.ach_canvas.config(scrollregion=self.ach_canvas.bbox("all"))
+            self.ach_canvas.itemconfig(self.ach_window, width=self.ach_canvas.winfo_width())
+        #----------┘
+        self.ach_list.bind( "<Configure>", _ach_on_conf)
+        self.ach_canvas.bind("<Configure>", _ach_on_conf)
 
         self._update_radio_btn_state( 0, "9M")
         self._update_toggle_btn_state(1, self.grade_state)
@@ -667,8 +693,8 @@ class PlayerAnalysisWindow(tk.Toplevel):
 
         # ----------
         def _fixed(v:float) -> int:
-            vv = 0.0 if v is None else max(0.0, min(0.5, float(v)))
-            return T + YH -int((vv / 0.5) *YH)
+            vv = 0.0 if v is None else max(0.0, min(0.4, float(v)))
+            return T + YH -int((vv / 0.4) *YH)
         # ----------
         cv         = self.cv_trend_graph;  cv.delete("all")
 
@@ -703,12 +729,13 @@ class PlayerAnalysisWindow(tk.Toplevel):
                 return
 
         if show_st:
-            for tv in [0, 0.10, 0.15, 0.20, 0.50]:
+            for tv in [0, 0.10, 0.20]:
                 lbl = f"{tv:.2f}"[1:] if tv != 0 else tv
                 y   = _fixed(tv)
                 cv._crtxt(20, y, text=lbl, Anc="e", font=(GUI,9,BD), fill=STC_COL) # 左軸ﾗﾍﾞﾙ
-                if tv not in [0, 0.5]:
-                    cv.create_line(L, y, L+XW, y, fill="#b3d4ff", width=1)
+            for tv in [0.10, 0.15, 0.20]:
+                y   = _fixed(tv)
+                cv.create_line(L, y, L+XW, y, fill="#d7d7d7", width=1)
 
         for i, d in enumerate(data):  # ﾌﾗｲﾝｸﾞ線
             if d["has_F"]:
@@ -736,16 +763,16 @@ class PlayerAnalysisWindow(tk.Toplevel):
         for i, x in enumerate(xs, 1):
             cv.create_text(x, T+YH+5, text=str(i), anchor="n", font=(GUI, 8))
 
-    #------------------------- series_panel --------------------------
+    #-------------------------- 節間 成績 ----------------------------
     def _apply_series_year_state(self):
 
-        if self.s_years: self.lbl_y_disp.config(text=f"{self.s_years[self.year_idx]} 年")
-        else:            self.lbl_y_disp.config(text="----")
+        if self.s_years: self.lbl_year.config(text=f"{self.s_years[self.year_idx]} 年")
+        else:            self.lbl_year.config(text="----")
 
-        if self.year_idx < len(self.s_years) -1: self.btn_y_prev.config(state="normal",  bg="white")
-        else:                                    self.btn_y_prev.config(state="disable", bg="SystemButtonFace")
-        if self.year_idx >= 1:                   self.btn_y_next.config(state="normal",  bg="white")
-        else:                                    self.btn_y_next.config(state="disable", bg="SystemButtonFace")
+        if self.year_idx < len(self.s_years) -1: self.btn_prev.config(state="normal")
+        else:                                    self.btn_prev.config(state="disable")
+        if self.year_idx >= 1:                   self.btn_next.config(state="normal")
+        else:                                    self.btn_next.config(state="disable")
 
     #-----------------------  節間成績 更新 --------------------------
     def _refresh_series_panel(self, read_only:bool= False):
@@ -757,7 +784,7 @@ class PlayerAnalysisWindow(tk.Toplevel):
             self.year_idx    = 0
             self.series_rows = self.query._pack(by_series=True, for_index=True)
             if not self.series_rows:
-                self.canvs.configure(scrollregion=self.canvs.bbox("all")) ; return
+                self.canvas.configure(scrollregion=self.canvas.bbox("all")) ; return
 
             for year in reversed(self.series_rows.keys()): self.s_years.append(year)
 
@@ -773,29 +800,34 @@ class PlayerAnalysisWindow(tk.Toplevel):
         for r, seri in enumerate(reversed(row.values())):
             d_min, d_max, v_id, title, grade, _, slots = seri.values()
 
-            fr_grid = cFr(self.body, W=352, H= 176, **TITLE_B, Bd=(1,SD))
-            fr_term = cFr(fr_grid,   W=350, H=  22, **TITLE_B, px=30)
-            fr_grde = cFr(fr_grid,   W= 46, H=  20, Bd=(1,RD))
-            fr_titl = cFr(fr_grid,   W=300, H=  22, **TITLE_B)
-            fr_cell = cFr(fr_grid,   W=350, H= 120, Bd=(1,GR))
+            fr_grid = cFr(self.body, W=352, H= 172, **TITLE_B, Bd=(1,GR))
+            fr_term = cFr(fr_grid,   W=350, H=  20, **TITLE_B, px=1)
+            fr_grde = cFr(fr_grid,   W= 46, H=  20,            px=1)
+            fr_titl = cFr(fr_grid,   W=300, H=  20, **TITLE_B)
+            fr_cell = cFr(fr_grid,   W=350, H= 120)
 
-            fr_grid._grid(R=r, C=0,          Stk=ALL,           py=(10,0)) ;fr_grid.Pgate()
-            fr_term._grid(R=0, C=0, Cspan=2, Stk=ALL,           py=(1,2))  ;fr_term.Pgate()
-            fr_grde._grid(R=1, C=0,          Stk=ALL, px=(4,0), py=(3,4))  ;fr_grde.Pgate()
-            fr_titl._grid(R=1, C=1,          Stk=ALL,           py=(0,7))  ;fr_titl.Pgate()
-            fr_cell._grid(R=2, C=0, Cspan=2, Stk=ALL                     ) ;fr_cell.Pgate()
+            fr_grid._grid(R=r, C=0,          Stk=ALL, py=3    )
+            fr_term._grid(R=0, C=0, Cspan=2, Stk=ALL, py=1    )
+            fr_grde._grid(R=1, C=0,          Stk=ALL, py=3    )
+            fr_titl._grid(R=1, C=1,          Stk=ALL, py=(0,7))
+            fr_cell._grid(R=2, C=0, Cspan=2, Stk=ALL          )
 
             fr_grde.Rconf(0, W=1) ; fr_grde.Cconf(0, W=1)
             fr_term.Rconf(0, W=1) ; fr_term.Cconf(0, W=1)
             fr_titl.Rconf(0, W=1) ; fr_titl.Cconf(0, W=1)
 
-            term  = f"{self._jp_date(d_min, md=True)}  ～  {self._jp_date(d_max, md=True)}"
+            term  = self._to_range(d_min, d_max)
 
-            cLbl(fr_grde, **GOPT[grade], Anc= CT)._grid(R=0, C=0, Stk=ALL)
-            cLbl( fr_term, text=term, font=(MUI,8,BD),  Anc="w", **TITLE_BF
-                 )._grid(R=0, C=0, px=(10,0), Stk=ALL)
-            cLbl( fr_titl, text=title, font=(MUI,8,BD), Anc="w", **TITLE_BF
-                 )._grid(R=0, C=0, px=(20,0), Stk=ALL)
+            cLbl(fr_term, text=term, **TITLE_BF, font=(MUI,8))._grid(R=0, C=0, Stk=ALL)
+            cLbl( fr_term, W=6, text=wid_txt(VENUES[v_id-1]), font=(MUI,8), **HDR_BF, Bd=(1,RD), px=7
+                 )._grid(R=0, C=1, px=(67,0), Stk=ALL)
+            cLbl(fr_grde, **GOPT[grade], Anc= CT, Bd=(2,RA))._grid(R=0, C=0, Stk=ALL)
+            cLbl( fr_titl, text=title, Anc="w", **GTITLE[grade]
+                 )._grid(R=0, C=0, px=(13,0), py=(6,0), Stk=ALL)
+
+            #self.bg.bind_widget(lbl, "bg")
+            #self.fg.bind_widget(lbl, "fg")
+            #MyColor.activate_all(self, {"背景色 (bg)":self.bg, "文字色 (fg)":self.fg})
 
             for col, item in enumerate(slots):
                 d     = item['date'].strip()
@@ -805,28 +837,29 @@ class PlayerAnalysisWindow(tk.Toplevel):
                 s_adj = float(abs(item['s_adj'])) if item['s_adj'] else None
                 slit  = f"{s_adj:.2f}"[1:] if s_adj else ""
                 rank  = convert_rank(item["finish"], item["final"], item["prefnl"])
-                fcolr = ("red" if item["finish"] in ("F","L","S","K") else "black")
-                bg    = YELL if cour == self.course else "white"
+                fcol  = ("red" if item["finish"] in ("F","L","S","K") else "black")
+                bg    = YELL1 if cour == self.course else "white"
+                py    = 0
 
                 fr_cell.Cconf(col, Min=25)
 
                 for row in range(4):
-                    opt = { 0: dict(text=r_no,                       font=(GUI, 9,BD) ),
-                            1: dict(text=cour, **FRM_COLOR[frn],     font=(GUI, 9,BD) ),
-                            2: dict(text=slit, fg=fcolr, bg="white", font=(MUI, 8   ) ),
-                            3: dict(text=rank, fg=fcolr, bg=bg,      font=(GUI,10,BD) ), }
-                    if item["final"]:  opt[3]["font"] = (MUI,12,BD) ;opt[3]["py"] = 3
+                    opt = { 0:dict(text=r_no,                    font=(GUI,8   ), Bd=(1,GR)),
+                            1:dict(text=cour, **FRM_COLOR[frn],  font=(GUI,9,BD), Bd=(2,RD)),
+                            2:dict(text=slit, fg=fcol, bg=WHITE, font=(MUI,8   ), Bd=(1,GR)),
+                            3:dict(text=rank, fg=fcol, bg=bg,    font=(GUI,9,BD), Bd=(1,GR)), }
+                    if item["final"]:  opt[3]["font"] = (MUI,12,BD) ;py=(0,2)
                     if item["prefnl"]: opt[3]["font"] = (GUI,9,BD)
 
-                    fr_cell.Rconf(row, Min=30) ;
+                    fr_cell.Rconf(row, Min=30)
 
-                    lbl = cLbl(fr_cell, **opt[row], Anc=CT, Bd=(1,GR))
-                    lbl._grid(R=row, C=col, Stk=ALL, px=1, py=1)
+                    lbl = cLbl(fr_cell, **opt[row], Anc=CT)
+                    lbl._grid(R=row, C=col, Stk=ALL, py=py)
                     if row == 3 and rank:
-                        lbl.bind("<Button-1>", lambda e, d=d, v=v_id, r=item['r_no']:brouse_race_replay(d, v, r))
+                        lbl.bind("<Button-1>", lambda e, d=d, v=v_id, r=item['r_no']:brouse_replay(d,v,r))
                         lbl._config(Csr="hand2")
 
-        self.canvs.configure(scrollregion= self.canvs.bbox("all"))
+        self.canvas.configure(scrollregion= self.canvas.bbox("all"))
 
     # --------------- 優勝実績 (G2以上) 更新 ------------------
     def _refresh_achievement_panel(self):
@@ -852,52 +885,45 @@ class PlayerAnalysisWindow(tk.Toplevel):
               """
         params       = (self.player_id, date(2005, 1, 1).isoformat(), self.date_to)
         rows         = dal.fetch_all(sql, params) or []
-
         grade_color  = ["black", "black", "black", "blue", "blue", "red"]
 
         for r, row in enumerate(rows):
-
             d_disp = self._to_date(row["date"]).strftime("%y/%m/%d")
             v_name = VENUES[int(row["venue_id"]) -1]
             grade  = GRADE[int(row["grade"])]
             title  = row["series_title"]
             bg     = "white" if r %2 == 0 else "#EFEFEF"
             fg     = grade_color[int(row["grade"])]
-
-            #for word in ("Ｇ２", "ＧＩ", "Ｇ１", "ＰＧ１", "ＳＧ"):
-                #title = title.replace(word, "")
-            #title  = title.strip()
-
-            fr_row = cFr(self.ach_list, W=360, H=24, bg=bg)
-            fr_row._grid(R=r, C=0, Stk=ALL) ; fr_row.Pgate()
+            fr_row = cFr(self.ach_list, W=381, H=24, bg=bg)
+            fr_row._grid(R=r, C=0, Stk=ALL)
 
             fr_row.Cconf(3, W=1)
 
             cLbl(fr_row, text=d_disp, bg=bg, font=(MUI,8   ), Anc="w"
-                 )._grid(R=0, C=0, px=(2,0), Stk=ALL)
+                 )._grid(R=0, C=0, px=(2,0))
             cLbl(fr_row, text=v_name, bg=bg, font=(MUI,7,  ), Anc="w", W=4
-                 )._grid(R=0, C=1, px=(0,0), Stk=ALL)
+                 )._grid(R=0, C=1, px=(0,0))
             cLbl(fr_row, text=grade,  bg=bg, font=(GUI,8,BD), Anc="w", fg=fg
-                 )._grid(R=0, C=2, px=(0,2), Stk=ALL)
+                 )._grid(R=0, C=2, px=(0,2))
             cLbl(fr_row, text=title,  bg=bg, font=(GUI,8   ), Anc="w"
-                 )._grid(R=0, C=3, px=(0,0), Stk=ALL)
+                 )._grid(R=0, C=3, px=(0,0))
 
-        self.ach_canvs.configure(scrollregion=self.ach_canvs.bbox("all"))
+        self.ach_canvas.configure(scrollregion=self.ach_canvas.bbox("all"))
 
     #------------------------- 分布図 描画 ---------------------------
     def _build_distribute_ui(self):
 
         for w in self.win.winfo_children(): w.destroy()
 
-        fr_left  = cFr(self.win, W=430, H=210)
-        fr_right = cFr(self.win, W=330, H=210)
+        fr_left  = cFr(self.win, W=430, H=205)
+        fr_right = cFr(self.win, W=330, H=205)
 
-        fr_left._grid( R=0, C=0, py=(20,0))  ;fr_left.Pgate()
-        fr_right._grid(R=0, C=1, py=(20,0)) ;fr_right.Pgate()
+        fr_left._grid( R=0, C=0, py=(15,0))
+        fr_right._grid(R=0, C=1, py=(15,0))
 
         for r in range(7):
-            fr_left.Rconf(r, minsize=30)
-            fr_right.Rconf(r, minsize=30)
+            fr_left.Rconf(r, minsize=27)
+            fr_right.Rconf(r, minsize=27)
             for c in range(7):
                 fr_left.Cconf(c, minsize=60)
                 if c <= 5:
@@ -920,7 +946,7 @@ class PlayerAnalysisWindow(tk.Toplevel):
         for rnk in range(1, 7):
             rbtn = cBtn( fr_left, text=f"{rnk} 着", font=(MUI,8), **HDR_OPT,
                              Com=lambda r=rnk: self._toggle_subject_rank(r) )
-            rbtn._grid(R=0, C=rnk, px=1, py=(0,1), Stk=ALL)
+            rbtn._grid(R=0, C=rnk, py=(0,1), Stk=ALL)
             self.dist_refs["rank_btn"][rnk] = rbtn
 
         for c in range(1, 7):
@@ -1067,11 +1093,14 @@ class PlayerAnalysisWindow(tk.Toplevel):
 
         raise ValueError("date conv error")
     #-----------------------------------
-    def _jp_date(self, d:date, md:bool=False) -> str:
+    def _to_range(self, fr:date, to:date) -> str:
 
-        d = self._to_date(d)
-        if md: return wid_txt(f"{d.month}月 {d.day}日")
-        else:  return wid_txt(f"{d.year}年  {d.month}月 {d.day}日")
+        df = self._to_date(fr)
+        dt = self._to_date(to)
+        date_f = wid_txt(f"{df.year}年   {df.month:2}月 {df.day:2}日")
+        date_t = wid_txt(f"{dt.month:2}月 {dt.day:2}日")
+
+        return f"{date_f}  ～  {date_t}"
     #-----------------------------------
     @staticmethod
     def _period_for_calc(year:str, season:int):

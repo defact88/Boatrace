@@ -2,7 +2,7 @@
 # C:\boatrace\UI\Placeholder\placeholder.py
 
 import tkinter as tk
-from Helpers.Custum_func import cFr, cLbl, cBtn, cCvs
+from Helpers.Custum_func import cFr, cLbl, cBtn, cCvs, cTxt
 from Widgets.widgets     import framing_graph, framing_figure
 
 GUI, MUI, HNH, CBR     = "Yu Gothic UI", "Meiryo UI", "Helvetica Neue Heavy", "Cambria"
@@ -48,7 +48,7 @@ def build_main_placeholder(self, parent:tk.Frame):
 
     for ln in range(1, 7):
         row  = (ln -1)
-        Lane = cFr(parent, W=1200, H=167) ;Lane._grid(R=row, C=0) ;Lane.Pgate()
+        Lane = cFr(parent, W=1200, H=167) ;Lane._grid(R=row, C=0)
 
         Lane.Cconf(0, W=0, minsize= 413)
         Lane.Cconf(1, W=1, minsize= 358)
@@ -56,25 +56,25 @@ def build_main_placeholder(self, parent:tk.Frame):
         Lane.Rconf(0, W=1)
 
         # left: 選手基本データ =========
-        fr_left = cFr(Lane,   W=409, H=167, Bd=(1,SD)) ;fr_left.place(x=0, y=0) ;fr_left.Pgate()
+        fr_left = cFr(Lane,   W=409, H=167, Bd=(1,SD)) ;fr_left.place(x=0, y=0)
 
-        fr_A   = cFr(fr_left, W= 22, H=165, Bd=(1,GR)) ;fr_A._grid(  R=0, C=0) ;fr_A.Pgate()
-        fr_B   = cFr(fr_left, W=112, H=165, Bd=(1,GR)) ;fr_B._grid(  R=0, C=1) ;fr_B.Pgate()
-        fr_C   = cFr(fr_left, W=182, H=165, Bd=(1,GR)) ;fr_C._grid(  R=0, C=2) ;fr_C.Pgate()
-        fr_D   = cFr(fr_left, W= 46, H=165           ) ;fr_D._grid(  R=0, C=3) ;fr_D.Pgate()
-        fr_E   = cFr(fr_left, W= 45, H=165           ) ;fr_E._grid(  R=0, C=4) ;fr_E.Pgate()
-        fr_C1  = cFr(fr_C,    W=182, H= 32, Bd=(1,GR)) ;fr_C1._grid( R=0, C=0) ;fr_C1.Pgate()
-        fr_C2  = cFr(fr_C,    W=182, H=133, Bd=(1,GR)) ;fr_C2._grid( R=1, C=0) ;fr_C2.Pgate()
-        fr_D1  = cFr(fr_D,    W= 46, H= 33, Bd=(1,GR)) ;fr_D1._grid( R=0, C=0) ;fr_D1.Pgate()
-        fr_D2  = cFr(fr_D,    W= 46, H= 33, Bd=(1,GR)) ;fr_D2._grid( R=1, C=0) ;fr_D2.Pgate()
-        fr_D3  = cFr(fr_D,    W= 46, H= 33, Bd=(1,GR)) ;fr_D3._grid( R=2, C=0) ;fr_D3.Pgate()
-        fr_D4  = cFr(fr_D,    W= 46, H= 33, Bd=(1,GR)) ;fr_D4._grid( R=3, C=0) ;fr_D4.Pgate()
-        fr_D5  = cFr(fr_D,    W= 46, H= 33, Bd=(1,GR)) ;fr_D5._grid( R=4, C=0) ;fr_D5.Pgate()
-        fr_E1  = cFr(fr_E,    W= 45, H= 33, Bd=(1,GR)) ;fr_E1._grid( R=0, C=0) ;fr_E1.Pgate()
-        fr_E2  = cFr(fr_E,    W= 45, H= 33, Bd=(1,GR)) ;fr_E2._grid( R=1, C=0) ;fr_E2.Pgate()
-        fr_E3  = cFr(fr_E,    W= 45, H= 33, Bd=(1,GR)) ;fr_E3._grid( R=2, C=0) ;fr_E3.Pgate()
-        fr_E4  = cFr(fr_E,    W= 45, H= 33, Bd=(1,GR)) ;fr_E4._grid( R=3, C=0) ;fr_E4.Pgate()
-        fr_E5  = cFr(fr_E,    W= 45, H= 33, Bd=(1,GR)) ;fr_E5._grid( R=4, C=0) ;fr_E5.Pgate()
+        fr_A   = cFr(fr_left, W= 22, H=165, Bd=(1,GR)) ;fr_A._grid(  R=0, C=0)
+        fr_B   = cFr(fr_left, W=112, H=165, Bd=(1,GR)) ;fr_B._grid(  R=0, C=1)
+        fr_C   = cFr(fr_left, W=182, H=165, Bd=(1,GR)) ;fr_C._grid(  R=0, C=2)
+        fr_D   = cFr(fr_left, W= 46, H=165           ) ;fr_D._grid(  R=0, C=3)
+        fr_E   = cFr(fr_left, W= 45, H=165           ) ;fr_E._grid(  R=0, C=4)
+        fr_C1  = cFr(fr_C,    W=182, H= 32, Bd=(1,GR)) ;fr_C1._grid( R=0, C=0)
+        fr_C2  = cFr(fr_C,    W=182, H=133, Bd=(1,GR)) ;fr_C2._grid( R=1, C=0)
+        fr_D1  = cFr(fr_D,    W= 46, H= 33, Bd=(1,GR)) ;fr_D1._grid( R=0, C=0)
+        fr_D2  = cFr(fr_D,    W= 46, H= 33, Bd=(1,GR)) ;fr_D2._grid( R=1, C=0)
+        fr_D3  = cFr(fr_D,    W= 46, H= 33, Bd=(1,GR)) ;fr_D3._grid( R=2, C=0)
+        fr_D4  = cFr(fr_D,    W= 46, H= 33, Bd=(1,GR)) ;fr_D4._grid( R=3, C=0)
+        fr_D5  = cFr(fr_D,    W= 46, H= 33, Bd=(1,GR)) ;fr_D5._grid( R=4, C=0)
+        fr_E1  = cFr(fr_E,    W= 45, H= 33, Bd=(1,GR)) ;fr_E1._grid( R=0, C=0)
+        fr_E2  = cFr(fr_E,    W= 45, H= 33, Bd=(1,GR)) ;fr_E2._grid( R=1, C=0)
+        fr_E3  = cFr(fr_E,    W= 45, H= 33, Bd=(1,GR)) ;fr_E3._grid( R=2, C=0)
+        fr_E4  = cFr(fr_E,    W= 45, H= 33, Bd=(1,GR)) ;fr_E4._grid( R=3, C=0)
+        fr_E5  = cFr(fr_E,    W= 45, H= 33, Bd=(1,GR)) ;fr_E5._grid( R=4, C=0)
 
         fr_A.Rconf( 0, W=1) ;fr_A.Cconf( 0, W=1)
         fr_B.Rconf( 0, W=1) ;fr_B.Cconf( 0, W=1)  
@@ -127,9 +127,8 @@ def build_main_placeholder(self, parent:tk.Frame):
         lb_bo_av._grid( Stk=ALL,                     )
 
         # center: center_widgets =======
-
         fr_center = cFr(Lane, W=358, H=167, Bd=(1,SD))
-        fr_center.place(x=408, y=0) ;fr_center.Pgate()
+        fr_center.place(x=408, y=0) ;fr_center.grid_propagate(False)
 
         self.widgets_main[ln] = { "Lane":Lane, "absent_fr":fr_C2,
            "frno":lb_frno,    "name":lb_name,  "photo":lb_photo,  "stav":lb_stav,
@@ -139,13 +138,12 @@ def build_main_placeholder(self, parent:tk.Frame):
             "cv1":cv1,         "cv2":cv2,        "cv3":cv3,     "fr_Ctr":fr_center, }
 
         # right: 節間成績/2走ｲﾝﾃﾞｯｸｽ ===
-
         R_hdr:list[tk.Label]       = []
         R_bdy:list[list[tk.Label]] = []
         R_idx:list[tk.Label]       = []
 
         fr_right = cFr(Lane, W=435, H=167, Bd=(1,SD))
-        fr_right.place(x=764, y=0) ;fr_right.Pgate()
+        fr_right.place(x=764, y=0)
 
         fr_right.Rconf(0, Min=29)
         fr_right.Rconf(1, Min=29)
@@ -157,7 +155,7 @@ def build_main_placeholder(self, parent:tk.Frame):
 
         for i in range(7):
             hedr = cLbl(fr_right, text="", font=(GUI,8,BD), bg=BLANK_COL, Bd=(1,RD))
-            hedr._grid(R=0, C=i*2, Cspan=2, Stk=ALL) ;hedr.Pgate()
+            hedr._grid(R=0, C=i*2, Cspan=2, Stk=ALL)
             R_hdr.append(hedr)
 
         for col in range(14):
@@ -165,7 +163,7 @@ def build_main_placeholder(self, parent:tk.Frame):
             for row in range(1, 5):
                 pad = dict(px=(1,1), py=(3,3)) if row == 2 else dict(px=(0,0), py=(0,0))
                 cell = cLbl(fr_right, text="", bg=MAIN_BG, Bd=(1,GR), Anc=CT)
-                cell._grid(R=row, C=col, Stk=ALL) ;cell.Pgate()
+                cell._grid(R=row, C=col, Stk=ALL)
                 cells.append(cell)
             R_bdy.append(cells)
 
@@ -175,7 +173,7 @@ def build_main_placeholder(self, parent:tk.Frame):
         for r in range(3):
             fr_idx.Rconf(r, Min=31)
             inr = cLbl(fr_idx, text="", **HDR_7, py=1)
-            inr._grid(R=r, C=0, Stk=ALL, px=(3,0), py=4) ;inr.Pgate()
+            inr._grid(R=r, C=0, Stk=ALL, px=(3,0), py=4)
             R_idx.append(inr)
         fr_idx.Cconf(0, Min=24)
 
@@ -193,32 +191,32 @@ def build_sub_placeholder(self, parent:tk.Frame): #  1188  318
 
     fr_Hedr  = cFr(parent, W=1200, H= 50)
     fr_body  = cFr(parent, W=1200, H=266)
-    fr_Hedr._grid(R=0, C=0, pady=(0,2)) ;fr_Hedr.Pgate()
-    fr_body._grid(R=2, C=0            ) ;fr_body.Pgate()
+    fr_Hedr._grid(R=0, C=0, pady=(0,2))
+    fr_body._grid(R=2, C=0            )
 
     # Frame header================================
-    fr_hdrL  = cFr(fr_Hedr, W=913, H= 50, Bd=(1,SD))
-    fr_hdrR  = cFr(fr_Hedr, W=280, H= 50, Bd=(1,SD))
+    fr_hdrL = cFr(fr_Hedr, W=913, H= 50, Bd=(1,SD))
+    fr_hdrR = cFr(fr_Hedr, W=280, H= 50, Bd=(1,SD))
 
-    fr_hdrL._grid(R=0, C=0, px=(0, 5)) ;fr_hdrL.Pgate()
-    fr_hdrR._grid(R=0, C=1)            ;fr_hdrL.Pgate()
+    fr_hdrL._grid(R=0, C=0, px=(0, 5))
+    fr_hdrR._grid(R=0, C=1)
 
-    fr_venu = cFr(fr_hdrL, W= 80, H= 48           ) ;fr_venu._grid(R=0, C=0) ;fr_venu.Pgate()
-    fr_updt = cFr(fr_hdrL, W=140, H= 48, **HDR_B  ) ;fr_updt._grid(R=0, C=1) ;fr_updt.Pgate()
-    fr_clok = cFr(fr_hdrL, W=115, H= 48, **HDR_B  ) ;fr_clok._grid(R=0, C=2) ;fr_clok.Pgate()
-    fr_last = cFr(fr_hdrL, W= 75, H= 48, **HDR_B  ) ;fr_last._grid(R=0, C=3) ;fr_last.Pgate()
-    fr_pnel = cFr(fr_hdrL, W=501, H= 48           ) ;fr_pnel._grid(R=0, C=4) ;fr_pnel.Pgate()
+    fr_venu = cFr(fr_hdrL, W= 80, H= 48           ) ;fr_venu._grid(R=0, C=0) 
+    fr_updt = cFr(fr_hdrL, W=140, H= 48, **HDR_B  ) ;fr_updt._grid(R=0, C=1)
+    fr_clok = cFr(fr_hdrL, W=115, H= 48, **HDR_B  ) ;fr_clok._grid(R=0, C=2)
+    fr_last = cFr(fr_hdrL, W= 75, H= 48, **HDR_B  ) ;fr_last._grid(R=0, C=3)
+    fr_pnel = cFr(fr_hdrL, W=501, H= 48           ) ;fr_pnel._grid(R=0, C=4)
 
-    fr_btnf = cFr(fr_hdrR, W= 74, H= 48, **HDR_B  ) ;fr_btnf._grid(R=0, C=0) ;fr_btnf.Pgate()
-    fr_wthr = cFr(fr_hdrR, W= 69, H= 48, **HDR_B  ) ;fr_wthr._grid(R=0, C=1) ;fr_wthr.Pgate()
-    fr_para = cFr(fr_hdrR, W= 80, H= 48, **HDR_B  ) ;fr_para._grid(R=0, C=2) ;fr_para.Pgate()
-    fr_wdir = cFr(fr_hdrR, W= 55, H= 48, **HDR_B  ) ;fr_wdir._grid(R=0, C=3) ;fr_wdir.Pgate()
+    fr_btnf = cFr(fr_hdrR, W= 74, H= 48, **HDR_B  ) ;fr_btnf._grid(R=0, C=0)
+    fr_wthr = cFr(fr_hdrR, W= 69, H= 48, **HDR_B  ) ;fr_wthr._grid(R=0, C=1)
+    fr_para = cFr(fr_hdrR, W= 80, H= 48, **HDR_B  ) ;fr_para._grid(R=0, C=2)
+    fr_wdir = cFr(fr_hdrR, W= 55, H= 48, **HDR_B  ) ;fr_wdir._grid(R=0, C=3)
 
-    fr_pnlA = cFr(fr_pnel, W=503, H= 24, **HDR_B   );fr_pnlA._grid(R=0, C=0) ;fr_pnlA.Pgate()
-    fr_pnlB = cFr(fr_pnel, W=503, H= 24, **HDR_B   );fr_pnlB._grid(R=1, C=0) ;fr_pnlB.Pgate()
+    fr_pnlA = cFr(fr_pnel, W=503, H= 24, **HDR_B   );fr_pnlA._grid(R=0, C=0)
+    fr_pnlB = cFr(fr_pnel, W=503, H= 24, **HDR_B   );fr_pnlB._grid(R=1, C=0)
 
-    self.bt_ctw = cFr(fr_pnlA, W=353, H= 24, **HDR_B ) ;self.bt_ctw._grid(R=0, C=0)
-    fr_info     = cFr(fr_pnlA, W=150, H= 24, **HDR_B ) ;fr_info._grid(R=0, C=1) ;fr_info.Pgate()
+    self.bt_ctw = cFr(fr_pnlA, W=353, H= 24, **HDR_B) ;self.bt_ctw._grid(R=0, C=0)
+    fr_info     = cFr(fr_pnlA, W=150, H= 24, **HDR_B) ;fr_info._grid(R=0, C=1)
 
     fr_venu.Rconf(0, Min=48) ;fr_venu.Cconf(0, Min=80)
     fr_updt.Rconf(0, Min=24) ;fr_updt.Cconf(0, Min=85)
@@ -237,7 +235,7 @@ def build_sub_placeholder(self, parent:tk.Frame): #  1188  318
     fr_para.Rconf(1, Min=24)
     fr_wdir.Rconf(0, Min=48) ;fr_wdir.Cconf(0, Min=55)
 
-    lb_venue = cLbl(fr_venu, font=(MUI,9,BD), fg="yellow", **HDR_B, Bd=(2,RA), Csr="hand2", Wrap=70, py=2)
+    lb_venue = cTxt(fr_venu, font=(MUI,9,BD),W=2, fg="yellow", **HDR_B, Bd=(2,RA), Csr="hand2", py=2)
     lb_venue.bind("<Button-1>",lambda e:self.app.open_v_analys(self.venue_id))
     lb_venue._grid(R=0, C=0, Stk=ALL)
 
@@ -245,8 +243,8 @@ def build_sub_placeholder(self, parent:tk.Frame): #  1188  318
     cLbl(fr_updt, text=" ボート 更新後", **HDR_7)._grid(R=1, C=0, Stk=ALL, px=(3,0), py=(0,3))
     lb_upd_m = cLbl(fr_updt, **HDR_8)   ;lb_upd_m._grid(R=0, C=1, Stk=ALL, px=(0,5), py=(2,0))
     lb_upd_b = cLbl(fr_updt, **HDR_8)   ;lb_upd_b._grid(R=1, C=1, Stk=ALL, px=(0,5), py=(0,2))
-    cLbl(fr_clok, text="締 切",          **HDR_7)._grid(R=0, C=0, Stk=ALL, px=(8,0), py=(2,2))
-    cLbl(fr_clok, text="現 在",          **HDR_7)._grid(R=1, C=0, Stk=ALL, px=(8,0), py=(0,4))
+    cLbl(fr_clok, text="締 切",          **HDR_7)._grid(R=0, C=0, Stk=ALL, px=(4,0), py=(2,2))
+    cLbl(fr_clok, text="現 在",          **HDR_7)._grid(R=1, C=0, Stk=ALL, px=(4,0), py=(0,4))
     lb_deadl = cLbl(fr_clok, **HDR_8)   ;lb_deadl._grid(R=0, C=1, Stk=ALL, px=(3,0), py=(2,0))
     lb_now   = cLbl(fr_clok, **HDR_8)   ;lb_now._grid(  R=1, C=1, Stk=ALL, px=(3,0), py=(0,2))
 
@@ -301,25 +299,25 @@ def build_sub_placeholder(self, parent:tk.Frame): #  1188  318
     _config_btn(self, self.figB_result, self.bt_rslt, self.bt_befr, (1,SK), YEL2_BF)
 
     # Frame body==================================
-    fr_Lane = cFr(fr_body, W=913, H=266, Bd=(1,SD)) ;fr_Lane._grid(R=0, C=0)           ;fr_Lane.Pgate()
-    fr_Rigt = cFr(fr_body, W=280, H=266, Bd=(1,SD)) ;fr_Rigt._grid(R=0, C=3, px=(6,0)) ;fr_Rigt.Pgate()
+    fr_Lane = cFr(fr_body, W=913, H=266, Bd=(1,SD)) ;fr_Lane._grid(R=0, C=0)
+    fr_Rigt = cFr(fr_body, W=280, H=266, Bd=(1,SD)) ;fr_Rigt._grid(R=0, C=3, px=(6,0))
 
-    fr_lanA = cFr(fr_Lane, W= 23, H=264)           ; fr_lanA._grid(R=0, C=0) ;fr_lanA.Pgate()
-    fr_lanB = cFr(fr_Lane, W=140, H=264)           ; fr_lanB._grid(R=0, C=1) ;fr_lanB.Pgate()
-    fr_lanC = cFr(fr_Lane, W= 20, H=264)           ; fr_lanC._grid(R=0, C=2) ;fr_lanC.Pgate()
-    fr_lanD = cFr(fr_Lane, W= 34, H=264)           ; fr_lanD._grid(R=0, C=3) ;fr_lanD.Pgate()
-    fr_lanE = cFr(fr_Lane, W=254, H=264)           ; fr_lanE._grid(R=0, C=4) ;fr_lanE.Pgate()
-    fr_botn = cFr(fr_Lane, W= 21, H=264, **HDR_B)  ; fr_botn._grid(R=0, C=5) ;fr_botn.Pgate()
-    fr_grph = cFr(fr_Lane, W=246, H=264)           ; fr_grph._grid(R=0, C=6) ;fr_grph.Pgate()
-    fr_lanF = cFr(fr_Lane, W= 29, H=264)           ; fr_lanF._grid(R=0, C=7) ;fr_lanF.Pgate()
-    fr_lanG = cFr(fr_Lane, W=143, H=264)           ; fr_lanG._grid(R=0, C=8) ;fr_lanG.Pgate()
-    fr_figA = cFr(fr_lanE, W=254, H=264)           ; fr_figA.place(x=0, y=0) ;fr_figA.Pgate()
-    fr_exhi = cFr(fr_lanE, W= 45, H=262)           ; fr_exhi.place(x=0, y=1) ;fr_exhi.Pgate()
-    fr_figB = cFr(fr_Rigt, W=278, H=264)           ; fr_figB._grid(R=0, C=1) ;fr_figB.Pgate()
+    fr_lanA = cFr(fr_Lane, W= 23, H=264)            ;fr_lanA._grid(R=0, C=0)
+    fr_lanB = cFr(fr_Lane, W=140, H=264)            ;fr_lanB._grid(R=0, C=1)
+    fr_lanC = cFr(fr_Lane, W= 20, H=264)            ;fr_lanC._grid(R=0, C=2)
+    fr_lanD = cFr(fr_Lane, W= 34, H=264)            ;fr_lanD._grid(R=0, C=3)
+    fr_lanE = cFr(fr_Lane, W=254, H=264)            ;fr_lanE._grid(R=0, C=4)
+    fr_botn = cFr(fr_Lane, W= 21, H=264, **HDR_B)   ;fr_botn._grid(R=0, C=5)
+    fr_grph = cFr(fr_Lane, W=246, H=264)            ;fr_grph._grid(R=0, C=6)
+    fr_lanF = cFr(fr_Lane, W= 29, H=264)            ;fr_lanF._grid(R=0, C=7)
+    fr_lanG = cFr(fr_Lane, W=143, H=264)            ;fr_lanG._grid(R=0, C=8)
+    fr_figA = cFr(fr_lanE, W=254, H=264)            ;fr_figA.place(x=0, y=0)
+    fr_exhi = cFr(fr_lanE, W= 45, H=262)            ;fr_exhi.place(x=0, y=1) ;fr_exhi.Pgate()
+    fr_figB = cFr(fr_Rigt, W=278, H=264)            ;fr_figB._grid(R=0, C=1)
 
     for ln in range(1, 7):
         r = ln -1
-        fr_repr = cFr(fr_lanG, W=143, H=44, Bd=(1,GR)) ;fr_repr._grid(R=r, C=0) ;fr_repr.Pgate()
+        fr_repr = cFr(fr_lanG, W=143, H=44, Bd=(1,GR)) ;fr_repr._grid(R=r, C=0)
 
         fr_lanA.Rconf(r, W=1) ;fr_lanA.Cconf(0, W=1)
         fr_lanB.Rconf(r, W=1) ;fr_lanB.Cconf(0, W=1)
@@ -338,7 +336,7 @@ def build_sub_placeholder(self, parent:tk.Frame): #  1188  318
         lb_tilt = cLbl(fr_lanD, Anc=CT,  font=(MUI, 7,BD), **HDR_BF,             Bd=(1,RD))
         lb_exhi = cLbl(fr_exhi, Anc=CT,  font=(MUI, 8,BD), bg=WATER_COL                   )
         lb_cnt  = cLbl(fr_lanF, Anc="w", font=(MUI, 7,BD), **HDR_BF,             Bd=(1,RD))
-        canvas = cCvs(fr_repr, W=143, H=44, bg="white", HLth=0)
+        canvas  = cCvs(fr_repr, W=143, H=44, bg="white", HLth=0)
 
         lb_frno._grid(Stk=ALL)
         lb_name._grid(Stk=ALL)
@@ -348,8 +346,8 @@ def build_sub_placeholder(self, parent:tk.Frame): #  1188  318
         lb_cnt._grid( Stk=ALL)
         canvas._grid( Stk=ALL)
 
-        bt_sbj = cBtn( fr_botn, text= "", font=(MUI,8,BD), Rel=RA, bg="#4870b0", Csr= "hand2",
-                                             Com=lambda ln=ln:_on_graph_btn(self, fr_grph, ln) )
+        bt_sbj = cBtn( fr_botn, font=(MUI,8,BD), Rel=RA, bg="#4870b0", Csr="hand2",
+                                      Com=lambda l=ln:_on_graph_btn(self,fr_grph,l) )
         bt_sbj.place(x=4, y=(ln -1) *44 +5, width=13, height=32)
         # ----------------
         def _press(ev, ln=ln):

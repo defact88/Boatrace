@@ -15,7 +15,8 @@ UI,Helpers,player_picker,               C:\boatrace\UI\Helpers\player_picker.py,
 UI,Helpers,Custum_func,                 C:\boatrace\UI\Helpers\Custum_func.py,1
 UI,Helpers,queries,                     C:\boatrace\UI\Helpers\queries.py,1
 UI,Helpers,ev_scanner.py,               C:\boatrace\UI\Helpers\ev_scanner.py,0
-UI,Helpers,brouse_race_replay.py,        C:\boatrace\UI\Helpers\brouse_race_replay.py,0
+UI,Helpers,brouse_play.py,              C:\boatrace\UI\Helpers\brouse_play.py,0
+UI,Helpers,color_picker.py,             C:\boatrace\UI\Helpers\color_picker.py,0
 
 UI,Widgets,widgets.py,                  C:\boatrace\UI\Widgets\widgets.py,1
 UI,Widgets,center_widgets.py,           C:\boatrace\UI\Widgets\center_widgets.py,0

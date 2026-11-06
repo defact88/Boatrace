@@ -170,25 +170,25 @@ class PlayerFavorScreen(tk.Frame):
         style.configure("fpw.TCheckbutton", font=(MUI,10,BD),    background=MAIN_BG)
         style.configure("fpw.TRadiobutton", font=(MUI,10,BD), background=MAIN_BG)
 
-        fr_main = cFr(self, W=1220, H=1400, **BG, px=10, py=15) ;fr_main.Pgate()
+        fr_main = cFr(self, W=1220, H=1400, **BG, px=10, py=15)
         fr_main._grid(R=0, C=0, Stk=ALL)
 
-        fr_top = cFr(fr_main, W=1220, H=600, **BG) ;fr_top._grid(R=0, C=0, py=(0,20)) ;fr_top.Pgate()
-        fr_btm = cFr(fr_main, W=1220, H=750, **BG) ;fr_btm._grid(R=1, C=0, px=5)      ;fr_btm.Pgate()
+        fr_top = cFr(fr_main, W=1220, H=600, **BG) ;fr_top._grid(R=0, C=0, py=(0,20))
+        fr_btm = cFr(fr_main, W=1220, H=750, **BG) ;fr_btm._grid(R=1, C=0, px=5)
 
-        cntrl   = cFr(fr_top, W=490, H=600, **BG)  ;cntrl._grid(R=0, C=0, px=5) ;cntrl.Pgate()
-        result  = cFr(fr_top, W=680, H=600, **BG) ;result._grid(R=0, C=1, px=5) ;result.Pgate()
+        cntrl   = cFr(fr_top, W=490, H=600, **BG)  ;cntrl._grid(R=0, C=0, px=5)
+        result  = cFr(fr_top, W=680, H=600, **BG) ;result._grid(R=0, C=1, px=5)
 
-        fr_date  = cFr(cntrl, W=490, H= 60, **BG, py= 5)  ;fr_date._grid(R=0, C=0) ;fr_date.Pgate()
-        fr_dbtn  = cFr(cntrl, W=490, H= 40, **BG, py= 5)  ;fr_dbtn._grid(R=1, C=0) ;fr_dbtn.Pgate()
-        fr_venue = cFr(cntrl, W=490, H=165, **BG, py= 5) ;fr_venue._grid(R=2, C=0) ;fr_venue.Pgate()
-        fr_grade = cFr(cntrl, W=490, H= 50, **BG, py=10) ;fr_grade._grid(R=3, C=0) ;fr_grade.Pgate()
-        fr_self  = cFr(cntrl, W=490, H= 45, **BG, py=10)  ;fr_self._grid(R=4, C=0) ;fr_self.Pgate()
-        fr_othr  = cFr(cntrl, W=490, H= 45, **BG, py=10)  ;fr_othr._grid(R=5, C=0) ;fr_othr.Pgate()
-        fr_rank  = cFr(cntrl, W=490, H= 45, **BG, py=10)  ;fr_rank._grid(R=6, C=0) ;fr_rank.Pgate()
-        fr_wmvs  = cFr(cntrl, W=490, H= 45, **BG, py=10)  ;fr_wmvs._grid(R=7, C=0) ;fr_wmvs.Pgate()
-        fr_param = cFr(cntrl, W=490, H= 45, **BG, py=10) ;fr_param._grid(R=8, C=0) ;fr_param.Pgate()
-        fr_sbtn  = cFr(cntrl, W=490, H= 50, **BG, py=10)  ;fr_sbtn._grid(R=9, C=0) ;fr_sbtn.Pgate()
+        fr_date  = cFr(cntrl, W=490, H= 60, **BG, py= 5)  ;fr_date._grid(R=0, C=0)
+        fr_dbtn  = cFr(cntrl, W=490, H= 40, **BG, py= 5)  ;fr_dbtn._grid(R=1, C=0)
+        fr_venue = cFr(cntrl, W=490, H=165, **BG, py= 5) ;fr_venue._grid(R=2, C=0)
+        fr_grade = cFr(cntrl, W=490, H= 50, **BG, py=10) ;fr_grade._grid(R=3, C=0)
+        fr_self  = cFr(cntrl, W=490, H= 45, **BG, py=10)  ;fr_self._grid(R=4, C=0)
+        fr_othr  = cFr(cntrl, W=490, H= 45, **BG, py=10)  ;fr_othr._grid(R=5, C=0)
+        fr_rank  = cFr(cntrl, W=490, H= 45, **BG, py=10)  ;fr_rank._grid(R=6, C=0)
+        fr_wmvs  = cFr(cntrl, W=490, H= 45, **BG, py=10)  ;fr_wmvs._grid(R=7, C=0)
+        fr_param = cFr(cntrl, W=490, H= 45, **BG, py=10) ;fr_param._grid(R=8, C=0)
+        fr_sbtn  = cFr(cntrl, W=490, H= 50, **BG, py=10)  ;fr_sbtn._grid(R=9, C=0)
 
         cLbl(fr_date, text="DATE ( FROM )", **D_LABEL_OPT)._grid(R=0, C=0, Cspan=6, Stk=ALL) 
         cLbl(fr_date, text=" DATE ( TO ) ", **D_LABEL_OPT)._grid(R=0, C=8, Cspan=6, Stk=ALL)
@@ -276,7 +276,7 @@ class PlayerFavorScreen(tk.Frame):
 
         cBtn( fr_sbtn, W=11, text="メイン", **BTN_OPT, **FG, Com=lambda:app.show_screen("Main")
              )._grid(R=0, C=0, px=(0,0))
-        cBtn(fr_sbtn, W=11, text="検 索", **BTN_OPT, **FG, Com=self._reload_table1)._grid(R=0, C=1, px=(200,0))
+        cBtn(fr_sbtn,  W=11, text="検 索", **BTN_OPT, **FG, Com=self._reload_table1)._grid(R=0, C=1, px=(200,0))
         cBtn( fr_sbtn, W=11, text="登 録", **BTN_OPT, fg="#5fda74", Com=self._register_player
              )._grid(R=0, C=2, px=(30,0))
 
@@ -295,7 +295,7 @@ class PlayerFavorScreen(tk.Frame):
         scr_bar     = cSrb(table1, orient="vertical", Com=self.canvas.yview)
         self.canvas.config(yscrollcommand=scr_bar.set)
 
-        self.fr_hdr._grid( R=0, C=0)           ;self.fr_hdr.Pgate()
+        self.fr_hdr._grid( R=0, C=0)
         self.canvas._grid( R=1, C=0, Stk=ALL)
         scr_bar._grid(     R=1, C=1, Stk="ns")
 
@@ -316,8 +316,8 @@ class PlayerFavorScreen(tk.Frame):
     # --------------------------------------------
     def _init_regist_table(self, parent):
 
-        table2 = cFr(parent, W=1190, H=390) ;table2._grid(R=0, C=0) ;table2.Pgate()
-        pannel = cFr(parent, W=1190, H=350) ;pannel._grid(R=1, C=0) ;pannel.Pgate()
+        table2 = cFr(parent, W=1190, H=390) ;table2._grid(R=0, C=0)
+        pannel = cFr(parent, W=1190, H=350) ;pannel._grid(R=1, C=0)
 
         table2.Rconf(0, Min=28)  ;table2.Cconf(0, Min=1160)
         table2.Rconf(1, Min=362) ;table2.Cconf(1, Min=25)
@@ -330,7 +330,7 @@ class PlayerFavorScreen(tk.Frame):
         scr_bar2     = cSrb(table2, orient="vertical", Com=self.canvas2.yview)
         self.canvas2.config(yscrollcommand=scr_bar2.set)
 
-        self.fr_hdr2._grid( R=0, C=0)           ;self.fr_hdr2.Pgate()
+        self.fr_hdr2._grid( R=0, C=0)
         self.canvas2._grid( R=1, C=0, Stk=ALL)
         scr_bar2._grid(     R=1, C=1, Stk="ns")
 
@@ -348,8 +348,8 @@ class PlayerFavorScreen(tk.Frame):
         self.inner2.bind("<Configure>", _on_conf2)
         self.canvas2.bind("<Configure>", _on_conf2)
 
-        cntrl  = cFr(pannel, W=500, H=350, **BG)  ;cntrl._grid(R=0, C=0)  ;cntrl.Pgate()
-        table3 = cFr(pannel, W=683, H=350, py=5, **BG) ;table3._grid(R=0, C=1) ;table3.Pgate()
+        cntrl  = cFr(pannel, W=500, H=350, **BG)  ;cntrl._grid(R=0, C=0)
+        table3 = cFr(pannel, W=683, H=350, py=5, **BG) ;table3._grid(R=0, C=1)
 
         cLbl( cntrl, text="【 登録・条件管理 】", **HDR_OPT, px=4, py=4
              )._grid(R=0, C=0, Cspan=3, Stk=ALL, py=(5,10))
@@ -358,7 +358,7 @@ class PlayerFavorScreen(tk.Frame):
 
         fr_cond_add = cFr(cntrl, W=480, H=60, **BG)
         fr_cond_add._grid(R=2, C=0, Cspan=3, px=5, py=10, Stk="w")
-        fr_cond_add.Pgate()
+
         cLbl(fr_cond_add, text="条件追加(コース):", **MAIN_OPT)._grid(R=0, C=0, px=2)
         cSpbx(fr_cond_add, W=4, Frm=1, To=6, Inc=1, font=(MUI,10), Txtv=self.cond_course_var)._grid(R=0, C=1, px=2)
         cBtn(fr_cond_add, W=10, text="条件追加", **BTN_OPT, **FG, Com=self._add_condition)._grid(R=0, C=2, px=10)
@@ -373,7 +373,7 @@ class PlayerFavorScreen(tk.Frame):
         scr_bar3     = cSrb(table3, orient="vertical", Com=self.canvas3.yview)
         self.canvas3.config(yscrollcommand=scr_bar3.set)
 
-        self.fr_hdr3._grid( R=0, C=0)           ;self.fr_hdr3.Pgate()
+        self.fr_hdr3._grid( R=0, C=0)
         self.canvas3._grid( R=1, C=0, Stk=ALL)
         scr_bar3._grid(     R=1, C=1, Stk="ns")
 

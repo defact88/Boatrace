@@ -100,15 +100,15 @@ class RaceSelectScreen(tk.Frame):
         self.cells:dict[int, dict[str,tk.Widget]] = {}
 
         fr_root = cFr(self,    W=800, H=630, px=21)
-        fr_root._grid(R=0, C=0, py=(0,28)) ;fr_root.Pgate()
+        fr_root._grid(R=0, C=0, py=(0,28))
 
         fr_hedr      = cFr(fr_root, W=758, H= 50)
         fr_ctrl      = cFr(fr_root, W=758, H= 50)
         self.fr_grid = cFr(fr_root, W=758, H=522, Bd=(1,SD))
 
-        fr_hedr._grid(     R=0, C=0)      ;fr_hedr.Pgate()
-        fr_ctrl._grid(     R=1, C=0)      ;fr_ctrl.Pgate()
-        self.fr_grid._grid(R=2, C=0) ;self.fr_grid.Pgate()
+        fr_hedr._grid(     R=0, C=0)
+        fr_ctrl._grid(     R=1, C=0)
+        self.fr_grid._grid(R=2, C=0)
 
         fr_hedr.Cconf(0, Min=130) ;fr_hedr.Rconf(0, Min=50)
         fr_hedr.Cconf(1, Min=418)
@@ -192,7 +192,7 @@ class RaceSelectScreen(tk.Frame):
 
         if widg is None:
             fr_cell = cFr(self.fr_grid, W=126, H=130, Bd=(1,GR), bg=MAIN_BG)
-            fr_cell._grid(R=row, C=col, Stk=ALL) ;fr_cell.Pgate()
+            fr_cell._grid(R=row, C=col, Stk=ALL)
 
             fr_cell.Rconf(0, Min=25) ;fr_cell.Cconf(0, Min=78)
             fr_cell.Rconf(1, Min=21) ;fr_cell.Cconf(1, Min=48)

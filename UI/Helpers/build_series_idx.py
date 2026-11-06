@@ -9,7 +9,7 @@ import re, tkinter as tk
 
 from Custum_func        import cFr, cLbl, cBtn
 from widgets            import apply_absent_bg
-from brouse_race_replay import brouse_race_replay
+from brouse_play        import brouse_replay
 import Dal as dal
 
 RE_FINAL = re.compile(    r"(?<!準)"
@@ -325,7 +325,7 @@ def _paint_abcd(self, cells:list, r_no:int, course:int, st:str, rank:str, f_no:i
     cells[2]._config(text=st,                font=(MUI,8),    fg=fg, bg=WHITE, Bd=(1,GR))
     cells[3]._config(text=rank,              font=(MUI,8,BD), fg=fg, bg=WHITE, Bd=(1,GR), Csr="hand2")
     cells[0].bind("<Button-1>", lambda e:self._reload_for(d, self.venue_id, r_no, result=True))
-    cells[3].bind("<Button-1>", lambda e:brouse_race_replay(d, self.venue_id, r_no))
+    cells[3].bind("<Button-1>", lambda e:brouse_replay(d, self.venue_id, r_no))
 
 # --------------- 2走インデックス 表示/更新 ----------------
 def _assign_other_run(self, lineup):

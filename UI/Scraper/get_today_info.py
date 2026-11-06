@@ -16,6 +16,7 @@ DB_PATH   = BASE_DIR / "boatrace.db"
 URL_INDEX = "https://www.boatrace.jp/owpc/pc/race/index?hd={hd}"
 URL_BASE  = "https://www.boatrace.jp/owpc/pc/race/racelist?rno=1&jcd={jcd:02d}&hd={hd}"
 URL_RNO   = "https://www.boatrace.jp/owpc/pc/race/racelist?rno={rno}&jcd={jcd:02d}&hd={hd}"
+
 HEADERS   = { "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:142.0) Gecko/20100101 Firefox/142.0",
               "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8",
               "Accept-Language": "ja,en-US;q=0.7,en;q=0.3",
@@ -23,9 +24,7 @@ HEADERS   = { "User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:142.0)
               "Sec-Fetch-Dest": "document",
               "Sec-Fetch-Mode": "navigate",
               "Sec-Fetch-Site": "none",
-              "Sec-Fetch-User": "?1",
-              "Connection": "keep-alive",
-             }
+              "Sec-Fetch-User": "?1",                   }
 # ----------------------------
 def yyyymmdd(d_iso:str) -> str:
 

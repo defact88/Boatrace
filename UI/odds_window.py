@@ -7,16 +7,16 @@ from tkinter        import ttk, messagebox, font as tkfont
 from datetime       import timedelta, timezone, date, datetime as dt
 
 import Dal as dal
-from Custum_func    import cFr, cLbl, cBtn, cEnt, cCvs
+from Custum_func    import cFr, cLbl, cBtn, cEnt, cCvs, cSpbx
 from scraper_odds   import fetch_all_odds
 from selenium_buyer import SeleniumBuyer, PurchaseError, LoginError
 
 #=====================================================================
 ODDS_CTL_PATH      = r"C:\boatrace\tmp\json\odds_ctl.json"
 
-GUI, MUI, HNH      = "Yu Gothic UI", "Meiryo UI", "Helvetica Neue Heavy"
-GR, SD, RD, RA, BD = "groove", "solid", "ridge", "raised", "bold"
-ALL, CT            = "nsew", "center"
+GUI, MUI, HNH, CBR = "Yu Gothic UI", "Meiryo UI", "Helvetica Neue Heavy", "Cambria"
+GR, SD, RD, RA, SK = "groove", "solid", "ridge", "raised", "sunken"
+ALL, CT ,BD        = "nsew", "center", "bold"
 
 VENUES = [ "", "桐生", "戸田", "江戸川", "平和島", "多摩川", "浜名湖",  "蒲郡", "常滑",
                  "津", "三国", "びわこ", "住之江",   "尼崎",   "鳴門",  "丸亀", "児島",
@@ -25,21 +25,47 @@ VENUES = [ "", "桐生", "戸田", "江戸川", "平和島", "多摩川", "浜�
 FRM_BG = {1:"#FFFFFF",2:"#333333",3:"#D40000",4:"#0066CC",5:"#FFD400",6:"#008A2E"}
 FRM_FG = {1:"#000000",2:"#FFFFFF",3:"#FFFFFF",4:"#FFFFFF",5:"#000000",6:"#FFFFFF"}
 
+HIGH_THRESH = { "3T":1000.0, "3F":100.0, "2T":100.0, "2F":1000.0,
+                "TT":1000.0, "FF":100.0, "KK":100.0,              }
+
+TRANSFER = [1000, 3000, 5000, 10000]
+
 HIL_BG     = "#FFD700"
 INCLUDE_BG = "#cce8ff"
 CUT_BG     = "#CCCCCC"
 CUT_FG     = "#AAAAAA"
 NORM_BG    = "#FFFFFF"
-HDR_BG     = "#2B4A7A"
 HDR_FG     = "#FFFFFF"
 PANEL_BG   = "#F0F4FA"
 TBL_BG     = "#FFFFFF"
 ALT_BG     = "#F0F0FF"
 SEP_C      = "#CCCCDD"
 
-HIGH_THRESH = { "3T":1000.0, "3F":100.0, "2T":100.0, "2F":1000.0,
-                "TT":1000.0, "FF":100.0, "KK":100.0,              }
+MAIN_BG = "#F0F4FA"
+HDR_BG  = "#2B4A7A"
+BTN_BG  = "#4A6A9A"
+WHITE   = "#FFFFFF"
+YELL1   = "#FFD700"
+YELL2   = "#F1EE62"
+GRAY1   = "#ECECEC"
+GRAY2   = "#CFCFCF"
+BLACK1  = "#000000"
+BLACK2  = "#222222"
+BLUE    = "#0001da"
+LIT_RED = "#ff5b5b"
+PURPLE  = "#b050d0"
 
+HDR_B   = dict(bg=HDR_BG)
+HDR_BF  = dict(bg=HDR_BG, fg=WHITE)
+BTN_BF  = dict(bg=BTN_BG, fg=WHITE)
+BTN_OFF = dict(bg=BTN_BG, fg=WHITE,  font=(MUI,7,BD), Bd=(1,RA))
+GRY_OFF = dict(bg=GRAY1,  fg=BLACK1, Bd=(1,RA))
+YEL1_ON = dict(bg=YELL1,  fg=BLACK2, Bd=(1,GR))
+YEL2_ON = dict(bg=YELL2,  fg=BLACK2, Bd=(1,SK))
+REF_BTN = dict(bg="#4A7ACC", fg="white",font=(MUI,8,BD), Bd=(1,RA))
+
+CHARGE_BT = dict(bg="#23aa9a", fg="black", Bd=(1,RA), font=(MUI,9,BD))
+AMOUNT_BT = dict(bg="#329af4", fg="black", Bd=(1,RA), font=(MUI,8))
 ROW_H    = 30
 CELL_H   = 26
 HDR_H    = 24
@@ -68,7 +94,7 @@ class OddsWindow(tk.Tk):
         super().__init__()
 
         self.title("")
-        self.geometry("1150x1400+1295+0")  #1220 1400
+        self.geometry("1150x1400+1295+0")
         self.resizable(False, False)
         self.configure(bg=PANEL_BG)
 
@@ -91,6 +117,8 @@ class OddsWindow(tk.Tk):
         self.formation_chks = {}
         self.mustin_vars    = {}
         self.mustin_chks    = {}
+        self.amount_btns    = []
+        self.amount         = {1000:False, 3000:False, 5000:False, 10000:False}
 
         self.formation      = self._new_formation_state()
         self.mustin         = self._new_mustin_state()
@@ -181,63 +209,55 @@ class OddsWindow(tk.Tk):
     #====================== UI 構築 ========================
     def _build_ui(self):
 
-        # ヘッダー
-        tb_L = cFr(self, bg=HDR_BG, height=36) ;tb_L._pack(fill="x", side="top")
-        tb_R = cFr(tb_L, bg=HDR_BG)            ;tb_R._pack(side="right", px=8)
+        root = cFr(self, W=1150, H=1400) ;root._grid(Stk=ALL)
+
+        fr_hedr = cFr(root, W=1150, H=36,   bg=HDR_BG)   ;fr_hedr._grid(R=0, C=0, Stk=ALL)
+        fr_top  = cFr(root, W=1150, H=1035, bg=PANEL_BG)  ;fr_top._grid(R=1, C=0, Stk=ALL)
+        fr_btm  = cFr(root, W=1150, H=360,  bg="#ECEEF5") ;fr_btm._grid(R=2, C=0, Stk=ALL)
+
+        tb_L = cFr(fr_hedr, bg=HDR_BG, W=735, H=30) ;tb_L._grid(R=0, C=0, Stk=ALL, py=3)
+        tb_R = cFr(fr_hedr, bg=HDR_BG, W=415, H=30) ;tb_R._grid(R=0, C=1, Stk=ALL, py=3)
+
+        tb_L.Rconf(0, Min=30)
 
         d     = dt.fromisoformat(self.date).strftime("%Y 年 %#m 月 %#d 日")
         venue = VENUES[self.venue_id]
 
-        self.lbl_title1 = cLbl(tb_L, text=f"   {venue} ",
-                                   bg=HDR_BG, fg=HDR_FG, font=(MUI,10))
-        self.lbl_title1._pack(side="left", py=4, Anc="w")
-        self.lbl_title2 = cLbl( tb_L, text=f"{self.race_no} R    ",
-                                   bg=HDR_BG, fg=HDR_FG, font=(MUI,10))
-        self.lbl_title2._pack(side="left", py=4,Anc="e")
+        self.lbl_title1 = cLbl(tb_L, text=f"{venue}",          **HDR_BF, font=(MUI,8,BD))
+        self.lbl_title1._grid(R=0, C=0, px=8,      Stk=ALL)
+        self.lbl_title2 = cLbl(tb_L, text=f"{self.race_no} R", **HDR_BF, font=(MUI,8,BD))
+        self.lbl_title2._grid(R=0, C=1, px=(5,25), Stk=ALL)
 
         self._race_btns = {}
         for rno in range(1, 13):
-            btn = cBtn(tb_L, text=f"{rno} R", width=5, command=lambda r=rno: self._switch_race(r))
-            btn._pack(side="left", px=2, py=6)
+            tb_L.Cconf(rno+1, Min=48)
+            btn = cBtn(tb_L, W=6, text=f"{rno:2} R", **BTN_OFF, Com=lambda r=rno:self._switch_race(r), px=1)
+            btn._grid(R=0, C=rno+1, px=1, py=(2,0))
             self._race_btns[rno] = btn
         self._update_race_btn_style()
 
-        cBtn( tb_R, text=" 更   新 ", command=self._start_fetch, bg="#4A7ACC", fg="white",
-                   font=(GUI,9,BD), Rel=RA, px=5 )._pack(side="right", px=(10,5), py=3)
-        cLbl(tb_R, text="分", bg=HDR_BG, fg=HDR_FG, font=(MUI,8))._pack(side="right", px=5)
-        tk.Spinbox( tb_R, from_=1, to=10, width=3, textvariable=self.var_int, font=(GUI,9)
-                   ).pack(side="right", padx=(8,0), pady=3)
-        cLbl(tb_R, text="   更新間隔", fg=HDR_FG, font=(MUI,8), bg=HDR_BG)._pack(side="right")
-        self.lbl_next = cLbl(tb_R, text="", bg=HDR_BG, fg="#AADDFF", font=(MUI,9))
-        self.lbl_next._pack(side="right",  px=(0,8))
+        cLbl(tb_R, text="更新間隔", **HDR_BF, font=(MUI,8), Anc="w"   )._grid(R=0, C=0, Stk=ALL, px=3)
+        cSpbx( tb_R, W=3, Jst="right", Frm=1, To=10, Txtv=self.var_int, font=(MUI,8)
+                                                                      )._grid(R=0, C=1, Stk=ALL, py=5)
+        cLbl(tb_R, text="分",       **HDR_BF, font=(MUI,8)            )._grid(R=0, C=2, Stk=ALL, px=2)
+        self.lbl_next = cLbl(tb_R, W=28, text="", bg=HDR_BG, fg="#AADDFF", font=(MUI,9,BD))
+        self.lbl_next._grid(                                                  R=0, C=3, Stk=ALL)
+        cBtn( tb_R, text=" 更 新 ", Com=self._start_fetch, **REF_BTN  )._grid(R=0, C=4, Stk=ALL, py=4)
 
-        pane = tk.PanedWindow(self, orient="vertical", bg=PANEL_BG, sashwidth=5, sashrelief="raised")
-        pane.pack(fill="both", expand=True)
-
-        # オッズグリッド
-        top_frame = cFr(pane, bg=PANEL_BG)
-        pane.add(top_frame, minsize=1035, stretch="always")
-
-        self.canvas_top = cCvs(top_frame, bg=PANEL_BG, highlightthickness=0)
-        self.grid_frame = cFr(self.canvas_top, bg=PANEL_BG)
-        self.canvas_top._pack(fill="both", expand=True)
-        self.canvas_top.create_window((0,0), window=self.grid_frame, anchor="nw")
+        self.grid_frame = cFr(fr_top, W=1150, H=1035, bg=PANEL_BG) ;self.grid_frame._grid(Stk=ALL)
 
         # 下部パネル
-        bot_frame = cFr(pane, bg="#ECEEF5")
-        pane.add(bot_frame, minsize=360, stretch="never")
+        fr_table = cFr(fr_btm, W=500, bg="#ECEEF5", Bd=(1,SD))
+        fr_filtr = cFr(fr_btm, W=250, bg="#883333")
+        fr_ctrl  = cFr(fr_btm, W=400, bg=HDR_BG,    Bd=(1,GR))
 
-        tbl_outer = cFr(bot_frame, bg="#ECEEF5", Bd=(1,SD))
-        ctrl_fr   = cFr(bot_frame, bg=HDR_BG,    Bd=(1,GR), padx=5)
-        filter_fr = cFr(bot_frame, bg="#883333")
+        fr_table._grid(R=0, C=0, px=1, py=2, Stk=ALL)
+        fr_filtr._grid(R=0, C=1, px=1, py=2, Stk=ALL)
+        fr_ctrl._grid( R=0, C=2, px=1, py=2, Stk=ALL)
 
-        tbl_outer._pack(side="left", Exp=True, fill="both", Anc="w", px=1, py=2)
-        filter_fr._pack(side="left", Exp=True, fill="y",    Anc="w", px=1, py=2)
-        ctrl_fr._pack(  side="left", Exp=True, fill="both", Anc="w", px=0, py=2)
-
-        fr_hdr  = cFr(filter_fr, bg=HDR_BG,    Bd=(1,GR))
-        fr_fmt  = cFr(filter_fr, bg="#2A6632", Bd=(1,GR), px=3)
-        fr_must = cFr(filter_fr, bg="#883333", Bd=(1,GR), px=5)
+        fr_hdr  = cFr(fr_filtr, bg=HDR_BG,    Bd=(1,GR))
+        fr_fmt  = cFr(fr_filtr, bg="#2A6632", Bd=(1,GR), px=3)
+        fr_must = cFr(fr_filtr, bg="#883333", Bd=(1,GR), px=5)
 
         fr_hdr._pack( side="top",  fill="x",              Anc=CT)
         fr_fmt._pack( side="left", fill="both", Exp=True, Anc="w")
@@ -288,59 +308,81 @@ class OddsWindow(tk.Tk):
         # CTRLパネル
         opt1 = dict(bg=HDR_BG,    fg=HDR_FG                  )
         opt2 = dict(bg=HDR_BG,    fg="#FFD700", font=(MUI,10))
-        opt3 = dict(bg="#E06020", fg="white",   font=(MUI,10))
-        default = "ーー.ー"
+        opt3 = dict(bg="#E06020", fg="white",   font=(MUI,10), Bd=(1,RA))
 
-        self.lbl_count     = cLbl(ctrl_fr, text="0 点",  **opt1, font=(MUI,11), Anc="e")
-        self.lbl_synth     = cLbl(ctrl_fr, text=default, **opt1, font=(MUI,11))
-        self.ent_equal_bet = cEnt(ctrl_fr, W=8, Jst="right",     font=(MUI,11))
-        self.ent_equal_div = cEnt(ctrl_fr, W=8, Jst="right",     font=(MUI,11))
-        self.low_divid     = cLbl(ctrl_fr, text="",      **opt1, font=(MUI,10))
-        self.high_divid    = cLbl(ctrl_fr, text="",      **opt1, font=(MUI,10))
-        self.low_marjin    = cLbl(ctrl_fr, text="",      **opt1, font=(MUI,10))
-        self.high_marjin   = cLbl(ctrl_fr, text="",      **opt1, font=(MUI,10))
-        self.total_bet     = cLbl(ctrl_fr, text="",      **opt1, font=(MUI,11))
+        fr1 = cFr(fr_ctrl, W=398, H=40, bg=HDR_BG) ;fr1._grid(R=0, C=0, py=5, Stk=ALL)
+        fr2 = cFr(fr_ctrl, W=398, H=40, bg=HDR_BG) ;fr2._grid(R=1, C=0, px=5, py=6, Stk=ALL)
+        fr3 = cFr(fr_ctrl, W=398, H=32, bg=HDR_BG) ;fr3._grid(R=2, C=0, py=2, Stk=ALL)
+        fr4 = cFr(fr_ctrl, W=398, H=32, bg=HDR_BG) ;fr4._grid(R=3, C=0, py=2, Stk=ALL)
+        fr5 = cFr(fr_ctrl, W=398, H=32, bg=HDR_BG) ;fr5._grid(R=4, C=0, px=6, py=2, Stk=ALL)
+        fr6 = cFr(fr_ctrl, W=398, H=32, bg=HDR_BG) ;fr6._grid(R=5, C=0, px=6, py=2, Stk=ALL)
+        fr7 = cFr(fr_ctrl, W=398, H=32, bg=HDR_BG) ;fr7._grid(R=6, C=0, px=6, py=2, Stk=ALL)
+        fr8 = cFr(fr_ctrl, W=398, H=32, bg=HDR_BG) ;fr8._grid(R=7, C=0, px=6, py=2, Stk=ALL)
+
+        self.ent_equal_bet = cEnt(fr3, W= 8, Jst="right",            font=(MUI,9))
+        self.ent_equal_div = cEnt(fr4, W= 8, Jst="right",            font=(MUI,9))
+        self.lbl_count     = cLbl(fr5, W= 7, text="0 点",    **opt1, font=(MUI,10))
+        self.lbl_synth     = cLbl(fr5, W= 7, text="ーー.ー", **opt1, font=(MUI,10))
+        self.low_divid     = cLbl(fr6, W=10, text="",        **opt1, font=(MUI,10))
+        self.high_divid    = cLbl(fr6, W=10, text="",        **opt1, font=(MUI,10))
+        self.low_marjin    = cLbl(fr7, W=10, text="",        **opt1, font=(MUI,10))
+        self.high_marjin   = cLbl(fr7, W=10, text="",        **opt1, font=(MUI,10))
+        self.total_bet     = cLbl(fr8, W=10, text="",        **opt1, font=(MUI,10))
         self.ent_equal_div.insert(1, "")
 
         opt1 |= dict(font=(MUI,10))
+        base = dict(bg=HDR_BG, fg="white", font=(MUI,8))
 
-        cBtn( ctrl_fr, text="クリア", bg="#666688", fg="white", font=(MUI,8), px=10, Rel=RA, Com=self._clear_alloc
-             )._grid(                                             R=0, C=0, py=10, px=10)
-        cBtn( ctrl_fr, text="  購  入  ", bg="yellow", fg="black", font=(MUI,10,BD), Rel=RA, Com=self._open_purchase_dialog
-             )._grid(                                             R=0, C=5, py=10, px=(0,5))
+        cBtn( fr1, W=8, text="クリア", font=(MUI,8), bg="#666688", fg="white", Rel=RA,
+              Com=self._clear_alloc)._grid(          R=0, C=0, px=5, py=8, Stk=ALL)
+        cLbl(fr1, text="残高", **base)._grid(        R=0, C=1, px=(10,0),  Stk=ALL)
+        self.remain = cLbl(fr1, W=9, Anc="e", text="1億", **opt1, px=3, Bd=(1,GR))
+        self.remain._grid(                           R=0, C=2, px=5, py=5, Stk=ALL)
+        cLbl(fr1, text="円", **base, py=6)._grid(          R=0, C=3, px=(0,35),  Stk=ALL)
+        cBtn( fr1, W=8, text="購  入", bg="yellow", fg="black", font=(MUI,9,BD), Rel=RA, py=3,
+              Com=self._open_purchase_dialog)._grid( R=0, C=4, px=2)
 
-        cLbl(ctrl_fr,  text="一律配分",    **opt1)._grid(         R=1, C=0, px=2)
-        self.ent_equal_bet._grid(                        Cspan=2, R=1, C=1, px=(10,0))
-        cLbl(ctrl_fr,  text="00 円",       **opt1, Anc="s")._grid(R=1, C=3)
-        cBtn( ctrl_fr, text="配分実行",    **opt3, px=10, Rel=RA, Com=self._exec_equal_bet
-             )._grid(                                    Cspan=2, R=1, C=4, py=5, px=(40,10))
+        for c, k in enumerate(TRANSFER):
+            btn = cBtn( fr2, W=7, text=f"{k}円", py=4, **AMOUNT_BT,
+                             Com=lambda k=k:self._toggle_amount(k) )
+            btn._grid(R=0, C=c, Stk="ns", px=2)
+            self.amount_btns.append(btn)
+        cBtn(fr2, W=8, text="入 金", py=3, **CHARGE_BT,
+                 Com=self._on_charge())._grid(R=0, C=4, px=(10,0), Stk=ALL)
 
-        cLbl(ctrl_fr,  text="均等配分",    **opt1)._grid(         R=2, C=0, px=2)
-        self.ent_equal_div._grid(                        Cspan=2, R=2, C=1, px=(10,0))
-        cLbl(ctrl_fr,  text="00 円",       **opt1, Anc="s")._grid(R=2, C=3)
-        cBtn( ctrl_fr, text="配分実行",    **opt3, px=10, Rel=RA, Com=self._exec_equal_divide
-             )._grid(                                    Cspan=2, R=2, C=4, py=5, px=(40,10))
+        cLbl(fr3,  text="一律 配分", **base)._grid(R=0, C=0, px=25,       Stk=ALL)
+        self.ent_equal_bet._grid(                 R=0, C=1, px=3, py=6, Stk=ALL)
+        cLbl(fr3,  text="00 円",    **base)._grid(R=0, C=2,             Stk=ALL)
+        cBtn( fr3, W=8, text="配分実行", **opt3, Com=self._exec_equal_bet
+             )._grid(                             R=0, C=3, px=(50,0), py=3, Stk=ALL)
 
-        cLbl(ctrl_fr, text="ベッド 計 :",  **opt2, Anc="w")._grid(R=3, C=0, py=10)
-        self.lbl_count._grid( Stk="w"                            ,R=3, C=1, py=10, px=(8,0))
-        cLbl(ctrl_fr, text="合成オッズ :", **opt2, Anc="w")._grid(R=3, C=2, Cspan=3, py=10, Stk="w")
-        self.lbl_synth._grid(                                     R=3, C=5, py=10, px=(0, 10))
+        cLbl(fr4,  text="均等 配分",**base)._grid(R=0, C=0, px=25,            Stk=ALL)
+        self.ent_equal_div._grid(                R=0, C=1, px=3, py=6,  Stk=ALL)
+        cLbl(fr4,  text="00 円",   **base)._grid(R=0, C=2, Stk="w")
+        cBtn( fr4, W=8, text="配分実行", **opt3, Com=self._exec_equal_divide
+             )._grid(                            R=0, C=3, px=(50,0), py=3, Stk=ALL)
 
-        cLbl(ctrl_fr, text="期待配当 :",   **opt1, Anc="w")._grid(R=4, C=0, py=10)
-        self.low_divid._grid(                            Cspan=2, R=4, C=1, py=10)
-        cLbl( ctrl_fr, text="～",          **opt1, Anc="w")._grid(R=4, C=3, py=10)
-        self.high_divid._grid( Stk="we",                 Cspan=2, R=4, C=4, py=10)
+        cLbl(fr5, text="ベッド 計 :",  **opt2)._grid(R=0, C=0,       Stk=ALL)
+        self.lbl_count._grid(                        R=0, C=1, px=5, Stk=ALL)
+        cLbl(fr5, text="合成オッズ :", **opt2)._grid(R=0, C=2,       Stk=ALL)
+        self.lbl_synth._grid(                        R=0, C=3, px=5, Stk=ALL)
 
-        cLbl(ctrl_fr, text="      差額 :", **opt1, Anc="w")._grid(R=5, C=0, py=10)
-        self.low_marjin._grid(                           Cspan=2, R=5, C=1, py=10)
-        cLbl( ctrl_fr, text="～",          **opt1, Anc="w")._grid(R=5, C=3, py=10)
-        self.high_marjin._grid( Stk="we",                Cspan=2, R=5, C=4, py=10)
+        cLbl(fr6, text="期待 配当 :",   **base)._grid(R=0, C=0, Stk=ALL)
+        self.low_divid._grid(                        R=0, C=1, Stk=ALL)
+        cLbl( fr6, text="～",          **base)._grid(R=0, C=2, Stk=ALL)
+        self.high_divid._grid(                       R=0, C=3, Stk=ALL)
 
-        cLbl(ctrl_fr, text="ベット総額",   **opt1)._grid(         R=6, C=0, px=5)
-        self.total_bet._grid(                            Cspan=3, R=6, C=1, py=20, px=5)
+        cLbl(fr7, text="      差額 :",   **base)._grid(R=0, C=0, Stk=ALL)
+        self.low_marjin._grid(                       R=0, C=1, Stk=ALL)
+        cLbl(fr7, text="～",           **base)._grid(R=0, C=2, Stk=ALL)
+        self.high_marjin._grid(                      R=0, C=3, Stk=ALL)
+
+        cLbl(fr8, text="ベット 総額",   **base)._grid(R=0, C=0,           px=3)
+        self.total_bet._grid(                        R=0, C=1, py=(3,0), px=3)
+
 
         # 選択ベット一覧テーブル
-        hdr_row = cFr(tbl_outer, bg=HDR_BG, height=HDR_H)
+        hdr_row = cFr(fr_table, bg=HDR_BG, height=HDR_H)
         hdr_row._pack(fill="x", side="top")
         hdr_row.pack_propagate(False)
 
@@ -354,7 +396,7 @@ class OddsWindow(tk.Tk):
             cLbl( hdr_row, text=txt, bg=HDR_BG, fg=HDR_FG, font=(GUI,8,BD), Anc=anc
                  )._grid(R=0, C=ci, sticky=ALL)
 
-        scrl_fr = cFr(tbl_outer, bg="#ECEEF5")           ;scrl_fr._pack(fill="both", Exp=True)
+        scrl_fr = cFr(fr_table, bg="#ECEEF5")           ;scrl_fr._pack(fill="both", Exp=True)
         vsb2    = ttk.Scrollbar(scrl_fr, orient="vertical") ;vsb2.pack(fill="y", side="right")
 
         self.tbl_canvas = tk.Canvas(scrl_fr, bg=TBL_BG, yscrollcommand=vsb2.set)
@@ -518,9 +560,9 @@ class OddsWindow(tk.Tk):
 
         for rno, btn in self._race_btns.items():
             if rno == self.race_no:
-                btn.config(bg="#FFD700", fg="#222222", font=(MUI,8,BD), relief=GR)
+                btn.config(bg="#FFD700", fg="#222222", font=(MUI,7,BD), relief=GR)
             else:
-                btn.config(bg="#4A6A9A", fg="#FFFFFF", font=(MUI,8,BD), relief=RA)
+                btn.config(bg="#4A6A9A", fg="#FFFFFF", font=(MUI,7,BD), relief=RA)
 
     #-------------------- レース切替 -----------------------
     def _switch_race(self, race_no:int):
@@ -534,8 +576,8 @@ class OddsWindow(tk.Tk):
         if hasattr(self, "sub_pannel_widgets"): self.sub_pannel_widgets.clear()
 
 
-        self.lbl_title1.config(text=f"   {VENUES[self.venue_id]}   ")
-        self.lbl_title2.config(text=f"{self.race_no} R    ")
+        self.lbl_title1.config(text=f"{VENUES[self.venue_id]}")
+        self.lbl_title2.config(text=f"{self.race_no} R")
         self._update_race_btn_style()
         self._fetch_Players(self.date, self.venue_id, self.race_no)
         self.selected.clear()
@@ -659,7 +701,7 @@ class OddsWindow(tk.Tk):
 
         blk_R = cFr(self.grid_frame, bg=PANEL_BG)
         blk_R._grid(R=0, C=1, Rspan=2, Stk="nw", px=0, py=0)
-
+        blk_R.grid_propagate(True)
         # 2連単
         blk3 = cFr(blk_R, bg=PANEL_BG, Bd=(1,GR))
         blk3._grid(R=0, C=0, Stk="nw", px=(25,0), py=(10,5))
@@ -676,6 +718,7 @@ class OddsWindow(tk.Tk):
 
         self.sub_pannel = cFr(blk_R, bg=PANEL_BG)
         self.sub_pannel._grid(R=1, C=0, Cspan=2, Stk=ALL, px=(10,0), py=(0,2))
+        self.sub_pannel.grid_propagate(True)
         self.sub_pannel.Cconf(0, Min=30) ;self.sub_pannel.Rconf(0, Min=30)
         self.sub_pannel.Cconf(1, Min=15) ;self.sub_pannel.Rconf(1, Min=30)
         self.sub_pannel.Cconf(2, Min=35) ;self.sub_pannel.Rconf(2, Min=30)
@@ -1318,6 +1361,16 @@ class OddsWindow(tk.Tk):
         out = dal.fetch_one(sql, (date, venue_id, race_no))
 
         return out
+
+    # ----------------------------------
+    def _on_charge(self):
+
+        pass
+
+    # ----------------------------------
+    def _toggle_amount(self, k):
+
+        pass
 
     # ======================== 購入ダイアログ ========================
     def _open_purchase_dialog(self):

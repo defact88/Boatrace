@@ -64,17 +64,20 @@ class LaneCenterManager:
             rbtn = cLbl(fr, W=6, text=f"{rnk} 着", font=(GUI,8,BD), **HDR_OFF, Csr="hand2")
             rbtn.bind("<Button-1>",lambda e, r=rnk: self._toggle_subject_rank(r))
             rbtn._grid(R=0, C=rnk, Stk=ALL)
+            rbtn.grid_propagate(True)
             self.dist_refs["rank_btn"][rnk] = rbtn
 
         for cou in range(1, 7):
             cbtn = cBtn(fr, W=1, text=f"{cou} コース", font=(MUI,7,BD), **HDR_OFF, Csr="hand2",
                                   Com=lambda c=cou: self._on_subject_course_btn(c) )
             cbtn._grid(R=cou, C=0, Stk=ALL)
+            cbtn.grid_propagate(True)
             self.dist_refs["course_btn"][cou] = cbtn
 
             for rnk in range(1, 4):
                 cell = cFr(fr, W=5)
                 cell._grid(R=cou, C=rnk, Stk=ALL)
+                cell.grid_propagate(True)
                 cv   = cCvs(cell, W=49, H=22, Bd=(1,RD)) ;cv.place(x=-2, y=-2)
                 self.dist_refs["cells"][(cou, rnk)] = cv
 
@@ -86,6 +89,7 @@ class LaneCenterManager:
                 bg   = BLANK_C if row >= 2 and col == 0 else "white"
                 cell = cLbl(fr, W=4, text="", bg=bg, Anc=CT, Bd=(1,RD))
                 cell._grid(R=row, C=col+4, Stk=ALL)
+                cell.grid_propagate(True)
                 self.dist_refs["move_cells"][(row, label)] = cell
 
     #-------------------------------------------------------

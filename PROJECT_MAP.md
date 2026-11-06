@@ -67,7 +67,7 @@ boatrace/
       ev_scanner.py/
           evaluate_ev                # 予想ｴﾝｼﾞﾝ（未完成）
           persist_odds_snapshot      # oddsﾃﾞｰﾀ挿入, evaluate_evのﾗｯﾊﾟｰ
-      brouse_race_replay.py          # ﾌﾞﾗｳｻﾞで指定のﾚｰｽﾘﾌﾟﾚｲを再生
+      brouse_race.py          # ﾌﾞﾗｳｻﾞで指定のﾚｰｽﾘﾌﾟﾚｲを再生
 
     Widgets/
       widgets.py/

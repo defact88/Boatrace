@@ -125,7 +125,7 @@ class App(tk.Tk):
 
         self.protocol("WM_DELETE_WINDOW", self._on_close)
         self.title(APP_TITLE)
-        self.minsize(500, 400)
+        self.resizable(False, False)
         self.configure(bg=MAIN_BG)
 
         self._summ_proc   = None

@@ -8,16 +8,15 @@ from datetime import datetime as dt, date, time, timedelta, timezone
 from pathlib  import Path
 
 import Dal as dal
-
-from Helpers.build_rows       import query_program, make_rows, make_sub_rows
-from Helpers.queries          import Query
-from Helpers.build_series_idx import update_series_idx, build_day_lbl
-from Helpers.Custum_func      import cFr, cLbl, cBtn
-from Widgets.center_widgets   import framing_center_widgets
-from Widgets.placeholder      import build_main_placeholder, build_sub_placeholder
-from Widgets.widgets          import ( framing_graph, framing_figure, framing_weather,
-                                       reset_absent_bg, apply_absent_bg, set_player_image, )
-
+from queries          import Query
+from Custum_func      import cFr, cLbl, cBtn
+from placeholder      import build_main_placeholder, build_sub_placeholder
+from build_rows       import query_program, make_rows, make_sub_rows
+from build_series_idx import update_series_idx, build_day_lbl
+from center_widgets   import framing_center_widgets
+from widgets          import ( framing_graph, framing_figure, framing_weather,
+                               reset_absent_bg, apply_absent_bg, set_player_image, )
+from brouse_play      import brouse_live, brouse_replay, brouse_tenji
 # ====================================================================
 APP_TITLE = ""
 
@@ -73,6 +72,7 @@ BLACK1  = "#000000"
 BLACK2  = "#222222"
 BLUE    = "#0001da"
 LIT_RED = "#ff5b5b"
+PURPLE  = "#b050d0"
 
 HDR_B   = dict(bg=HDR_BG)
 HDR_BF  = dict(bg=HDR_BG, fg=WHITE)
@@ -81,7 +81,7 @@ BTN_OFF = dict(bg=BTN_BG, fg=WHITE,  Bd=(1,RA))
 GRY_OFF = dict(bg=GRAY1,  fg=BLACK1, Bd=(1,RA))
 YEL1_ON = dict(bg=YELL1,  fg=BLACK2, Bd=(1,GR))
 YEL2_ON = dict(bg=YELL2,  fg=BLACK2, Bd=(1,SK))
-
+BROUSE  = dict(bg=PURPLE, fg=WHITE,  Bd=(1,RA))
 # ===========  共通ヘルパー  ===========
 def today_iso() -> str:
 
@@ -167,44 +167,54 @@ class RaceWindow(tk.Toplevel):
         root  = cFr(self, W=1220, H=1400, px=10) ;root._grid(R=0, C=0) ;root.Pgate()
         top   = cFr(root, W=1200, H=  60)         ;top._grid(R=0, C=0)  ;top.Pgate()
         # Header =============
-        hedr1 = cFr(top, W=400, H=30, **HDR_B) ;hedr1._grid(R=0, C=0, Stk=ALL) ;hedr1.Pgate()
-        hedr2 = cFr(top, W=400, H=30, **HDR_B) ;hedr2._grid(R=1, C=0, Stk=ALL) ;hedr2.Pgate()
+        hedr1 = cFr(top, W=360, H=30, **HDR_B) ;hedr1._grid(R=0, C=0, Stk=ALL) ;hedr1.Pgate()
+        hedr2 = cFr(top, W=360, H=30, **HDR_B) ;hedr2._grid(R=1, C=0, Stk=ALL) ;hedr2.Pgate()
 
-        btns1 = cFr(top, W=730, H=30, **HDR_B) ;btns1._grid(R=0, C=1, Stk=ALL) ;btns1.Pgate()
-        btns2 = cFr(top, W=730, H=30, **HDR_B) ;btns2._grid(R=1, C=1, Stk=ALL) ;btns2.Pgate()
+        btns1 = cFr(top, W=655, H=30, **HDR_B) ;btns1._grid(R=0, C=1, Stk=ALL) ;btns1.Pgate()
+        btns2 = cFr(top, W=655, H=30, **HDR_B) ;btns2._grid(R=1, C=1, Stk=ALL) ;btns2.Pgate()
 
-        btns3 = cFr(top, W= 70, H=60, **HDR_B) ;btns3._grid(R=0, C=2, Rspan=2, Stk=ALL) ;btns3.Pgate()
+        btns3 = cFr(top, W=185, H=60, **HDR_B) ;btns3._grid(R=0, C=2, Rspan=2, Stk=ALL) ;btns3.Pgate()
 
         hedr1.Cconf(0, Min= 40) ;hedr1.Rconf(0, Min=30)
-        hedr1.Cconf(1, Min=305)
+        hedr1.Cconf(1, Min=265) ;hedr1.Rconf(1, Min=30)
         hedr1.Cconf(2, Min= 55)
         hedr2.Cconf(0, Min= 70) ;hedr2.Rconf(0, Min=30)
-        hedr2.Cconf(1, Min= 60)
-        hedr2.Cconf(2, Min= 40)
-        hedr2.Cconf(3, Min=125)
-        hedr2.Cconf(4, Min=105)
+        hedr2.Cconf(1, Min= 60) ;hedr2.Rconf(1, Min=30)
+        hedr2.Cconf(2, Min=125)
+        hedr2.Cconf(3, Min=105)
+        btns3.Cconf(0, Min= 55) ;btns3.Rconf(0, Min= 30)
+        btns3.Cconf(1, Min= 60) ;btns3.Rconf(1, Min= 30)
+        btns3.Cconf(2, Min= 70)
 
         self.lb_1A = cLbl(hedr1, font=(MUI,9,BD), **HDR_BF); self.lb_1A._grid(R=0, C=0, py=(5,0))
         self.lb_1B = cLbl(hedr1, font=(MUI,9,BD), **HDR_BF); self.lb_1B._grid(R=0, C=1, py=(5,0))
         self.lb_1C = cLbl(hedr1, font=(MUI,9,BD), **HDR_BF); self.lb_1C._grid(R=0, C=2, py=(5,0))
-        self.lb_2A = cLbl(hedr2, font=(MUI,8),    **HDR_BF); self.lb_2A._grid(R=0, C=0, py=(0,3))
-        self.lb_2B = cLbl(hedr2, font=(MUI,8,BD), **HDR_BF); self.lb_2B._grid(R=0, C=1, py=(0,2))
-        self.lb_2C = cLbl(hedr2, font=(MUI,9,BD), **HDR_BF); self.lb_2C._grid(R=0, C=2, py=(0,2))
-        self.lb_2D = cLbl(hedr2, font=(MUI,8)   , **HDR_BF); self.lb_2D._grid(R=0, C=3, py=(0,3))
-        self.lb_2E = cLbl(hedr2, font=(MUI,8),    **HDR_BF); self.lb_2E._grid(R=0, C=4, py=(0,3))
+        self.lb_2A = cLbl(hedr2, font=(MUI,9),    **HDR_BF); self.lb_2A._grid(R=0, C=0, py=(0,3))
+        self.lb_2B = cLbl(hedr2, font=(MUI,9,BD), **HDR_BF); self.lb_2B._grid(R=0, C=1, py=(0,2))
+        self.lb_2C = cLbl(hedr2, font=(MUI,9,BD), **HDR_BF); self.lb_2C._grid(R=0, C=2, py=(0,3))
+        self.lb_2D = cLbl(hedr2, font=(MUI,9,BD), **HDR_BF); self.lb_2D._grid(R=0, C=3, py=(0,3))
 
         self._mk_day_buttons (btns1)
         self._mk_race_buttons(btns2)
 
         opt = YEL2_ON if self.sub_window[0] else GRY_OFF
 
+        self.bt_play_tenji = cBtn( btns3, W=7, text="展示Ｒep",      font=(MUI,7,BD), px=2,
+                                   **BROUSE, Com=lambda:self._go_tenji()                   )
+        self.bt_play_reply = cBtn( btns3, W=7, text="Ｒｅplay",      font=(MUI,7,BD), px=2,
+                                   **BROUSE, Com=lambda:self._go_replay()                   )
+        self.bt_play_live  = cBtn( btns3, W=7, text=" Lⅰｖｅ",      font=(MUI,7,BD), px=2,
+                                   **BROUSE, Com=lambda:brouse_live(d_iso, venue_id)        )
         self.bt_change_sub = cBtn( btns3, W=8, text=" SUB 切替 ",    font=(MUI,7,BD), px=3,
-                                   **BTN_OFF, Com=lambda:self._change_sub_window() )
+                                   **BTN_OFF, Com=lambda:self._change_sub_window()          )
         self.bt_toggle_sub = cBtn( btns3, W=8, text=w_txt(" ODDS "), font=(MUI,7),    px=3,
-                                   **opt, Com=lambda:self._toggle_sub_window(d_iso, venue_id, 1) )
+                                   **opt, Com=lambda:self._toggle_sub_window(d_iso,venue_id,1) )
 
-        self.bt_change_sub._grid(R=0, C=0, py=(7,0), Stk="w")
-        self.bt_toggle_sub._grid(R=1, C=0, py=(5,0), Stk="w")
+        self.bt_play_tenji._grid(R=0, C=0, py=(3,0), Stk="w")
+        self.bt_play_reply._grid(R=0, C=1, py=(3,0), Stk="w")
+        self.bt_play_live._grid( R=1, C=1, py=(0,2), Stk="w")
+        self.bt_change_sub._grid(R=0, C=2, py=(3,0), px=(0,4), Stk="e")
+        self.bt_toggle_sub._grid(R=1, C=2, py=(0,2), px=(0,4), Stk="e")
 
         # Body(Main/Sub)======
         body = cFr(root, W=1200, H=1340); body._grid(R=1, C=0, Cspan=2); body.Pgate()
@@ -461,9 +471,8 @@ class RaceWindow(tk.Toplevel):
         self.lb_1C.config(text=f"{prg['day_no']}日目   ")
         self.lb_2A.config(text=f"  {d.month} 月 {d.day} 日")
         self.lb_2B.config(text=f"  {prg['vname']}")
-        self.lb_2C.config(text=f"{self.race_no}R")
-        self.lb_2D.config(text=f"{prg['race_title'].strip()}")
-        self.lb_2E.config(text=f"締切  {prg['deadline'].strftime('%H：%M')}")
+        self.lb_2C.config(text=f"{prg['race_title'].strip()}")
+        self.lb_2D.config(text=f"締切  {prg['deadline'].strftime('%H：%M')}")
 
     #-------------- widgets_Main 表示/更新 -----------------
     def _update_main_entries(self):
@@ -640,9 +649,9 @@ class RaceWindow(tk.Toplevel):
         lap     = row[0]["shlp"]
         m_pas   = ( to_date(self.date).month -int(prg["upd_m"]) )%12
         b_pas   = ( to_date(self.date).month -int(prg["upd_b"]) )%12
-        vname   = "　 ".join(prg["vname"]) if len(prg["vname"]) < 3 else  prg["vname"]
+        vname   = "　".join(prg["vname"]) if len(prg["vname"]) < 3 else  prg["vname"]
 
-        wdg_hdr["venue"].config(text=f"BR  {vname}  {'　'.join(prg['w_typ'])} ")
+        wdg_hdr["venue"]._config(Txt=f"BR {vname} {'　'.join(prg['w_typ'])}", Jst=tk.CENTER)
         wdg_hdr["upd_m"].config(text=f"{m_pas:2} ヶ月")
         wdg_hdr["upd_b"].config(text=f"{b_pas:2} ヶ月")
         wdg_hdr["wspd" ].config(text=f"風 速  {wspd}  m", fg="red" if wspd >=5 else "white", **HDR_B)
@@ -705,6 +714,16 @@ class RaceWindow(tk.Toplevel):
 
             framing_figure(self, self.widgets_sub[0]["Fig_B"], order, rowB=rowB)
             framing_weather(self, self.widgets_sub[0]["wthr"], self.widgets_sub[0]["wdir"], row)
+
+    #-------------------------------------------------------
+    def _go_replay(self):
+
+        brouse_replay(self.date, self.venue_id, self.race_no)
+
+    #-------------------------------------------------------
+    def _go_tenji(self):
+
+        brouse_tenji(self.date, self.venue_id, self.race_no)
 
     # --------------- ウィンドウ終了処理 -------------------
     def _on_rw_close(self):
